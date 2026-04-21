@@ -33,7 +33,7 @@ export default function Login() {
     setError(null);
     try {
       await signInWithGoogle();
-      // O redirecionamento acontece via popup e listener
+      // O redirecionamento nativo do Supabase assumirá o controle
     } catch (err: any) {
       setError(err.message);
       setLoading(false);

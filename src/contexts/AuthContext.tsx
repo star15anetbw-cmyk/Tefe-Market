@@ -171,48 +171,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw new Error(mapAuthError(error));
     },
     signInWithGoogle: async () => {
-      const redirectUrl = `${window.location.origin}/auth-callback.html`;
-      console.log('Iniciando Google Login com redirect:', redirectUrl);
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          skipBrowserRedirect: true,
-          redirectTo: redirectUrl
+          redirectTo: window.location.origin
         }
       });
 
-      if (error) throw new Error('Erro ao iniciar login com Google: ' + error.message);
-      if (!data.url) throw new Error('Falha ao obter URL de autenticação');
-
-      const width = 600;
-      const height = 700;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-
-      const authWindow = window.open(
-        data.url,
-        'supabase_auth_popup',
-        `width=${width},height=${height},left=${left},top=${top}`
-      );
-
-      if (!authWindow) {
-        throw new Error('O popup foi bloqueado pelo navegador. Por favor, permita popups para este site.');
+      if (error) {
+        throw new Error('Erro ao iniciar login com Google: ' + error.message);
       }
-
-      // Sincroniza o estado manualmente se o popup fechar
-      const timer = setInterval(() => {
-        if (authWindow.closed) {
-          clearInterval(timer);
-          // O onAuthStateChange deve pegar a mudança, mas forçamos um getSession por segurança
-          supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-              setSession(session);
-              setUser(session.user);
-            }
-          });
-        }
-      }, 1000);
     }
   };
 
