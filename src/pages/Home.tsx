@@ -128,6 +128,20 @@ export default function Home() {
   const featuredAds = isDefaultView ? ads.slice(0, 2) : [];
   const mainAds = isDefaultView ? ads.slice(2) : ads;
 
+  // Logs temporários para depuração de renderização
+  useEffect(() => {
+    if (ads.length > 0 || totalCount > 0) {
+      console.log('HOME_RENDER_DEBUG:', {
+        totalCount: totalCount,
+        adsLength: ads.length,
+        featuredLength: featuredAds.length,
+        mainLength: mainAds.length,
+        isDefaultView: isDefaultView,
+        searchQuery: filters.search
+      });
+    }
+  }, [ads, featuredAds, mainAds, isDefaultView, totalCount, filters.search]);
+
   return (
     <div className="flex flex-col min-h-screen bg-bg-main">
       {/* Header Section (Branded) */}
@@ -326,8 +340,8 @@ export default function Home() {
                     {mainAds.map((ad, idx) => (
                       <motion.div
                         key={ad.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: idx * 0.05 }}
                       >
                         <AdCard ad={ad} />
@@ -335,8 +349,8 @@ export default function Home() {
                     ))}
                   </div>
                 ) : (
-                  /* Caso mainAds esteja vazio mas ads não (acontece se todos os ads couberam no destaque) */
-                  !featuredAds.length && (
+                  /* Fallback se mainAds estiver vazio mas ads existirem (estão nos destaques) */
+                  featuredAds.length === 0 && (
                     <div className="py-20 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
                       <p className="text-gray-400 text-xs font-black uppercase tracking-widest">Nenhum anúncio encontrado nesta seção</p>
                     </div>
