@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { fetchAds } from '../services/ads';
 import { Ad, AdFilter } from '../types';
 import AdCard from '../components/AdCard';
@@ -38,6 +38,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function Home() {
+  const navigate = useNavigate();
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -97,19 +98,23 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [filters.search, filters.category, filters.type, filters.sortBy, filters.condition]);
 
-  // Handle manual search button click
+  // Redireciona para a página de busca ao submeter
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    loadAds(true);
+    const searchTerm = filters.search.trim();
+    if (searchTerm) {
+      navigate(`/buscar?search=${encodeURIComponent(searchTerm)}`);
+    } else {
+      loadAds(true);
+    }
   };
 
-  // Featured ads logic: only show highlights if we are on the first page of "Recent" results with no active search/category filter
-  const featuredAds = (filters.sortBy === 'recent' && !filters.search && filters.category === 'Todos' && page === 0) 
-    ? ads.slice(0, 2) 
-    : [];
+  // Lógica de separação: Destaques vs Lista Principal
+  // Só mostramos destaques na visualização padrão (sem busca, sem categoria e na primeira página)
+  const isDefaultView = !filters.search && filters.category === 'Todos' && page === 0 && filters.sortBy === 'recent';
   
-  // To avoid empty main list when we only have 1-2 ads overall, we only slice if ads.length > 2
-  const mainAds = (featuredAds.length > 0 && ads.length > 2) ? ads.slice(2) : ads;
+  const featuredAds = isDefaultView ? ads.slice(0, 2) : [];
+  const mainAds = isDefaultView ? ads.slice(2) : ads;
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-main">
@@ -303,6 +308,7 @@ export default function Home() {
               </div>
             ) : ads.length > 0 ? (
               <div className="space-y-12">
+                {/* Seção Principal de Cards */}
                 {mainAds.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                     {mainAds.map((ad, idx) => (
@@ -316,10 +322,13 @@ export default function Home() {
                       </motion.div>
                     ))}
                   </div>
-                ) : featuredAds.length === 0 && (
-                  <div className="py-20 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                    <p className="text-gray-400 text-xs font-black uppercase tracking-widest">Nenhum anúncio nesta seção</p>
-                  </div>
+                ) : (
+                  /* Caso mainAds esteja vazio mas ads não (acontece se todos os ads couberam no destaque) */
+                  !featuredAds.length && (
+                    <div className="py-20 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                      <p className="text-gray-400 text-xs font-black uppercase tracking-widest">Nenhum anúncio encontrado nesta seção</p>
+                    </div>
+                  )
                 )}
 
                 {/* Load More Button */}

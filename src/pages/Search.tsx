@@ -1,23 +1,33 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { fetchAds } from '../services/ads';
 import { Ad, AdFilter } from '../types';
 import AdCard from '../components/AdCard';
-import { Search as SearchIcon, Filter, X, MapPin } from 'lucide-react';
-import { CATEGORIES, NEIGHBORHOODS } from '../constants';
+import { Search as SearchIcon, Filter, MapPin } from 'lucide-react';
+import { CATEGORIES } from '../constants';
 import Button from '../components/ui/Button';
 import { cn } from '../lib/utils';
-import { Link } from 'react-router-dom';
 
 export default function Search() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryTerm = searchParams.get('search') || '';
+
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<AdFilter>({
-    search: '',
+    search: queryTerm,
     category: 'Todos',
     type: 'all',
     condition: 'all'
   });
+
+  // Sincroniza o filtro com a URL se a URL mudar (ex: digitou na Home e veio pra cá)
+  useEffect(() => {
+    if (queryTerm && queryTerm !== filters.search) {
+      setFilters(prev => ({ ...prev, search: queryTerm }));
+    }
+  }, [queryTerm]);
 
   const loadAds = async () => {
     setLoading(true);
@@ -47,7 +57,15 @@ export default function Search() {
                 placeholder="O que você procura em Tefé?"
                 className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-primary outline-none transition-all"
                 value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                onChange={(e) => {
+                  const newSearch = e.target.value;
+                  setFilters({ ...filters, search: newSearch });
+                  if (!newSearch) {
+                    setSearchParams({});
+                  } else {
+                    setSearchParams({ search: newSearch });
+                  }
+                }}
               />
             </div>
             <button 
@@ -139,7 +157,7 @@ export default function Search() {
             ))}
           </div>
         ) : ads.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {ads.map(ad => (
               <AdCard key={ad.id} ad={ad} />
             ))}
@@ -150,7 +168,10 @@ export default function Search() {
             <Button 
               variant="outline" 
               className="mt-4"
-              onClick={() => setFilters({ search: '', category: 'Todos', type: 'all', condition: 'all' })}
+              onClick={() => {
+                setFilters({ search: '', category: 'Todos', type: 'all', condition: 'all' });
+                setSearchParams({});
+              }}
             >
               Limpar Filtros
             </Button>
