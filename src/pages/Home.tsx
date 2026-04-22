@@ -104,11 +104,10 @@ export default function Home() {
   }, [filters, page]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      loadAds(true);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [filters.search, filters.category, filters.type, filters.sortBy, filters.condition]);
+    // A Home só carrega anúncios baseados em filtros de categoria/tipo/ordem
+    // A busca textual agora é tratada apenas pelo redirecionamento no handleSearch
+    loadAds(true);
+  }, [filters.category, filters.type, filters.sortBy, filters.condition]);
 
   // Redireciona para a página de busca ao submeter
   const handleSearch = (e?: React.FormEvent) => {
@@ -116,14 +115,12 @@ export default function Home() {
     const searchTerm = filters.search.trim();
     if (searchTerm) {
       navigate(`/buscar?search=${encodeURIComponent(searchTerm)}`);
-    } else {
-      loadAds(true);
     }
   };
 
   // Lógica de separação: Destaques vs Lista Principal
-  // Só mostramos destaques na visualização padrão (sem busca, sem categoria e na primeira página)
-  const isDefaultView = !filters.search && filters.category === 'Todos' && page === 0 && filters.sortBy === 'recent';
+  // A Home não mostra resultados de busca textual, apenas filtros globais
+  const isDefaultView = filters.category === 'Todos' && page === 0 && filters.sortBy === 'recent';
   
   const featuredAds = isDefaultView ? ads.slice(0, 2) : [];
   const mainAds = isDefaultView ? ads.slice(2) : ads;
