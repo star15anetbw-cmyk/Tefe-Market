@@ -55,6 +55,10 @@ export default function Home() {
   });
 
   const loadAds = useCallback(async (isInitial = true) => {
+    if (filters.search) {
+      console.log('Home: Disparando busca por:', filters.search);
+    }
+    
     if (isInitial) {
       setLoading(true);
     } else {

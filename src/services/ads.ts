@@ -14,7 +14,9 @@ export async function fetchAds(filter: Partial<AdFilter> = {}) {
   if (filter.search) {
     const s = filter.search.trim();
     if (s) {
-      query = query.or(`title.ilike.%${s}%,description.ilike.%${s}%,neighborhood.ilike.%${s}%`);
+      console.info('fetchAds: Pesquisando por:', s);
+      // Envolvemos o padrão em aspas duplas para suportar espaços e caracteres especiais no PostgREST
+      query = query.or(`title.ilike."%${s}%",description.ilike."%${s}%",neighborhood.ilike."%${s}%"`);
     }
   }
 
