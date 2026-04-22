@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { fetchAds } from '../services/ads';
 import { Ad, AdFilter } from '../types';
@@ -46,6 +46,7 @@ export default function Home() {
   const [totalCount, setTotalCount] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
+  const requestRef = useRef(0);
   
   const [filters, setFilters] = useState<AdFilter>({
     search: '',
@@ -56,38 +57,49 @@ export default function Home() {
   });
 
   const loadAds = useCallback(async (isInitial = true) => {
-    if (filters.search) {
-      console.log('Home: Disparando busca por:', filters.search);
-    }
+    const requestId = ++requestRef.current;
     
     if (isInitial) {
       setLoading(true);
+      setError(null);
+      setAds([]); // Limpa a lista atual para nova busca
+      setPage(0);
     } else {
       setLoadingMore(true);
     }
     
-    setError(null);
-    
     try {
-      const currentPage = isInitial ? 0 : page + 1;
-      const result = await fetchAds({ ...filters, page: currentPage, pageSize: 12 });
+      // Determinamos a página alvo antes da query
+      const targetPage = isInitial ? 0 : page + 1;
+      
+      const result = await fetchAds({ 
+        ...filters, 
+        page: targetPage, 
+        pageSize: 12 
+      });
+      
+      // Proteção contra Race Condition: se uma nova busca começou, ignoramos esta resposta
+      if (requestId !== requestRef.current) return;
       
       if (isInitial) {
         setAds(result.ads);
-        setPage(0);
+        setPage(0); // Resetamos o contador de página
       } else {
         setAds(prev => [...prev, ...result.ads]);
-        setPage(currentPage);
+        setPage(targetPage);
       }
       
       setTotalCount(result.totalCount);
       setHasMore(result.hasMore);
     } catch (err: any) {
+      if (requestId !== requestRef.current) return;
       console.error('Error loading ads:', err);
       setError(err.message || 'Não foi possível carregar os anúncios.');
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (requestId === requestRef.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, [filters, page]);
 
