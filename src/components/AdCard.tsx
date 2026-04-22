@@ -16,6 +16,7 @@ interface AdCardProps {
 export default function AdCard({ ad, featured = false }: AdCardProps) {
   const { user } = useAuth();
   const [isFavorited, setIsFavorited] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
   
   // Encontrar a imagem principal ou usar a primeira disponível
   const mainImage = ad.ad_images?.find(img => img.is_primary)?.image_url || 
@@ -31,15 +32,19 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) return;
+    if (!user || isToggling) return;
 
     try {
-      const newState = !isFavorited;
-      setIsFavorited(newState);
-      await toggleFavorite(user.id, ad.id, isFavorited);
+      setIsToggling(true);
+      const previousState = isFavorited;
+      setIsFavorited(!previousState);
+      await toggleFavorite(user.id, ad.id, previousState);
     } catch (err) {
       console.error('Error toggling favorite:', err);
-      setIsFavorited(isFavorited); // revert on error
+      // Revert on error
+      checkIsFavorited(user.id, ad.id).then(setIsFavorited);
+    } finally {
+      setIsToggling(false);
     }
   };
 

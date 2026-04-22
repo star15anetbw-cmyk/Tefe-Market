@@ -1,18 +1,27 @@
 import { supabase } from '../lib/supabase';
 import { Favorite } from '../types';
 
-export const toggleFavorite = async (userId: string, adId: string, isFavorited: boolean) => {
-  if (isFavorited) {
+export const toggleFavorite = async (userId: string, adId: string, isCurrentlyFavorited: boolean) => {
+  if (isCurrentlyFavorited) {
     const { error } = await supabase
       .from('favorites')
       .delete()
-      .match({ user_id: userId, ad_id: adId });
-    if (error) throw error;
+      .eq('user_id', userId)
+      .eq('ad_id', adId);
+    
+    if (error) {
+      console.error('Error removing from favorites:', error);
+      throw error;
+    }
   } else {
     const { error } = await supabase
       .from('favorites')
       .insert({ user_id: userId, ad_id: adId });
-    if (error) throw error;
+    
+    if (error) {
+      console.error('Error adding to favorites:', error);
+      throw error;
+    }
   }
 };
 

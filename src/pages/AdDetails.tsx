@@ -15,6 +15,7 @@ export default function AdDetails() {
   const [ad, setAd] = useState<Ad | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
@@ -44,13 +45,19 @@ export default function AdDetails() {
       return;
     }
 
+    if (isToggling) return;
+
     try {
-      const newState = !isFavorited;
-      setIsFavorited(newState);
-      await toggleFavorite(user.id, ad.id, isFavorited);
+      setIsToggling(true);
+      const previousState = isFavorited;
+      setIsFavorited(!previousState);
+      await toggleFavorite(user.id, ad.id, previousState);
     } catch (err) {
       console.error('Error toggling favorite:', err);
-      setIsFavorited(isFavorited);
+      // Revert on error
+      checkIsFavorited(user.id, ad.id).then(setIsFavorited);
+    } finally {
+      setIsToggling(false);
     }
   };
 

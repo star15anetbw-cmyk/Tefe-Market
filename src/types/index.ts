@@ -46,11 +46,16 @@ export interface AdImage {
   created_at?: string;
 }
 
+export type AdSortBy = 'recent' | 'price_asc' | 'price_desc';
+
 export interface AdFilter {
   search: string;
   category: string;
   type: AdType | 'all';
   condition: AdCondition | 'all';
+  sortBy?: AdSortBy;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface Favorite {

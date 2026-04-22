@@ -91,11 +91,20 @@ BEGIN
     INSERT INTO public.profiles (id, name, whatsapp, neighborhood)
     VALUES (
         NEW.id,
-        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', 'Usuário'),
-        NEW.raw_user_meta_data->>'whatsapp',
-        NEW.raw_user_meta_data->>'neighborhood'
-    );
+        COALESCE(
+            NEW.raw_user_meta_data->>'full_name', 
+            NEW.raw_user_meta_data->>'name', 
+            'Usuário ' || split_part(NEW.email, '@', 1)
+        ),
+        COALESCE(NEW.raw_user_meta_data->>'whatsapp', ''),
+        COALESCE(NEW.raw_user_meta_data->>'neighborhood', 'Tefé')
+    )
+    ON CONFLICT (id) DO NOTHING;
     RETURN NEW;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Logar o erro se possível ou apenas ignorar para não travar o login do auth
+        RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

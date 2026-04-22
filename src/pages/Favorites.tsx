@@ -11,6 +11,7 @@ export default function Favorites() {
   const { user } = useAuth();
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,10 +25,13 @@ export default function Favorites() {
   const loadFavorites = async () => {
     if (!user) return;
     try {
+      setLoading(true);
+      setError(null);
       const data = await fetchFavorites(user.id);
       setFavorites(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading favorites:', err);
+      setError(err.message || 'Não foi possível carregar seus favoritos.');
     } finally {
       setLoading(false);
     }
@@ -37,6 +41,17 @@ export default function Favorites() {
     <div className="flex flex-col items-center justify-center h-[60vh]">
       <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
       <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Carregando favoritos...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+      <div className="bg-red-50 text-red-500 p-8 rounded-[2rem] inline-block mb-6">
+        <Heart className="w-12 h-12" />
+      </div>
+      <h2 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Ops! Algo deu errado</h2>
+      <p className="text-gray-500 mb-8">{error}</p>
+      <Button onClick={loadFavorites} className="rounded-2xl px-10">Tentar Novamente</Button>
     </div>
   );
 

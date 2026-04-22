@@ -2,14 +2,20 @@ import { supabase } from '../lib/supabase';
 import { Ad, AdFilter, AdStatus } from '../types';
 
 export async function fetchAds(filter: Partial<AdFilter> = {}) {
+  const pageSize = filter.pageSize || 12;
+  const page = filter.page || 0;
+  
   let query = supabase
     .from('ads')
-    .select('*, ad_images(*)')
-    .eq('status', 'active')
-    .order('created_at', { ascending: false });
+    .select('*, ad_images(*)', { count: 'exact' })
+    .eq('status', 'active');
 
+  // Filtros
   if (filter.search) {
-    query = query.or(`title.ilike.%${filter.search}%,description.ilike.%${filter.search}%`);
+    const s = filter.search.trim();
+    if (s) {
+      query = query.or(`title.ilike.%${s}%,description.ilike.%${s}%,neighborhood.ilike.%${s}%`);
+    }
   }
 
   if (filter.category && filter.category !== 'Todos') {
@@ -20,14 +26,32 @@ export async function fetchAds(filter: Partial<AdFilter> = {}) {
     query = query.eq('ad_type', filter.type);
   }
 
-  const { data, error } = await query;
+  // Ordenação
+  if (filter.sortBy === 'price_asc') {
+    query = query.order('price', { ascending: true });
+  } else if (filter.sortBy === 'price_desc') {
+    query = query.order('price', { ascending: false });
+  } else {
+    query = query.order('created_at', { ascending: false });
+  }
+
+  // Paginação
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
 
   if (error) {
     console.error('Error fetching ads:', error);
     throw new Error('Erro ao buscar anúncios');
   }
 
-  return (data || []) as Ad[];
+  return {
+    ads: (data || []) as Ad[],
+    totalCount: count || 0,
+    hasMore: count ? (from + (data?.length || 0)) < count : false
+  };
 }
 
 export async function fetchAdById(id: string) {

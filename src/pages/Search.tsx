@@ -22,8 +22,8 @@ export default function Search() {
   const loadAds = async () => {
     setLoading(true);
     try {
-      const data = await fetchAds(filters);
-      setAds(data);
+      const result = await fetchAds(filters);
+      setAds(result.ads);
     } catch (err) {
       console.error(err);
     } finally {

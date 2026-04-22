@@ -42,9 +42,9 @@ export default function MapView() {
   const loadAds = async () => {
     setLoading(true);
     try {
-      const data = await fetchAds(filters);
+      const result = await fetchAds(filters);
       // Ensure everyone has coordinates
-      const adsWithCoords = data.map(ad => {
+      const adsWithCoords = result.ads.map(ad => {
         if (!ad.lat || !ad.lng) {
           const [lat, lng] = getRandomCoordInNeighborhood(ad.neighborhood);
           return { ...ad, lat, lng };
