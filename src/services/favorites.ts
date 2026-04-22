@@ -46,12 +46,17 @@ export const fetchFavorites = async (userId: string): Promise<Favorite[]> => {
 
 export const checkIsFavorited = async (userId: string | undefined, adId: string): Promise<boolean> => {
   if (!userId) return false;
+  // Usamos maybeSingle() em vez de single() para evitar o erro 406 (PGRST116) 
+  // quando nenhum registro é encontrado, que é o comportamento esperado aqui.
   const { data, error } = await supabase
     .from('favorites')
     .select('ad_id')
     .match({ user_id: userId, ad_id: adId })
-    .single();
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') throw error;
+  if (error) {
+    console.error('Error checking favorite state:', error);
+    return false;
+  }
   return !!data;
 };
