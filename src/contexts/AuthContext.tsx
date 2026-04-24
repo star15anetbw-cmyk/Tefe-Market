@@ -13,8 +13,9 @@ interface AuthContextType {
   isConfigured: boolean;
   signIn: (credentials: SignInWithPasswordCredentials) => Promise<void>;
   signUp: (credentials: SignUpWithPasswordCredentials) => Promise<void>;
-  signOut: () => Promise<void>;
+   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,36 +27,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isConfigured, setIsConfigured] = useState(true);
 
-  const fetchProfile = async (userId: string, retries = 5) => {
+  const fetchProfile = async (userId: string, retries = 3) => {
     for (let i = 0; i < retries; i++) {
       try {
-        const profilePromise = supabase
+        console.log(`DEBUG: Tentativa ${i + 1} de buscar perfil para ${userId}`);
+        const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .single();
         
-        // Timeout menor por tentativa para falhar rápido e tentar novamente
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout na tentativa')), 5000)
-        );
-
-        const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
-
         if (error) {
-          // PGRST116: Registro não encontrado (comum após cadastro novo enquanto a trigger roda)
           if (error.code === 'PGRST116' && i < retries - 1) {
-            await new Promise(res => setTimeout(res, 1000));
+            console.log('DEBUG: Perfil ainda não encontrado, aguardando trigger...');
+            await new Promise(res => setTimeout(res, 1500));
             continue;
           }
           throw error;
         }
         return data as Profile;
       } catch (err) {
-        console.warn(`Tentativa ${i + 1} de buscar perfil falhou:`, err);
+        console.warn(`Tentativa ${i + 1} falhou:`, err);
         if (i === retries - 1) return null;
-        // Espera progressiva antes da próxima tentativa
-        await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+        await new Promise(res => setTimeout(res, 2000 * (i + 1)));
       }
     }
     return null;
@@ -182,6 +176,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         throw new Error('Erro ao iniciar login com Google: ' + error.message);
+      }
+    },
+    refreshProfile: async () => {
+      if (user) {
+        const prof = await fetchProfile(user.id);
+        setProfile(prof);
       }
     }
   };

@@ -24,11 +24,11 @@ export default function Button(props: ButtonProps) {
   } = props;
 
   const variants = {
-    primary: 'bg-primary text-white hover:opacity-90 shadow-md shadow-primary/10',
-    secondary: 'bg-secondary text-white hover:opacity-90',
-    outline: 'border-2 border-primary text-primary hover:bg-primary/5',
-    ghost: 'text-gray-600 hover:bg-gray-100',
-    danger: 'bg-red-600 text-white hover:bg-red-700'
+    primary: 'bg-primary text-white hover:bg-emerald-700 shadow-md shadow-emerald-900/10 active:shadow-sm',
+    secondary: 'bg-secondary text-white hover:bg-orange-600 shadow-md shadow-orange-900/10 active:shadow-sm',
+    outline: 'border-2 border-primary text-primary hover:bg-primary/5 active:bg-primary/10',
+    ghost: 'text-gray-600 hover:bg-gray-100 active:bg-gray-200',
+    danger: 'bg-red-500 text-white hover:bg-red-600 shadow-md shadow-red-900/10'
   };
 
   const sizes = {

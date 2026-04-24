@@ -306,12 +306,16 @@ export default function Home() {
           <div className="min-h-[40vh]">
             {loading ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <div key={n} className="bg-white rounded-[2rem] aspect-[3/4] animate-pulse border border-gray-100 shadow-sm overflow-hidden p-2">
-                    <div className="w-full h-[60%] bg-gray-50 rounded-2xl"></div>
-                    <div className="p-4 space-y-3">
-                      <div className="h-4 bg-gray-50 rounded-full w-3/4"></div>
-                      <div className="h-3 bg-gray-50 rounded-full w-1/2"></div>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
+                  <div key={n} className="bg-white rounded-3xl aspect-[4/6] animate-pulse border border-gray-100 shadow-sm overflow-hidden p-0 flex flex-col">
+                    <div className="w-full aspect-[4/5] bg-gray-100"></div>
+                    <div className="p-3 space-y-2">
+                      <div className="h-4 bg-gray-100 rounded-full w-2/3"></div>
+                      <div className="h-2 bg-gray-50 rounded-full w-1/2"></div>
+                      <div className="pt-2 border-t border-gray-50 flex justify-between">
+                        <div className="h-2 bg-gray-50 rounded-full w-1/4"></div>
+                        <div className="h-2 bg-gray-50 rounded-full w-1/4"></div>
+                      </div>
                     </div>
                   </div>
                 ))}

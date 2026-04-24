@@ -63,16 +63,25 @@ export default function MyAds() {
     }
   };
 
-  if (loading) {
+  const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%23F3F4F6'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' font-weight='bold' fill='%239CA3AF' text-anchor='middle' dy='.3em'%3ESEM FOTO%3C/text%3E%3C/svg%3E";
+
+  if (loading && ads.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto p-4 pb-24">
+      <div className="max-w-4xl mx-auto p-4 pb-24 min-h-screen">
         <div className="bg-white p-6 rounded-2xl mb-8 border border-gray-100 animate-pulse">
           <div className="h-8 bg-gray-100 rounded-lg w-1/3 mb-2"></div>
           <div className="h-3 bg-gray-50 rounded w-1/4"></div>
         </div>
         <div className="space-y-4">
           {[1, 2, 3].map(n => (
-            <div key={n} className="bg-white rounded-2xl p-4 h-32 border border-gray-100 animate-pulse"></div>
+            <div key={n} className="bg-white rounded-2xl p-4 h-32 border border-gray-100 animate-pulse flex gap-4">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-xl shrink-0"></div>
+              <div className="flex-1 space-y-3 py-2">
+                <div className="h-4 bg-gray-100 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-50 rounded w-1/2"></div>
+                <div className="h-8 bg-gray-50 rounded w-full mt-4"></div>
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -100,7 +109,7 @@ export default function MyAds() {
             <div key={ad.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 p-4 flex gap-4 transition-all hover:shadow-md">
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-xl overflow-hidden shrink-0 relative">
                 <img 
-                  src={ad.ad_images?.find(img => img.is_primary)?.image_url || ad.ad_images?.[0]?.image_url || 'https://via.placeholder.com/150'} 
+                  src={ad.ad_images?.find(img => img.is_primary)?.image_url || ad.ad_images?.[0]?.image_url || fallbackImage} 
                   alt={ad.title}
                   className={cn("w-full h-full object-cover", ad.status === 'sold' && "grayscale opacity-50")}
                   referrerPolicy="no-referrer"

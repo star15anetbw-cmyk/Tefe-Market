@@ -81,9 +81,33 @@ export default function AdDetails() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center h-[60vh]">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mb-4"></div>
-      <p className="text-gray-500 font-medium">Carregando detalhes...</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+      <div className="flex items-center justify-between mb-6">
+        <div className="h-6 bg-gray-100 rounded w-20"></div>
+        <div className="h-10 bg-gray-100 rounded-full w-24"></div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="lg:col-span-7 space-y-4">
+          <div className="bg-gray-100 rounded-xl aspect-[4/3]"></div>
+          <div className="grid grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(n => (
+              <div key={n} className="aspect-square bg-gray-50 rounded-lg"></div>
+            ))}
+          </div>
+        </div>
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-white p-6 rounded-xl border border-gray-100 space-y-4">
+            <div className="flex gap-2">
+              <div className="h-6 bg-gray-100 rounded w-16"></div>
+              <div className="h-6 bg-gray-100 rounded w-16"></div>
+            </div>
+            <div className="h-10 bg-gray-100 rounded w-full"></div>
+            <div className="h-4 bg-gray-50 rounded w-1/2"></div>
+            <div className="h-12 bg-gray-100 rounded w-2/3"></div>
+            <div className="h-40 bg-gray-50 rounded w-full"></div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 
@@ -106,11 +130,13 @@ export default function AdDetails() {
     return 0;
   });
 
+  const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23F9FAFB'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='24' font-weight='bold' fill='%23D1D5DB' text-anchor='middle' dy='.3em'%3ESEM IMAGEM%3C/text%3E%3C/svg%3E";
+
   if (images.length === 0) {
     images.push({ 
       id: 'placeholder', 
       ad_id: ad.id, 
-      image_url: 'https://images.unsplash.com/photo-1540553016722-983e48a2cd10?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+      image_url: fallbackImage,
       is_primary: true,
       sort_order: 0
     });
@@ -138,9 +164,17 @@ export default function AdDetails() {
     }
   };
 
-  const whatsappUrl = whatsappNumber 
-    ? `https://wa.me/55${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Vi seu anúncio "${ad.title}" no Tefé Market e gostaria de mais informações.`)}`
-    : null;
+  // Normalização do WhatsApp para link wa.me
+  const getWhatsAppUrl = () => {
+    if (!whatsappNumber) return null;
+    let cleanNumber = whatsappNumber.replace(/\D/g, '');
+    if (cleanNumber.length <= 11) {
+      cleanNumber = `55${cleanNumber}`;
+    }
+    return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(`Olá! Vi seu anúncio "${ad.title}" no Tefé Market e gostaria de mais informações.`)}`;
+  };
+
+  const whatsappUrl = getWhatsAppUrl();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
@@ -193,7 +227,7 @@ export default function AdDetails() {
               className="w-full aspect-[4/3] object-cover"
               referrerPolicy="no-referrer"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x600?text=Imagem+Indisponível';
+                (e.target as HTMLImageElement).src = fallbackImage;
               }}
             />
           </div>
@@ -208,7 +242,7 @@ export default function AdDetails() {
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x600?text=Erro';
+                      (e.target as HTMLImageElement).src = fallbackImage;
                     }}
                   />
                 </div>
@@ -255,41 +289,33 @@ export default function AdDetails() {
               {formatPrice(ad.price || 0)}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <button 
                 onClick={handleStartChat}
-                className="flex items-center justify-center gap-2 bg-primary text-white font-bold py-3.5 rounded-lg hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20 col-span-2 text-sm uppercase tracking-wider"
+                className="flex items-center justify-center gap-2 bg-primary text-white font-bold py-3.5 rounded-lg hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20 text-sm uppercase tracking-wider"
               >
                 <MessageSquare className="w-5 h-5" />
-                Chat com Vendedor
+                Chat no Tefé Market
               </button>
               
-              {whatsappUrl ? (
+              {whatsappUrl && (
                 <a 
                   href={whatsappUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 bg-secondary text-white font-bold py-3.5 rounded-lg hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-secondary/20 col-span-2 sm:col-span-1 text-sm uppercase tracking-wider"
+                  className="flex items-center justify-center gap-2 bg-[#25D366] text-white font-bold py-4 rounded-lg hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-[#25D366]/20 border-b-4 border-[#128C7E] text-sm uppercase tracking-wider"
                 >
                   <MessageCircle className="w-5 h-5" />
-                  WhatsApp
+                  Falar no WhatsApp
                 </a>
-              ) : (
-                <button 
-                  className="flex items-center justify-center gap-2 bg-gray-100 text-gray-400 font-bold py-3.5 rounded-lg cursor-not-allowed col-span-2 sm:col-span-1 text-[10px] uppercase tracking-wider"
-                  disabled
-                  title="Vendedor não informou WhatsApp"
-                >
-                  WhatsApp Indisponível
-                </button>
               )}
               
               <button 
                 onClick={shareAd}
-                className="flex items-center justify-center gap-2 bg-gray-50 text-gray-700 font-bold py-3.5 rounded-lg hover:bg-gray-100 transition-all active:scale-95 col-span-2 sm:col-span-1 border border-gray-200 text-sm uppercase tracking-wider"
+                className="flex items-center justify-center gap-2 bg-white text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-50 transition-all active:scale-95 border-2 border-gray-100 text-xs uppercase tracking-widest"
               >
-                <Share2 className="w-5 h-5" />
-                Compartilhar
+                <Share2 className="w-4 h-4" />
+                Compartilhar Oferta
               </button>
             </div>
           </div>

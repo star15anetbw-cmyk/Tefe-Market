@@ -18,10 +18,13 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   
+  // Fallback visual para imagens ausentes
+  const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23F9FAFB'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='24' font-weight='bold' fill='%23D1D5DB' text-anchor='middle' dy='.3em'%3ESEM IMAGEM%3C/text%3E%3C/svg%3E";
+
   // Encontrar a imagem principal ou usar a primeira disponível
   const mainImage = ad.ad_images?.find(img => img.is_primary)?.image_url || 
                     ad.ad_images?.[0]?.image_url || 
-                    'https://via.placeholder.com/800x600?text=Sem+Imagem';
+                    fallbackImage;
 
   useEffect(() => {
     if (user) {

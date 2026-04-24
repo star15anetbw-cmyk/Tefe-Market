@@ -24,7 +24,7 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2 group">
-              <span className="text-2xl font-black tracking-tighter">
+              <span className="text-xl sm:text-2xl font-black tracking-tighter uppercase italic leading-none">
                 Tefé<span className="text-secondary">Market</span>
               </span>
             </Link>

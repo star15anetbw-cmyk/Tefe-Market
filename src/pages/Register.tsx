@@ -136,14 +136,14 @@ export default function Register() {
 
           <Input
             label="Telefone"
-            placeholder="(97) 99999-9999"
+            placeholder="Ex: (97) 99123-4567"
             value={formData.phone}
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
           />
 
           <Input
             label="WhatsApp"
-            placeholder="(97) 99999-9999"
+            placeholder="Ex: (97) 99123-4567"
             value={formData.whatsapp}
             onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
           />

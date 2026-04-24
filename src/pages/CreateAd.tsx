@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { createAd, uploadAdImage } from '../services/ads';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import { Camera, AlertCircle } from 'lucide-react';
+import { Camera, AlertCircle, MessageSquare } from 'lucide-react';
 import { CATEGORIES, NEIGHBORHOODS, AD_TYPES, AD_CONDITIONS } from '../constants';
 import { cn } from '../lib/utils';
 
@@ -27,6 +27,16 @@ export default function CreateAd() {
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const MAX_IMAGES = 5;
+
+  // Sincroniza bairro quando o perfil carregar
+  React.useEffect(() => {
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        neighborhood: prev.neighborhood || profile.neighborhood || NEIGHBORHOODS[0]
+      }));
+    }
+  }, [profile]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -104,7 +114,27 @@ export default function CreateAd() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        {!profile?.whatsapp && (
+          <div className="mb-8 p-6 bg-amber-50 border-2 border-dashed border-amber-200 rounded-2xl flex flex-col items-center text-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+              <MessageSquare className="w-6 h-6 text-amber-600" />
+            </div>
+            <div>
+              <h3 className="font-black text-amber-900 uppercase tracking-tighter">WhatsApp Obrigatório</h3>
+              <p className="text-amber-700/70 text-xs font-medium max-w-xs mt-1">
+                Para sua segurança e dos compradores, cadastre seu WhatsApp no perfil antes de publicar.
+              </p>
+            </div>
+            <Button 
+              onClick={() => navigate('/perfil')}
+              className="bg-amber-600 hover:bg-amber-700 text-white border-none shadow-lg shadow-amber-600/20 px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest h-auto"
+            >
+              Completar Perfil Agora
+            </Button>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className={cn("space-y-8", !profile?.whatsapp && "opacity-40 pointer-events-none grayscale select-none")}>
           {/* Múltiplas Imagens */}
           <section>
             <div className="flex justify-between items-end mb-4 border-b border-gray-100 pb-2">
@@ -228,8 +258,8 @@ export default function CreateAd() {
             </div>
           </section>
 
-          {/* Localização e Contato */}
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-50">
+          {/* Localização */}
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-50 text-left">
             <div className="md:col-span-2">
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Bairro</label>
               <select

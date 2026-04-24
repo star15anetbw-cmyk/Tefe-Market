@@ -151,9 +151,15 @@ export default function Search() {
 
       <main className="max-w-4xl mx-auto p-4">
         {loading ? (
-          <div className="grid grid-cols-2 gap-4">
-            {[1, 2, 3, 4].map(n => (
-              <div key={n} className="bg-white rounded-xl aspect-[4/5] animate-pulse border border-gray-100" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+              <div key={n} className="bg-white rounded-3xl aspect-[4/6] animate-pulse border border-gray-100 shadow-sm overflow-hidden p-0 flex flex-col">
+                <div className="w-full aspect-[4/5] bg-gray-100"></div>
+                <div className="p-3 space-y-2">
+                  <div className="h-4 bg-gray-100 rounded-full w-2/3"></div>
+                  <div className="h-2 bg-gray-50 rounded-full w-1/2"></div>
+                </div>
+              </div>
             ))}
           </div>
         ) : ads.length > 0 ? (
@@ -163,11 +169,17 @@ export default function Search() {
             ))}
           </div>
         ) : (
-          <div className="py-20 text-center">
-            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Nenhum resultado encontrado</p>
+          <div className="py-24 text-center bg-white rounded-[3rem] border border-gray-100 shadow-sm flex flex-col items-center">
+            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+              <SearchIcon className="w-10 h-10 text-gray-200" />
+            </div>
+            <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Nenhum resultado</h3>
+            <p className="text-gray-400 text-sm max-w-xs mx-auto mb-8 font-medium">
+              Não encontramos anúncios para sua busca em Tefé. Tente termos mais genéricos.
+            </p>
             <Button 
               variant="outline" 
-              className="mt-4"
+              className="rounded-2xl px-8 border-2"
               onClick={() => {
                 setFilters({ search: '', category: 'Todos', type: 'all', condition: 'all' });
                 setSearchParams({});

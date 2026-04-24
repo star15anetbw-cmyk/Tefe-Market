@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 
 import {
   Home,
@@ -13,6 +14,7 @@ import {
   Search,
   MyAds,
   Profile,
+  EditProfile,
   Favorites,
   ChatList,
   ChatWindow,
@@ -25,6 +27,7 @@ const AdminPanel = () => <div className="p-8 text-center text-gray-500 font-bold
 export default function App() {
   return (
     <Layout>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -73,6 +76,12 @@ export default function App() {
         <Route path="/perfil" element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/perfil/editar" element={
+          <ProtectedRoute>
+            <EditProfile />
           </ProtectedRoute>
         } />
 

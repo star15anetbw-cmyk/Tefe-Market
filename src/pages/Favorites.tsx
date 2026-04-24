@@ -38,9 +38,19 @@ export default function Favorites() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center h-[60vh]">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
-      <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Carregando favoritos...</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+      <div className="h-10 bg-gray-100 rounded-xl w-1/3 mb-8"></div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {[1, 2, 3, 4, 5].map(n => (
+          <div key={n} className="bg-white rounded-3xl aspect-[4/6] border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+            <div className="w-full aspect-[4/5] bg-gray-100"></div>
+            <div className="p-3 space-y-2">
+              <div className="h-4 bg-gray-100 rounded-full w-2/3"></div>
+              <div className="h-2 bg-gray-50 rounded-full w-1/2"></div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
