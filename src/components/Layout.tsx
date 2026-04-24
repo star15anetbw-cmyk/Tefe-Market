@@ -6,10 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, profile } = useAuth();
   
-  React.useEffect(() => {
-    console.log('LAYOUT_NAVIGATED');
-  }, [window.location.pathname]);
-
   return (
     <div className="min-h-screen bg-bg flex-col font-sans mb-[64px] lg:mb-0">
       <Navbar />

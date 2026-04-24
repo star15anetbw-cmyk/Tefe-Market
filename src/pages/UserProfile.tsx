@@ -4,6 +4,7 @@ import { User, Settings, Bell, HelpCircle, Shield, LogOut, ChevronRight, MapPin,
 import Button from '../components/ui/Button';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 /**
  * Tefé Market - Tela de Perfil (UserProfile.tsx)
@@ -53,11 +54,6 @@ export default function Profile() {
   return (
     <div className="max-w-4xl mx-auto p-4 pb-24 min-h-screen relative bg-bg-main overflow-x-hidden">
       
-      {/* Banner de Verificação de Versão - Para o usuário saber que esta é a tela nova */}
-      <div className="bg-primary text-white text-[10px] font-black uppercase tracking-[0.3em] py-2 text-center rounded-xl mb-4 shadow-sm">
-        Perfil Atualizado v2.0 - [Sincronizado]
-      </div>
-
       {/* Bloco Superior: Informações do Usuário */}
       <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 mb-6 text-center">
         <div className="w-24 h-24 bg-emerald-50 text-primary rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-emerald-100/50">

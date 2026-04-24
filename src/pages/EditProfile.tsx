@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { AlertCircle, ChevronLeft, Save, CheckCircle2 } from 'lucide-react';
 import { NEIGHBORHOODS } from '../constants';
+import { cn } from '../lib/utils';
 
 export default function EditProfile() {
   const { user, profile, refreshProfile } = useAuth();
