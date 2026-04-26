@@ -42,30 +42,45 @@ export default function EditProfile() {
     setSuccess(false);
 
     try {
-      // Limpeza simples do WhatsApp (opcional, mas bom manter apenas números)
-      const cleanWhatsApp = formData.whatsapp.replace(/\D/g, '');
-
       const payload = {
-        id: user.id,
         name: formData.name.trim(),
-        email: user.email,
-        whatsapp: formData.whatsapp.trim(), // Mantendo formato original do usuário por enquanto
-        neighborhood: formData.neighborhood,
-        updated_at: new Date().toISOString()
+        whatsapp: formData.whatsapp.trim(),
+        neighborhood: formData.neighborhood
       };
 
-      const { data, error: updateError } = await supabase
-        .from('profiles')
-        .upsert(payload, { 
-          onConflict: 'id' 
-        });
+      console.log('PROFILE_UPDATE_PAYLOAD', payload);
 
-      if (updateError) {
-        console.error('SUPABASE_UPDATE_ERROR', updateError);
+      let { data, error: updateError } = await supabase
+        .from('profiles')
+        .update(payload)
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      // Se não encontrou a linha para update (ex: perfil não criado pelo trigger)
+      if (updateError && (updateError.code === 'PGRST116' || updateError.message?.includes('0 rows'))) {
+        console.warn('PROFILE_MISSING_TRYING_INSERT');
+        const insertPayload = {
+          id: user.id,
+          ...payload
+        };
+        const { data: insertData, error: insertError } = await supabase
+          .from('profiles')
+          .insert([insertPayload])
+          .select()
+          .single();
+        
+        if (insertError) {
+          console.error('PROFILE_INSERT_ERROR', insertError);
+          throw insertError;
+        }
+        data = insertData;
+      } else if (updateError) {
+        console.error('PROFILE_UPDATE_ERROR', updateError);
         throw updateError;
       }
 
-      console.log('SUPABASE_UPDATE_SUCCESS', data);
+      console.log('PROFILE_UPDATE_SUCCESS', data);
 
       // Atualiza o perfil no contexto global
       await refreshProfile();

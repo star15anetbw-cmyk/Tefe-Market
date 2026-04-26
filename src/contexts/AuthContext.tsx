@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log(`DEBUG: Tentativa ${i + 1} de buscar perfil para ${userId}`);
         const { data, error } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, name, whatsapp, neighborhood, avatar_url, role, created_at, updated_at')
           .eq('id', userId)
           .single();
         

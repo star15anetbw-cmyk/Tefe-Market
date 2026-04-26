@@ -7,7 +7,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}) {
   
   let query = supabase
     .from('ads')
-    .select('*, ad_images(*)', { count: 'exact' })
+    .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)', { count: 'exact' })
     .eq('status', 'active');
 
   // Filtros
@@ -60,7 +60,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}) {
 export async function fetchAdById(id: string) {
   const { data, error } = await supabase
     .from('ads')
-    .select('*, ad_images(*), profiles(*)')
+    .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at), profiles(id, name, whatsapp, neighborhood, avatar_url, role)')
     .eq('id', id)
     .single();
 
@@ -69,13 +69,19 @@ export async function fetchAdById(id: string) {
     throw new Error('Anúncio não encontrado');
   }
 
-  return data as Ad;
+  // Flatten profiles if it's an array
+  const ad = {
+    ...data,
+    profiles: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles
+  };
+
+  return ad as Ad;
 }
 
 export async function fetchUserAds(userId: string) {
   const { data, error } = await supabase
     .from('ads')
-    .select('*, ad_images(*)')
+    .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -91,7 +97,7 @@ export async function createAd(adData: Omit<Ad, 'id' | 'created_at' | 'updated_a
   const { data, error } = await supabase
     .from('ads')
     .insert([adData])
-    .select()
+    .select('id')
     .single();
 
   if (error) {
@@ -110,7 +116,7 @@ export async function updateAd(id: string, adData: Partial<Ad>) {
     .from('ads')
     .update(adData)
     .eq('id', id)
-    .select()
+    .select('id')
     .single();
 
   if (error) {
@@ -126,7 +132,7 @@ export async function updateAdStatus(id: string, status: AdStatus) {
     .from('ads')
     .update({ status })
     .eq('id', id)
-    .select()
+    .select('id')
     .single();
 
   if (error) {
@@ -177,7 +183,7 @@ export async function uploadAdImage(adId: string, userId: string, file: File, is
       is_primary: isPrimary,
       sort_order: 0
     }])
-    .select()
+    .select('id')
     .single();
 
   if (dbError) {

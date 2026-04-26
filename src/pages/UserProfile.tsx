@@ -33,18 +33,26 @@ export default function Profile() {
 
   const handleQuickWhatsApp = async (value: string) => {
     if (!user || !value) return;
-    console.log('QUICK_SAVE_WHATSAPP', value);
+    
+    const payload = { 
+      whatsapp: value.trim()
+    };
+    
+    console.log('PROFILE_QUICK_UPDATE_PAYLOAD', payload);
+    
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .upsert({ 
-          id: user.id, 
-          whatsapp: value.trim(),
-          updated_at: new Date().toISOString() 
-        });
+        .update(payload)
+        .eq('id', user.id)
+        .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error('PROFILE_QUICK_UPDATE_ERROR', error);
+        throw error;
+      }
       
+      console.log('PROFILE_QUICK_UPDATE_SUCCESS', data);
       await refreshProfile();
     } catch (err) {
       console.error('Error saving quick whatsapp:', err);

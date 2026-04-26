@@ -49,10 +49,10 @@ export default function ChatWindow() {
       const { data: chatData, error: chatError } = await supabase
         .from('chats')
         .select(`
-          *,
-          ad:ads (*, ad_images (*)),
-          buyer:profiles!buyer_id (*),
-          seller:profiles!seller_id (*)
+          id, ad_id, buyer_id, seller_id, created_at,
+          ad:ads (id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images (id, ad_id, image_url, is_primary, sort_order, created_at)),
+          buyer:profiles!buyer_id (id, name, whatsapp, neighborhood, avatar_url, role),
+          seller:profiles!seller_id (id, name, whatsapp, neighborhood, avatar_url, role)
         `)
         .eq('id', id)
         .single();
