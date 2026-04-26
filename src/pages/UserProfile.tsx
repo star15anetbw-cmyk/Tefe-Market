@@ -34,25 +34,31 @@ export default function Profile() {
   const handleQuickWhatsApp = async (value: string) => {
     if (!user || !value) return;
     
+    console.log('QUICK_SAVE_WHATSAPP', value);
+    
     const payload = { 
       whatsapp: value.trim()
     };
-    
-    console.log('PROFILE_QUICK_UPDATE_PAYLOAD', payload);
     
     try {
       const { data, error } = await supabase
         .from('profiles')
         .update(payload)
         .eq('id', user.id)
-        .select();
+        .select()
+        .single();
       
       if (error) {
-        console.error('PROFILE_QUICK_UPDATE_ERROR', error);
+        if (error.code === 'PGRST116' || error.message?.includes('0 rows')) {
+          console.error('QUICK_SAVE_WHATSAPP_ERROR: Perfil não encontrado');
+          alert('Perfil não encontrado. Por favor, atualize a página ou faça login novamente.');
+          return;
+        }
+        console.error('QUICK_SAVE_WHATSAPP_ERROR', error);
         throw error;
       }
       
-      console.log('PROFILE_QUICK_UPDATE_SUCCESS', data);
+      console.log('QUICK_SAVE_WHATSAPP_SUCCESS', data);
       await refreshProfile();
     } catch (err) {
       console.error('Error saving quick whatsapp:', err);
