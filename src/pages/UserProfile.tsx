@@ -36,32 +36,47 @@ export default function Profile() {
     
     console.log('QUICK_SAVE_WHATSAPP', value);
     
-    const payload = { 
-      whatsapp: value.trim()
-    };
+    const whatsapp = value.trim();
     
     try {
-      const { data, error } = await supabase
+      // Primeiro tenta o update
+      const { data, error: updateError } = await supabase
         .from('profiles')
-        .update(payload)
+        .update({ whatsapp })
         .eq('id', user.id)
-        .select()
-        .single();
+        .select();
       
-      if (error) {
-        if (error.code === 'PGRST116' || error.message?.includes('0 rows')) {
-          console.error('QUICK_SAVE_WHATSAPP_ERROR: Perfil não encontrado');
-          alert('Perfil não encontrado. Por favor, atualize a página ou faça login novamente.');
-          return;
+      // Se não encontrou a linha (update afetou 0 linhas)
+      if (updateError || !data || data.length === 0) {
+        console.warn('QUICK_SAVE_UPDATE_FAILED_TRYING_INSERT', updateError);
+        
+        // No insert, precisamos do nome que é NOT NULL
+        const nameFallback = profile?.name || user.user_metadata?.name || `Usuário ${user.email?.split('@')[0]}`;
+        
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([{ 
+            id: user.id, 
+            name: nameFallback,
+            whatsapp: whatsapp 
+          }]);
+          
+        if (insertError) {
+          console.error('QUICK_SAVE_WHATSAPP_INSERT_ERROR', insertError);
+          throw insertError;
         }
-        console.error('QUICK_SAVE_WHATSAPP_ERROR', error);
-        throw error;
       }
       
-      console.log('QUICK_SAVE_WHATSAPP_SUCCESS', data);
+      console.log('QUICK_SAVE_WHATSAPP_SUCCESS');
       await refreshProfile();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving quick whatsapp:', err);
+      // Mostrar erro amigável se for violação de constraint (caso incomum aqui)
+      if (err.message?.includes('violates not-null constraint')) {
+        alert('Erro: Faltam informações obrigatórias no seu perfil. Por favor, use a tela de "Editar Perfil" completa.');
+      } else {
+        alert('Erro ao salvar WhatsApp. Tente novamente.');
+      }
     }
   };
 

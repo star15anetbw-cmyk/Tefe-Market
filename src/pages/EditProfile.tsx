@@ -54,11 +54,10 @@ export default function EditProfile() {
         .from('profiles')
         .update(payload)
         .eq('id', user.id)
-        .select()
-        .single();
+        .select();
 
       // Se não encontrou a linha para update (ex: perfil não criado pelo trigger)
-      if (updateError && (updateError.code === 'PGRST116' || updateError.message?.includes('0 rows'))) {
+      if ((updateError && (updateError.code === 'PGRST116')) || (!updateError && (!data || data.length === 0))) {
         console.warn('PROFILE_MISSING_TRYING_INSERT');
         const insertPayload = {
           id: user.id,
@@ -74,7 +73,7 @@ export default function EditProfile() {
           console.error('PROFILE_INSERT_ERROR', insertError);
           throw insertError;
         }
-        data = insertData;
+        data = insertData ? [insertData] : null;
       } else if (updateError) {
         console.error('PROFILE_UPDATE_ERROR', updateError);
         throw updateError;
