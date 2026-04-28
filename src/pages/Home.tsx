@@ -122,8 +122,8 @@ export default function Home() {
   // A Home não mostra resultados de busca textual, apenas filtros globais
   const isDefaultView = filters.category === 'Todos' && page === 0 && filters.sortBy === 'recent';
   
-  const featuredAds = isDefaultView ? ads.slice(0, 2) : [];
-  const mainAds = isDefaultView ? ads.slice(2) : ads;
+  const featuredAds = isDefaultView ? ads.slice(0, 6) : [];
+  const mainAds = isDefaultView ? ads.slice(6) : ads;
 
   // Logs temporários para depuração de renderização
   useEffect(() => {
@@ -250,9 +250,11 @@ export default function Home() {
                   🔥 Oportunidades em Destaque
                 </h2>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex overflow-x-auto no-scrollbar gap-3 pb-4 -mx-4 px-4 snap-x snap-mandatory">
                 {featuredAds.map(ad => (
-                  <AdCard key={ad.id} ad={ad} featured />
+                  <div key={ad.id} className="min-w-[calc(50%-8px)] sm:min-w-[calc(33.333%-12px)] snap-start">
+                    <AdCard ad={ad} />
+                  </div>
                 ))}
               </div>
             </motion.section>
@@ -305,7 +307,7 @@ export default function Home() {
           {/* Grid or Empty/Error States */}
           <div className="min-h-[40vh]">
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
                   <div key={n} className="bg-white rounded-3xl aspect-[4/6] animate-pulse border border-gray-100 shadow-sm overflow-hidden p-0 flex flex-col">
                     <div className="w-full aspect-[4/5] bg-gray-100"></div>
@@ -337,7 +339,7 @@ export default function Home() {
               <div className="space-y-12">
                 {/* Seção Principal de Cards */}
                 {mainAds.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
                     {mainAds.map((ad, idx) => (
                       <motion.div
                         key={ad.id}

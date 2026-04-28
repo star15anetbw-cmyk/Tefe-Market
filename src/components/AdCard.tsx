@@ -62,8 +62,7 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
         scale: { type: "spring", stiffness: 300, damping: 15 }
       }}
       className={cn(
-        "bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl border border-gray-100 flex flex-col group transition-all",
-        featured ? "col-span-2 sm:col-span-2 lg:col-span-2" : ""
+        "bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl border border-gray-100 flex flex-col group transition-all h-full"
       )}
     >
       <Link to={`/anuncio/${ad.id}`} className="block relative group-hover:no-underline">

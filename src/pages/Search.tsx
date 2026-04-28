@@ -151,7 +151,7 @@ export default function Search() {
 
       <main className="max-w-4xl mx-auto p-4">
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
               <div key={n} className="bg-white rounded-3xl aspect-[4/6] animate-pulse border border-gray-100 shadow-sm overflow-hidden p-0 flex flex-col">
                 <div className="w-full aspect-[4/5] bg-gray-100"></div>
@@ -163,7 +163,7 @@ export default function Search() {
             ))}
           </div>
         ) : ads.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             {ads.map(ad => (
               <AdCard key={ad.id} ad={ad} />
             ))}

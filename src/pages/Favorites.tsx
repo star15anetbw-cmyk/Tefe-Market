@@ -40,7 +40,7 @@ export default function Favorites() {
   if (loading) return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
       <div className="h-10 bg-gray-100 rounded-xl w-1/3 mb-8"></div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
         {[1, 2, 3, 4, 5].map(n => (
           <div key={n} className="bg-white rounded-3xl aspect-[4/6] border border-gray-100 shadow-sm overflow-hidden flex flex-col">
             <div className="w-full aspect-[4/5] bg-gray-100"></div>
@@ -80,7 +80,7 @@ export default function Favorites() {
       </div>
 
       {favorites.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
           {favorites.map((fav) => (
             fav.ad && <AdCard key={fav.ad_id} ad={fav.ad} />
           ))}
