@@ -75,6 +75,9 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
             alt={ad.title} 
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             referrerPolicy="no-referrer"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = fallbackImage;
+            }}
           />
           
           {/* Overlay Actions & Badges */}

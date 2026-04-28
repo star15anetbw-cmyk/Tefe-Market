@@ -33,10 +33,15 @@ export default function Navbar() {
           <div className="flex items-center gap-2 sm:gap-4">
             <Link 
               to="/publicar" 
-              className="hidden lg:flex items-center gap-2 px-4 py-2 bg-secondary text-white rounded-md font-bold hover:bg-orange-600 transition-all shadow-sm active:scale-95 text-xs uppercase"
+              className="hidden lg:flex flex-col items-center group"
             >
-              <PlusCircle className="h-4 w-4" />
-              <span>Anunciar Grátis</span>
+              <div className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-secondary to-orange-500 text-white rounded-xl font-black hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all shadow-md active:scale-95 text-xs uppercase tracking-widest border-b-4 border-orange-700">
+                <PlusCircle className="h-4 w-4" />
+                <span>Anunciar Grátis</span>
+              </div>
+              <span className="text-[9px] font-bold text-white/50 mt-1 uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
+                Leva menos de 1 minuto
+              </span>
             </Link>
 
             {user ? (

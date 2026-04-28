@@ -169,24 +169,32 @@ export default function Search() {
             ))}
           </div>
         ) : (
-          <div className="py-24 text-center bg-white rounded-[3rem] border border-gray-100 shadow-sm flex flex-col items-center">
-            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
-              <SearchIcon className="w-10 h-10 text-gray-200" />
+          <div className="py-24 text-center bg-white rounded-[3rem] border border-gray-100 shadow-sm flex flex-col items-center p-8">
+            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-6 relative">
+              <SearchIcon className="w-10 h-10 text-emerald-200" />
+              <div className="absolute -top-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center text-white text-xs">?</div>
             </div>
-            <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Nenhum resultado</h3>
-            <p className="text-gray-400 text-sm max-w-xs mx-auto mb-8 font-medium">
-              Não encontramos anúncios para sua busca em Tefé. Tente termos mais genéricos.
+            <h3 className="text-2xl font-black text-gray-900 mb-2 uppercase tracking-tight">Nada encontrado 😕</h3>
+            <p className="text-gray-500 text-sm max-w-xs mx-auto mb-10 font-medium leading-relaxed">
+              Tente buscar por outro termo ou seja o primeiro a anunciar!
             </p>
-            <Button 
-              variant="outline" 
-              className="rounded-2xl px-8 border-2"
-              onClick={() => {
-                setFilters({ search: '', category: 'Todos', type: 'all', condition: 'all' });
-                setSearchParams({});
-              }}
-            >
-              Limpar Filtros
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+              <Link to="/publicar" className="flex-1">
+                <Button className="w-full rounded-2xl px-8 shadow-xl shadow-primary/20 py-4 h-auto font-black uppercase tracking-widest text-xs">
+                  Anunciar Agora
+                </Button>
+              </Link>
+              <Button 
+                variant="outline" 
+                className="flex-1 rounded-2xl px-8 border-2 py-4 h-auto font-black uppercase tracking-widest text-xs"
+                onClick={() => {
+                  setFilters({ search: '', category: 'Todos', type: 'all', condition: 'all' });
+                  setSearchParams({});
+                }}
+              >
+                Limpar Busca
+              </Button>
+            </div>
           </div>
         )}
       </main>

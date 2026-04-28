@@ -17,7 +17,8 @@ import {
   ChevronDown,
   ArrowUpDown,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  User
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import Button from '../components/ui/Button';
@@ -142,301 +143,254 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-bg-main">
       {/* Header Section (Branded) */}
-      <div className="bg-primary pt-6 pb-16 px-6 relative overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-secondary/20 rounded-full blur-[80px]"></div>
-        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-accent/10 rounded-full blur-[80px]"></div>
+      <div className="bg-primary pt-8 pb-20 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-secondary/10 via-transparent to-transparent opacity-40"></div>
         
         <div className="max-w-4xl mx-auto relative z-10 text-center">
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
           >
-            <h1 className="text-4xl sm:text-7xl font-black text-white mb-2 uppercase tracking-tighter leading-[0.85]">
-              O QUE VOCÊ <br/>
-              <span className="text-secondary italic">PROCURA</span> HOJE?
+            <h1 className="text-3xl sm:text-5xl font-black text-white mb-3 uppercase tracking-tighter leading-tight">
+              O QUE VOCÊ <br className="sm:hidden"/> 
+              <span className="text-secondary">PROCURA</span> HOJE?
             </h1>
-            <p className="hidden sm:block text-white/50 text-[10px] font-bold uppercase tracking-[0.4em] mb-8">
-              Encontre tudo o que precisa na cidade de Tefé
+            <p className="text-white/60 text-[9px] font-bold uppercase tracking-[0.3em]">
+              O marketplace oficial da cidade de Tefé
             </p>
           </motion.div>
           
           {/* Main Search Bar */}
-          <form onSubmit={handleSearch} className="relative group max-w-2xl mx-auto">
-            <div className="absolute -inset-1 bg-gradient-to-r from-secondary to-accent rounded-3xl blur opacity-30 group-hover:opacity-60 transition duration-1000"></div>
-            <div className="relative flex items-center bg-white rounded-2xl shadow-2xl overflow-hidden p-1.5 border border-white/20">
-              <Search className="absolute left-5 w-5 h-5 text-gray-300" />
+          <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
+            <div className="relative flex items-center bg-white rounded-2xl shadow-xl overflow-hidden p-1 border border-gray-100">
+              <Search className="absolute left-5 w-5 h-5 text-gray-400" />
               <input 
                 type="text" 
-                placeholder="Busque por produtos, serviços ou imóveis..." 
-                className="w-full pl-14 pr-6 py-4 text-sm sm:text-lg text-gray-900 bg-transparent outline-none placeholder:text-gray-300 font-bold tracking-tight"
+                placeholder="Busque por produtos, serviços..." 
+                className="w-full pl-14 pr-6 py-4 text-base sm:text-lg text-gray-900 bg-transparent outline-none placeholder:text-gray-300 font-medium"
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
               />
               <div className="hidden sm:flex items-center gap-2 pr-2">
-                <div className="h-8 w-[1px] bg-gray-100 mx-2"></div>
                 <Button 
                   type="submit"
-                  className="rounded-xl px-6 py-3 h-auto text-xs uppercase tracking-widest font-black"
+                  className="rounded-xl px-8 py-3 h-auto text-[10px] uppercase tracking-widest font-black active:scale-95 transition-all shadow-lg shadow-primary/20"
                 >
                   Buscar
                 </Button>
               </div>
             </div>
           </form>
+
+          {/* Simple Teaser Text */}
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-[11px] font-medium text-white/50 mt-4 uppercase tracking-[0.2em]"
+          >
+            🔥 Lançamento em Tefé — Anuncie grátis
+          </motion.p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto w-full -mt-10 px-4 relative z-20 space-y-8 pb-32">
+      <div className="max-w-7xl mx-auto w-full -mt-8 px-4 relative z-20 space-y-12 pb-32">
         {/* Categories Carousel */}
-        <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl shadow-primary/5 border border-white p-4">
-          <div className="flex overflow-x-auto no-scrollbar gap-4 py-2">
-            <button
-              onClick={() => {
-                if (filters.category === 'Todos') {
-                  loadAds(true); // Force reload if already selected
-                } else {
-                  setFilters({ ...filters, category: 'Todos' });
-                }
-              }}
-              className={cn(
-                "flex flex-col items-center gap-2 flex-shrink-0 group transition-all min-w-[70px]",
-                filters.category === 'Todos' ? "scale-105" : "opacity-50 hover:opacity-100"
-              )}
-            >
-              <div className={cn(
-                "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300",
-                filters.category === 'Todos' ? "bg-primary text-white shadow-xl shadow-primary/30" : "bg-gray-50 text-gray-400 group-hover:bg-gray-100"
-              )}>
-                <RefreshCw className={cn("w-6 h-6", loading && "animate-spin")} />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-center">Todos</span>
-            </button>
+        <div className="space-y-4">
+          <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-3">
+            <div className="flex overflow-x-auto no-scrollbar gap-2 py-1 px-1">
+              <button
+                onClick={() => {
+                  if (filters.category === 'Todos') {
+                    loadAds(true);
+                  } else {
+                    setFilters({ ...filters, category: 'Todos' });
+                  }
+                }}
+                className={cn(
+                  "flex items-center gap-2 px-6 py-3 rounded-2xl flex-shrink-0 transition-all font-black text-[10px] uppercase tracking-widest",
+                  filters.category === 'Todos' ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
+                )}
+              >
+                <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                Todos
+              </button>
 
             {VISUAL_CATEGORIES.map((cat) => (
               <button
                 key={cat.name}
                 onClick={() => setFilters({ ...filters, category: cat.name })}
                 className={cn(
-                  "flex flex-col items-center gap-2 flex-shrink-0 group transition-all min-w-[70px]",
-                  filters.category === cat.name ? "scale-105" : "opacity-50 hover:opacity-100"
+                  "flex items-center gap-2 px-6 py-3 rounded-2xl flex-shrink-0 transition-all font-black text-[10px] uppercase tracking-widest",
+                  filters.category === cat.name ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
                 )}
               >
-                <div className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300",
-                  filters.category === cat.name ? "bg-primary text-white shadow-xl shadow-primary/30" : "bg-gray-50 text-gray-400 group-hover:bg-gray-100"
-                )}>
-                  <cat.icon className="w-6 h-6" />
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-widest text-center">{cat.name}</span>
+                <cat.icon className="w-4 h-4" />
+                {cat.name}
               </button>
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Featured Section */}
-        <AnimatePresence>
-          {featuredAds.length > 0 && (
-            <motion.section 
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              className="space-y-4"
-            >
-              <div className="flex items-center gap-2 px-2">
-                <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center">
-                  <Zap className="w-4 h-4 text-secondary fill-secondary" />
-                </div>
-                <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-900 border-b-2 border-secondary/30 pb-1">
-                  🔥 Oportunidades em Destaque
+      {/* Featured Section */}
+      <AnimatePresence>
+        {featuredAds.length > 0 && (
+          <motion.section 
+            initial={{ opacity: 0, scale: 0.98 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="space-y-6"
+          >
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-6 bg-secondary rounded-full"></div>
+                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-gray-900">
+                  Oportunidades em Destaque
                 </h2>
               </div>
-              <div className="flex overflow-x-auto no-scrollbar gap-3 pb-4 -mx-4 px-4 snap-x snap-mandatory">
-                {featuredAds.map(ad => (
-                  <div key={ad.id} className="min-w-[calc(50%-8px)] sm:min-w-[calc(33.333%-12px)] snap-start">
-                    <AdCard ad={ad} />
-                  </div>
-                ))}
-              </div>
-            </motion.section>
-          )}
-        </AnimatePresence>
-
-        {/* Main Feed Section */}
-        <main className="space-y-6">
-          {/* Controls Bar */}
-          <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                <SlidersHorizontal className="w-3 h-3" />
-                {totalCount} Anúncios
-              </div>
-              <div className="hidden sm:block h-6 w-[1px] bg-gray-100"></div>
-              <div className="hidden sm:flex items-center gap-2">
-                {['all', 'sale', 'rent'].map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setFilters({ ...filters, type: t as any })}
-                    className={cn(
-                      "px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all",
-                      filters.type === t ? "bg-gray-900 text-white shadow-lg" : "text-gray-400 hover:text-primary"
-                    )}
-                  >
-                    {t === 'all' ? 'Ver Tudo' : t === 'sale' ? 'Venda' : 'Aluguel'}
-                  </button>
-                ))}
-              </div>
             </div>
-
-            <div className="flex items-center gap-2 self-end md:self-auto">
-              <div className="relative flex items-center bg-gray-50 rounded-xl px-3 py-2 border border-gray-100 focus-within:border-primary transition-colors group">
-                <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 mr-2" />
-                <select 
-                  className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none appearance-none pr-8 text-gray-600 cursor-pointer"
-                  value={filters.sortBy}
-                  onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as any })}
-                >
-                  {SORT_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3 h-3 text-gray-400 absolute right-3 pointer-events-none group-focus-within:rotate-180 transition-transform" />
-              </div>
-            </div>
-          </div>
-
-          {/* Grid or Empty/Error States */}
-          <div className="min-h-[40vh]">
-            {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
-                  <div key={n} className="bg-white rounded-3xl aspect-[4/6] animate-pulse border border-gray-100 shadow-sm overflow-hidden p-0 flex flex-col">
-                    <div className="w-full aspect-[4/5] bg-gray-100"></div>
-                    <div className="p-3 space-y-2">
-                      <div className="h-4 bg-gray-100 rounded-full w-2/3"></div>
-                      <div className="h-2 bg-gray-50 rounded-full w-1/2"></div>
-                      <div className="pt-2 border-t border-gray-50 flex justify-between">
-                        <div className="h-2 bg-gray-50 rounded-full w-1/4"></div>
-                        <div className="h-2 bg-gray-50 rounded-full w-1/4"></div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-[3rem] border border-red-50 shadow-xl shadow-red-500/5">
-                <div className="bg-red-50 p-10 rounded-full mb-6">
-                  <AlertCircle className="w-12 h-12 text-red-500" />
+            <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 -mx-4 px-4 snap-x snap-mandatory">
+              {featuredAds.map(ad => (
+                <div key={ad.id} className="min-w-[calc(55%-8px)] sm:min-w-[calc(25%-12px)] snap-start transition-transform active:scale-95 duration-200">
+                  <AdCard ad={ad} />
                 </div>
-                <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Ops! Problema de conexão</h3>
-                <p className="text-gray-400 text-sm max-w-xs mx-auto mb-8 font-medium">
-                  {error}
-                </p>
-                <Button onClick={() => loadAds(true)} className="rounded-2xl px-10 bg-red-500 shadow-red-500/20">
-                  Tentar Novamente
-                </Button>
-              </div>
-            ) : ads.length > 0 ? (
-              <div className="space-y-12">
-                {/* Seção Principal de Cards */}
-                {mainAds.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-                    {mainAds.map((ad, idx) => (
-                      <motion.div
-                        key={ad.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: idx * 0.05 }}
-                      >
-                        <AdCard ad={ad} />
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  /* Fallback se mainAds estiver vazio mas ads existirem (estão nos destaques) */
-                  featuredAds.length === 0 && (
-                    <div className="py-20 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                      <p className="text-gray-400 text-xs font-black uppercase tracking-widest">Nenhum anúncio encontrado nesta seção</p>
-                    </div>
-                  )
-                )}
-
-                {/* Load More Button */}
-                {hasMore && (
-                  <div className="flex justify-center pt-8 pb-12">
-                    <Button 
-                      onClick={() => loadAds(false)} 
-                      disabled={loadingMore}
-                      variant="outline"
-                      className="rounded-2xl px-12 py-6 border-2 font-black uppercase tracking-[0.2em] text-[10px] gap-3 group"
-                    >
-                      {loadingMore ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <>
-                          Carregar Mais Anúncios
-                          <ChevronDown className="w-4 h-4 group-hover:translate-y-1 transition-transform" />
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-[3rem] border border-gray-100 shadow-sm">
-                <div className="bg-gray-50 p-10 rounded-full mb-6 relative">
-                  <PackageOpen className="w-12 h-12 text-gray-200" />
-                  <div className="absolute -top-1 -right-1 w-7 h-7 bg-secondary rounded-full flex items-center justify-center text-white text-[10px] font-bold">?</div>
-                </div>
-                <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Nenhum tesouro encontrado</h3>
-                <p className="text-gray-400 text-sm max-w-xs mx-auto mb-10 font-medium leading-relaxed">
-                  Não encontramos nada com esses filtros. Que tal tentar uma busca mais genérica ou limpar os filtros?
-                </p>
-                <div className="flex flex-wrap justify-center gap-3">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setFilters({ ...filters, search: '', category: 'Todos', type: 'all' })}
-                    className="rounded-2xl px-8 border-2"
-                  >
-                    Limpar Filtros
-                  </Button>
-                  <Link to="/publicar">
-                    <Button className="rounded-2xl px-8 shadow-xl shadow-primary/20">
-                      Anunciar algo agora
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-        </main>
-        {/* Map Promo Section */}
-        {!loading && !filters.search && filters.category === 'Todos' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            className="bg-gray-900 rounded-[3rem] p-8 sm:p-12 text-center relative overflow-hidden group shadow-2xl"
-          >
-            <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-              <div className="absolute top-10 left-10 w-40 h-40 border border-white rounded-full"></div>
-              <div className="absolute bottom-10 right-10 w-60 h-60 border border-white rounded-full"></div>
+              ))}
             </div>
-            
-            <div className="relative z-10 max-w-2xl mx-auto">
-              <MapPin className="w-12 h-12 text-secondary mx-auto mb-6 animate-bounce" />
-              <h3 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tighter mb-4 leading-none">
-                ENCONTRE O QUE <br/>PRECISA NO SEU BAIRRO
-              </h3>
-              <p className="text-gray-400 text-sm mb-10 font-medium">
-                Vários anúncios estão pertinho de você em Tefé. Use nosso mapa interativo para localizar as melhores ofertas.
-              </p>
-              <Link to="/mapa">
-                <Button className="bg-white text-gray-900 hover:bg-secondary hover:text-white rounded-full px-12 py-4 h-auto text-sm font-black uppercase tracking-widest shadow-2xl transition-all">
-                  Explorar no mapa
-                </Button>
-              </Link>
-            </div>
-          </motion.div>
+          </motion.section>
         )}
+      </AnimatePresence>
+
+      {/* Main Feed Section */}
+      <main className="space-y-8">
+        {/* Controls Bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            {['all', 'sale', 'rent'].map((t) => (
+              <button
+                key={t}
+                onClick={() => setFilters({ ...filters, type: t as any })}
+                className={cn(
+                  "px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border",
+                  filters.type === t ? "bg-gray-900 text-white border-gray-900 shadow-md" : "bg-white text-gray-400 border-gray-100 hover:border-gray-200"
+                )}
+              >
+                {t === 'all' ? 'Ver Tudo' : t === 'sale' ? 'Venda' : 'Aluguel'}
+              </button>
+            ))}
+            <div className="h-6 w-[1px] bg-gray-200 mx-2 flex-shrink-0"></div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">
+              {totalCount} anúncios em Tefé
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 self-end md:self-auto">
+            <div className="relative flex items-center bg-white rounded-xl px-4 py-2 border border-gray-100 group">
+              <select 
+                className="bg-transparent text-[9px] font-black uppercase tracking-widest outline-none appearance-none pr-8 text-gray-600 cursor-pointer"
+                value={filters.sortBy}
+                onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as any })}
+              >
+                {SORT_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-3 h-3 text-gray-400 absolute right-3 pointer-events-none group-focus-within:rotate-180 transition-transform" />
+            </div>
+          </div>
+        </div>
+
+        {/* Grid or Empty/Error States */}
+        <div className="min-h-[40vh]">
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <div key={n} className="bg-white rounded-[2rem] aspect-[4/6] animate-pulse border border-gray-100 p-0 overflow-hidden">
+                  <div className="w-full aspect-[4/5] bg-gray-50"></div>
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="py-24 text-center bg-white rounded-[3rem] border border-red-50 flex flex-col items-center">
+              <AlertCircle className="w-12 h-12 text-red-500 mb-6" />
+              <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Ops! Erro ao carregar</h3>
+              <p className="text-gray-400 text-sm max-w-xs mx-auto mb-8">{error}</p>
+              <Button onClick={() => loadAds(true)} className="rounded-2xl px-10">Tentar Novamente</Button>
+            </div>
+          ) : ads.length > 0 ? (
+            <div className="space-y-12">
+              {mainAds.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+                  {mainAds.map((ad, idx) => (
+                    <motion.div
+                      key={ad.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: idx % 6 * 0.05 }}
+                      className="active:scale-95 transition-transform duration-200"
+                    >
+                      <AdCard ad={ad} />
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                featuredAds.length === 0 && (
+                  <div className="py-20 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                    <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Nenhum anúncio encontrado</p>
+                  </div>
+                )
+              )}
+
+              {hasMore && (
+                <div className="flex justify-center pt-8 pb-12">
+                  <Button 
+                    onClick={() => loadAds(false)} 
+                    disabled={loadingMore}
+                    variant="outline"
+                    className="rounded-2xl px-12 py-5 border-2 font-black uppercase tracking-[0.2em] text-[10px] gap-3"
+                  >
+                    {loadingMore ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Carregar Mais"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="py-24 text-center bg-white rounded-[3rem] border border-gray-100 flex flex-col items-center p-8">
+              <PackageOpen className="w-12 h-12 text-gray-200 mb-6" />
+              <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Nada encontrado</h3>
+              <p className="text-gray-400 text-sm max-w-xs mx-auto mb-10">Não encontramos anúncios para esta categoria no momento.</p>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setFilters({ ...filters, category: 'Todos' })} className="rounded-2xl">Limpar</Button>
+                <Link to="/publicar"><Button className="rounded-2xl">Anunciar</Button></Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Map Promo Section */}
+      {!loading && !filters.search && filters.category === 'Todos' && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="bg-gray-900 rounded-[3rem] p-10 sm:p-16 text-center relative overflow-hidden group shadow-2xl"
+        >
+          <div className="relative z-10 max-w-2xl mx-auto">
+            <MapPin className="w-12 h-12 text-secondary mx-auto mb-6" />
+            <h3 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tighter mb-4">
+              BUSQUE NO MAPA <br/>DE TEFÉ
+            </h3>
+            <p className="text-gray-400 text-sm mb-10">Encontre o que você precisa pertinho de você, navegando pelos bairros da cidade.</p>
+            <Link to="/mapa">
+              <Button className="bg-white text-gray-900 hover:bg-secondary hover:text-white rounded-full px-12 py-4 h-auto text-xs font-black uppercase tracking-widest transition-all active:scale-95">
+                Explorar Agora
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
+      )}
       </div>
     </div>
   );

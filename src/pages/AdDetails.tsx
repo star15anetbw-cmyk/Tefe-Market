@@ -169,11 +169,23 @@ export default function AdDetails() {
   // Normalização do WhatsApp para link wa.me
   const getWhatsAppUrl = () => {
     if (!whatsappNumber) return null;
+    
+    // Limpar o número para conter apenas dígitos
     let cleanNumber = whatsappNumber.replace(/\D/g, '');
+    
+    // Adicionar prefixo 55 se não houver país
     if (cleanNumber.length <= 11) {
       cleanNumber = `55${cleanNumber}`;
     }
-    return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(`Olá! Vi seu anúncio "${ad.title}" no Tefé Market e gostaria de mais informações.`)}`;
+    
+    const message = `Olá! Vi seu anúncio no Tefé Market:
+
+📦 ${ad.title}
+💰 ${formatPrice(ad.price || 0)}
+
+Ainda está disponível?`;
+
+    return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
   };
 
   const whatsappUrl = getWhatsAppUrl();

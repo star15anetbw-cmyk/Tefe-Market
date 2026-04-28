@@ -126,10 +126,10 @@ export default function CreateAd() {
               </p>
             </div>
             <Button 
-              onClick={() => navigate('/perfil')}
+              onClick={() => navigate('/perfil/editar')}
               className="bg-amber-600 hover:bg-amber-700 text-white border-none shadow-lg shadow-amber-600/20 px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest h-auto"
             >
-              Completar Perfil Agora
+              Definir agora
             </Button>
           </div>
         )}

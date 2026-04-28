@@ -31,27 +31,26 @@ export default function BottomNav() {
         ))}
 
         {/* Central Circular High-Conversion Button */}
-        <div className="flex-1 flex justify-center -mt-4">
-          <Link to="/publicar" className="relative">
+        <div className="flex-1 flex justify-center -mt-10">
+          <Link to="/publicar" className="group">
             <motion.div
               animate={{ 
-                scale: [1, 1.1, 1],
                 boxShadow: [
-                  "0 0 0px rgba(255, 106, 0, 0)",
-                  "0 0 15px rgba(255, 106, 0, 0.4)",
-                  "0 0 0px rgba(255, 106, 0, 0)"
+                  "0 10px 25px -5px rgba(249, 115, 22, 0.4)",
+                  "0 15px 35px -5px rgba(249, 115, 22, 0.6)",
+                  "0 10px 25px -5px rgba(249, 115, 22, 0.4)"
                 ]
               }}
               transition={{ 
-                duration: 1.5, 
+                duration: 2, 
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
-              whileTap={{ scale: 0.9 }}
-              className="flex flex-col items-center justify-center bg-[#FF6A00] text-white w-12 h-12 rounded-full shadow-lg border-2 border-white"
+              whileTap={{ scale: 0.85 }}
+              className="flex flex-col items-center justify-center bg-gradient-to-tr from-orange-600 to-amber-500 text-white w-16 h-16 rounded-full shadow-2xl border-[4px] border-white group-hover:scale-110 transition-transform"
             >
-              <Plus className="w-5 h-5 font-black stroke-[3px]" />
-              <span className="text-[6px] font-black uppercase tracking-tighter -mt-0.5">Anunciar</span>
+              <Plus className="w-7 h-7 font-black stroke-[3px]" />
+              <span className="text-[7px] font-black uppercase tracking-tighter -mt-1">Publicar</span>
             </motion.div>
           </Link>
         </div>
