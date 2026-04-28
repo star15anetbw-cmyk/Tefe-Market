@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { Chat, Message } from '../types';
 
 export const getOrCreateChat = async (adId: string, buyerId: string, sellerId: string): Promise<string> => {
-  // Check if chat already exists
+  /* Chat interno desativado temporariamente para o MVP
   const { data: existingChat, error: findError } = await supabase
     .from('chats')
     .select('id')
@@ -12,7 +12,6 @@ export const getOrCreateChat = async (adId: string, buyerId: string, sellerId: s
   if (existingChat) return existingChat.id;
   if (findError && findError.code !== 'PGRST116') throw findError;
 
-  // Create new chat
   const { data: newChat, error: createError } = await supabase
     .from('chats')
     .insert({ ad_id: adId, buyer_id: buyerId, seller_id: sellerId })
@@ -21,9 +20,12 @@ export const getOrCreateChat = async (adId: string, buyerId: string, sellerId: s
 
   if (createError) throw createError;
   return newChat.id;
+  */
+  throw new Error('Chat interno desativado temporariamente para o MVP');
 };
 
 export const fetchUserChats = async (userId: string): Promise<Chat[]> => {
+  /* Chat interno desativado temporariamente para o MVP
   const { data, error } = await supabase
     .from('chats')
     .select(`
@@ -37,11 +39,12 @@ export const fetchUserChats = async (userId: string): Promise<Chat[]> => {
 
   if (error) throw error;
   
-  // Map other party profile
   return data.map((chat: any) => ({
     ...chat,
     other_party: chat.buyer_id === userId ? chat.seller : chat.buyer
   }));
+  */
+  return [];
 };
 
 export const fetchMessages = async (chatId: string): Promise<Message[]> => {

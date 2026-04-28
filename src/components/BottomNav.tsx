@@ -9,7 +9,7 @@ export default function BottomNav() {
   const navItems = [
     { icon: Home, label: 'Início', path: '/' },
     { icon: Search, label: 'Buscar', path: '/buscar' },
-    { icon: MessageSquare, label: 'Chats', path: '/chats' },
+    // { icon: MessageSquare, label: 'Chats', path: '/chats' }, // Desativado temporariamente para o MVP
     { icon: User, label: 'Perfil', path: '/perfil' },
   ];
 

@@ -13,11 +13,17 @@ export default function ChatList() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Chat interno desativado temporariamente para o MVP
+    navigate('/');
+    return;
+
+    /*
     if (!user) {
       navigate('/login');
       return;
     }
     loadChats();
+    */
   }, [user]);
 
   const loadChats = async () => {

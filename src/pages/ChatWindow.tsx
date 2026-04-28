@@ -18,23 +18,17 @@ export default function ChatWindow() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Chat interno desativado temporariamente para o MVP
+    navigate('/');
+    return;
+    
+    /* 
     if (!user) {
       navigate('/login');
       return;
     }
-    if (chatId) {
-      loadChatData(chatId);
-      const subscription = subscribeToMessages(chatId, (msg) => {
-        setMessages(prev => {
-          // Prevent duplicates from realtime
-          if (prev.find(m => m.id === msg.id)) return prev;
-          return [...prev, msg];
-        });
-      });
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
+    ...
+    */
   }, [chatId, user]);
 
   useEffect(() => {

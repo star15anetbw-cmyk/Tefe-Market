@@ -48,6 +48,7 @@ export default function Navbar() {
                 >
                   <Heart className="h-5 w-5" />
                 </Link>
+                {/* Chat interno desativado temporariamente para o MVP
                 <Link 
                   to="/chats" 
                   className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-md transition-colors"
@@ -55,6 +56,7 @@ export default function Navbar() {
                 >
                   <MessageSquare className="h-5 w-5" />
                 </Link>
+                */}
                 <Link 
                   to="/meus-anuncios" 
                   className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-md transition-colors"

@@ -61,6 +61,7 @@ export default function AdDetails() {
     }
   };
 
+  /* Chat interno desativado temporariamente para o MVP
   const handleStartChat = async () => {
     if (!user || !ad) {
       navigate('/login');
@@ -79,6 +80,7 @@ export default function AdDetails() {
       console.error('Error starting chat:', err);
     }
   };
+  */
 
   if (loading) return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
@@ -290,6 +292,7 @@ export default function AdDetails() {
             </div>
 
             <div className="grid grid-cols-1 gap-3">
+              {/* Chat interno desativado temporariamente para o MVP
               <button 
                 onClick={handleStartChat}
                 className="flex items-center justify-center gap-2 bg-primary text-white font-bold py-3.5 rounded-lg hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20 text-sm uppercase tracking-wider"
@@ -297,6 +300,7 @@ export default function AdDetails() {
                 <MessageSquare className="w-5 h-5" />
                 Chat no Tefé Market
               </button>
+              */}
               
               {whatsappUrl && (
                 <a 
