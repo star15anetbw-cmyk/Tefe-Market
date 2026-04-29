@@ -145,24 +145,22 @@ export default function AdDetails() {
   }
 
   const shareAd = async () => {
-    if (navigator.share) {
-      try {
+    try {
+      if (navigator.share) {
         await navigator.share({
           title: ad.title || 'Anúncio no Tefé Market',
           text: ad.description || '',
           url: window.location.href,
         });
-      } catch (err) {
-        console.error('Error sharing:', err);
-      }
-    } else {
-      try {
+      } else {
         await navigator.clipboard.writeText(window.location.href);
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error('Copy failure:', err);
+        setTimeout(() => setCopied(false), 3000);
       }
+    } catch (err) {
+      // Silently catch or log only meaningful error
+      console.error('Falha ao compartilhar:', err);
+      // Fallback: alert or simple toast if necessary, but try/catch prevents crash
     }
   };
 

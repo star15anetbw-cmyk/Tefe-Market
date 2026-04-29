@@ -8,8 +8,6 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleAuthRedirect = async () => {
-      console.log('AUTH_CALLBACK_INIT: Processando retorno de autenticação...');
-      
       // O Supabase lida automaticamente com a extração do código/token da URL 
       // ao chamar getSession ou onAuthStateChange. No modo PKCE, ele troca o código.
       const { data, error } = await supabase.auth.getSession();
@@ -21,10 +19,8 @@ export default function AuthCallback() {
       }
 
       if (data.session) {
-        console.log('AUTH_CALLBACK_SUCCESS: Sessão estabelecida com sucesso.');
         navigate('/');
       } else {
-        console.warn('AUTH_CALLBACK_NO_SESSION: Nenhuma sessão encontrada após o callback.');
         // Verificamos se houve algum problema ou se apenas precisamos de mais tempo
         // para o listener do AuthContext disparar.
         const { data: { user } } = await supabase.auth.getUser();

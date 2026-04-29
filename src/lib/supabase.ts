@@ -31,7 +31,23 @@ const createResilientSupabaseClient = (): SupabaseClient => {
     });
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey);
+  try {
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
+  } catch (err) {
+    console.error('Supabase creation failed:', err);
+    // Fallback to non-persisting if storage fails
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false
+      }
+    });
+  }
 };
 
 export const supabase = createResilientSupabaseClient();

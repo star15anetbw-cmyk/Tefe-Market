@@ -14,7 +14,6 @@ export async function fetchAds(filter: Partial<AdFilter> = {}) {
   if (filter.search) {
     const s = filter.search.trim();
     if (s) {
-      console.log('BUSCA ENVIADA:', s);
       const term = `%${s}%`;
       query = query.or(`title.ilike.${term},description.ilike.${term},neighborhood.ilike.${term}`);
     }
@@ -43,7 +42,6 @@ export async function fetchAds(filter: Partial<AdFilter> = {}) {
   query = query.range(from, to);
 
   const { data, error, count } = await query;
-  console.log('RESULTADO BUSCA:', data);
 
   if (error) {
     console.error('Error fetching ads:', error);

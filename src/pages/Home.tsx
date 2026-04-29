@@ -107,7 +107,6 @@ export default function Home() {
   }, [filters, page]);
 
   const resetHomeFilters = useCallback(() => {
-    console.log('HOME_RESET_FILTERS');
     const defaultFilters: AdFilter = {
       search: '',
       category: 'Todos',
@@ -156,20 +155,6 @@ export default function Home() {
   
   const featuredAds = isDefaultView ? ads.slice(0, 6) : [];
   const mainAds = isDefaultView ? ads.slice(6) : ads;
-
-  // Logs temporários para depuração de renderização
-  useEffect(() => {
-    if (ads.length > 0 || totalCount > 0) {
-      console.log('HOME_RENDER_DEBUG:', {
-        totalCount: totalCount,
-        adsLength: ads.length,
-        featuredLength: featuredAds.length,
-        mainLength: mainAds.length,
-        isDefaultView: isDefaultView,
-        searchQuery: filters.search
-      });
-    }
-  }, [ads, featuredAds, mainAds, isDefaultView, totalCount, filters.search]);
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-main">

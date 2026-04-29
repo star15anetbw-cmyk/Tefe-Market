@@ -30,7 +30,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = async (userId: string, retries = 3) => {
     for (let i = 0; i < retries; i++) {
       try {
-        console.log(`DEBUG: Tentativa ${i + 1} de buscar perfil para ${userId}`);
         const { data, error } = await supabase
           .from('profiles')
           .select('id, name, whatsapp, neighborhood, avatar_url, role, created_at, updated_at')
@@ -39,7 +38,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (error) {
           if (error.code === 'PGRST116' && i < retries - 1) {
-            console.log('DEBUG: Perfil ainda não encontrado, aguardando trigger...');
             await new Promise(res => setTimeout(res, 1500));
             continue;
           }

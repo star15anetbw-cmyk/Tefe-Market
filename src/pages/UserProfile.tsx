@@ -14,27 +14,19 @@ export default function Profile() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    console.log('%c [PROFILE_REAL_UI_V2.0_MOUNTED] ', 'background: #064e3b; color: #fff; font-size: 16px; font-weight: bold;');
-  }, []);
-
-  const handleAction = (path: string, label: string) => {
-    console.log(`%c CLIQUE_DETECTADO: ${label} `, 'background: #f97316; color: #fff; font-weight: bold;');
+  const handleAction = (path: string) => {
     if (path !== '#') {
       navigate(path);
     }
   };
 
   const handleSignOut = async () => {
-    console.log('CLIQUE_DETECTADO: SAIR');
     await signOut();
     navigate('/login');
   };
 
   const handleQuickWhatsApp = async (value: string) => {
     if (!user || !value) return;
-    
-    console.log('QUICK_SAVE_WHATSAPP', value);
     
     const whatsapp = value.trim();
     
@@ -48,7 +40,6 @@ export default function Profile() {
       
       // Se não encontrou a linha (update afetou 0 linhas)
       if (updateError || !data || data.length === 0) {
-        console.warn('QUICK_SAVE_UPDATE_FAILED_TRYING_INSERT', updateError);
         
         // No insert, precisamos do nome que é NOT NULL
         const nameFallback = profile?.name || user.user_metadata?.name || `Usuário ${user.email?.split('@')[0]}`;
@@ -62,16 +53,13 @@ export default function Profile() {
           }]);
           
         if (insertError) {
-          console.error('QUICK_SAVE_WHATSAPP_INSERT_ERROR', insertError);
           throw insertError;
         }
       }
       
-      console.log('QUICK_SAVE_WHATSAPP_SUCCESS');
       await refreshProfile();
     } catch (err: any) {
-      console.error('Error saving quick whatsapp:', err);
-      // Mostrar erro amigável se for violação de constraint (caso incomum aqui)
+      // Silently catch or show non-debug alert
       if (err.message?.includes('violates not-null constraint')) {
         alert('Erro: Faltam informações obrigatórias no seu perfil. Por favor, use a tela de "Editar Perfil" completa.');
       } else {
@@ -112,7 +100,7 @@ export default function Profile() {
 
           {/* Card Contato - Tornando clicável para navegar para editar */}
           <div 
-            onClick={() => handleAction('/perfil/editar', 'Contato_Header_Card')}
+            onClick={() => handleAction('/perfil/editar')}
             role="button"
             tabIndex={0}
             className={cn(
@@ -190,7 +178,7 @@ export default function Profile() {
         
         {/* Item: MINHA CONTA */}
         <div
-          onClick={() => handleAction('/perfil/editar', 'Minha_Conta')}
+          onClick={() => handleAction('/perfil/editar')}
           role="button"
           tabIndex={0}
           className="flex items-center justify-between p-6 hover:bg-emerald-50/50 transition-all cursor-pointer border-b border-gray-50 active:scale-[0.98] relative z-10"

@@ -22,7 +22,6 @@ export default function EditProfile() {
   });
 
   useEffect(() => {
-    console.log('EDIT_PROFILE_MOUNTED');
     if (profile) {
       setFormData({
         name: profile.name || '',
@@ -36,7 +35,6 @@ export default function EditProfile() {
     e.preventDefault();
     if (!user) return;
     
-    console.log('SUBMITTING_PROFILE_UPDATE', formData);
     setLoading(true);
     setError(null);
     setSuccess(false);
@@ -48,8 +46,6 @@ export default function EditProfile() {
         neighborhood: formData.neighborhood
       };
 
-      console.log('PROFILE_UPDATE_PAYLOAD', payload);
-
       let { data, error: updateError } = await supabase
         .from('profiles')
         .update(payload)
@@ -58,7 +54,6 @@ export default function EditProfile() {
 
       // Se não encontrou a linha para update (ex: perfil não criado pelo trigger)
       if ((updateError && (updateError.code === 'PGRST116')) || (!updateError && (!data || data.length === 0))) {
-        console.warn('PROFILE_MISSING_TRYING_INSERT');
         const insertPayload = {
           id: user.id,
           ...payload
@@ -91,7 +86,6 @@ export default function EditProfile() {
       }, 1500);
       
     } catch (err: any) {
-      console.error('PROFILE_SAVE_CATCH', err);
       setError(err.message || 'Erro ao atualizar perfil.');
     } finally {
       setLoading(false);
