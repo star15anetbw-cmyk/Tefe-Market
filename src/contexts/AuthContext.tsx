@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isConfigured, setIsConfigured] = useState(true);
+  const lastLoadedUserIdRef = React.useRef<string | null>(null);
 
   const fetchProfile = async (userId: string, retries = 3) => {
     for (let i = 0; i < retries; i++) {
@@ -70,7 +71,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     let mounted = true;
     let authInitialized = false;
-    let currentUserId: string | null = null;
 
     // Safety timeout: libera o loading em no máximo 10 segundos
     const safetyTimer = setTimeout(() => {
@@ -85,20 +85,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
-      // Prevent redundant fetches for the same user unless it's a profile update event
       const userId = session?.user?.id ?? null;
-      if (userId === currentUserId && event !== 'SIGNED_IN' && event !== 'USER_UPDATED' && authInitialized && event !== 'TOKEN_REFRESHED') {
+      
+      // Ignore redundant SIGNED_IN or other events for the same user if already initialized
+      if (authInitialized && userId === lastLoadedUserIdRef.current && event !== 'USER_UPDATED') {
         return;
       }
-      currentUserId = userId;
+      
+      lastLoadedUserIdRef.current = userId;
 
       try {
         if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
+          // Compare before setting to avoid redundant renders if session identity changes but content doesn't
+          setSession(prev => {
+            if (prev?.access_token === session?.access_token && prev?.expires_at === session?.expires_at) return prev;
+            return session;
+          });
+          
+          setUser(prev => {
+            if (prev?.id === session?.user?.id && prev?.email === session?.user?.email && prev?.updated_at === session?.user?.updated_at) return prev;
+            return session?.user ?? null;
+          });
         }
         
-        // Mark as initialized and hide global loading
+        // Mark as initialized immediately so the app can start (public pages like Home)
+        // Profile will load in the background
         if (mounted && !authInitialized) {
           authInitialized = true;
           setLoading(false);
@@ -106,22 +117,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         if (session?.user) {
-          const prof = await fetchProfile(session.user.id);
-          if (mounted) setProfile(prof);
+          try {
+            const prof = await fetchProfile(session.user.id);
+            if (mounted) setProfile(prof);
+          } catch (profileErr) {
+            console.warn('Could not fetch profile, continuing with session only:', profileErr);
+            if (mounted) setProfile(null);
+          }
         } else {
           if (mounted) setProfile(null);
         }
       } catch (err: any) {
         if (isNonCriticalSupabaseError(err)) {
           console.warn('Silent non-critical error in auth change:', err);
-          if (mounted && !authInitialized) {
-            authInitialized = true;
-            setLoading(false);
-            clearTimeout(safetyTimer);
-          }
-          return;
+        } else {
+          console.error('Auth update error:', err);
         }
-        console.error('Auth update error:', err);
+        
         if (mounted && !authInitialized) {
           authInitialized = true;
           setLoading(false);

@@ -151,9 +151,7 @@ export default function Home() {
     filters.sortBy, 
     filters.condition, 
     filters.search, 
-    page, 
-    loading, 
-    loadingMore
+    page
   ]);
 
   const resetHomeFilters = useCallback(() => {
