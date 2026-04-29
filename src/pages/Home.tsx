@@ -50,6 +50,7 @@ export default function Home() {
   const [page, setPage] = useState(0);
   const requestRef = useRef(0);
   
+  const [localSearch, setLocalSearch] = useState('');
   const [filters, setFilters] = useState<AdFilter>({
     search: '',
     category: 'Todos',
@@ -58,20 +59,51 @@ export default function Home() {
     sortBy: 'recent'
   });
 
+  // Debounce search input to avoid many re-renders/fetches if search becomes live
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters(prev => {
+        if (prev.search === localSearch) return prev;
+        return { ...prev, search: localSearch };
+      });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [localSearch]);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  
   const loadAds = useCallback(async (isInitial = true, overrideFilters?: AdFilter) => {
     const requestId = ++requestRef.current;
+    
+    // Evita múltiplas chamadas simultâneas para carregar mais
+    if (!isInitial && (loading || loadingMore)) return;
+
+    // Cancelar requisição anterior se for uma nova busca inicial
+    if (isInitial && abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    const controller = new AbortController();
+    if (isInitial) {
+      abortControllerRef.current = controller;
+    }
+
+    console.log("FETCH_ADS_TRIGGER", { 
+      isInitial, 
+      category: (overrideFilters || filters).category,
+      requestId 
+    });
     
     if (isInitial) {
       setLoading(true);
       setError(null);
-      setAds([]); // Limpa a lista atual para nova busca
+      setAds([]); 
       setPage(0);
     } else {
       setLoadingMore(true);
     }
     
     try {
-      // Determinamos a página alvo antes da query
       const targetPage = isInitial ? 0 : page + 1;
       const activeFilters = overrideFilters || filters;
       
@@ -116,13 +148,14 @@ export default function Home() {
     };
 
     setFilters(defaultFilters);
+    setLocalSearch('');
     setPage(0);
-    loadAds(true, defaultFilters);
+    // O useEffect já irá disparar o loadAds ao detectar a mudança nos filtros
 
     if (location.search) {
       navigate('/', { replace: true });
     }
-  }, [location.search, navigate, loadAds]);
+  }, [location.search, navigate]);
 
   // Reset logic when navigation state triggers it
   useEffect(() => {
@@ -143,7 +176,7 @@ export default function Home() {
   // Redireciona para a página de busca ao submeter
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const searchTerm = filters.search.trim();
+    const searchTerm = localSearch.trim();
     if (searchTerm) {
       navigate(`/buscar?search=${encodeURIComponent(searchTerm)}`);
     }
@@ -185,8 +218,8 @@ export default function Home() {
                 type="text" 
                 placeholder="Busque por produtos, serviços..." 
                 className="w-full pl-14 pr-6 py-4 text-base sm:text-lg text-gray-900 bg-transparent outline-none placeholder:text-gray-300 font-medium"
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                value={localSearch}
+                onChange={(e) => setLocalSearch(e.target.value)}
               />
               <div className="hidden sm:flex items-center gap-2 pr-2">
                 <Button 
@@ -377,7 +410,10 @@ export default function Home() {
               <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Nada encontrado</h3>
               <p className="text-gray-400 text-sm max-w-xs mx-auto mb-10">Não encontramos anúncios para esta categoria no momento.</p>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setFilters({ ...filters, category: 'Todos' })} className="rounded-2xl">Limpar</Button>
+                <Button variant="outline" onClick={() => {
+                  setFilters({ ...filters, category: 'Todos' });
+                  setLocalSearch(''); 
+                }} className="rounded-2xl">Limpar</Button>
                 <Link to="/publicar"><Button className="rounded-2xl">Anunciar</Button></Link>
               </div>
             </div>
