@@ -85,18 +85,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
-      console.log('AUTH_EVENT:', event);
-      
       // Prevent redundant fetches for the same user unless it's a profile update event
       const userId = session?.user?.id ?? null;
-      if (userId === currentUserId && event !== 'SIGNED_IN' && event !== 'USER_UPDATED' && authInitialized) {
+      if (userId === currentUserId && event !== 'SIGNED_IN' && event !== 'USER_UPDATED' && authInitialized && event !== 'TOKEN_REFRESHED') {
         return;
       }
       currentUserId = userId;
 
       try {
-        setSession(session);
-        setUser(session?.user ?? null);
+        if (mounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
         
         // Mark as initialized and hide global loading
         if (mounted && !authInitialized) {

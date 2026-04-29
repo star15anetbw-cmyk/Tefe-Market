@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { fetchAds } from '../services/ads';
 import { Ad, AdFilter } from '../types';
@@ -15,6 +15,7 @@ export default function Search() {
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [localSearch, setLocalSearch] = useState(queryTerm);
   const [filters, setFilters] = useState<AdFilter>({
     search: queryTerm,
     category: 'Todos',
@@ -22,14 +23,32 @@ export default function Search() {
     condition: 'all'
   });
 
-  // Sincroniza o filtro com a URL se a URL mudar (ex: digitou na Home e veio pra cá)
+  // Debounce search input
   useEffect(() => {
-    if (queryTerm && queryTerm !== filters.search) {
+    const timer = setTimeout(() => {
+      setFilters(prev => {
+        if (prev.search === localSearch) return prev;
+        return { ...prev, search: localSearch };
+      });
+      
+      if (localSearch) {
+        setSearchParams({ search: localSearch }, { replace: true });
+      } else {
+        setSearchParams({}, { replace: true });
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localSearch, setSearchParams]);
+
+  // Sync with URL query term
+  useEffect(() => {
+    if (queryTerm !== localSearch) {
+      setLocalSearch(queryTerm);
       setFilters(prev => ({ ...prev, search: queryTerm }));
     }
   }, [queryTerm]);
 
-  const loadAds = async (signal?: AbortSignal) => {
+  const loadAds = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
       const result = await fetchAds(filters, signal);
@@ -42,13 +61,13 @@ export default function Search() {
         setLoading(false);
       }
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
     const controller = new AbortController();
     loadAds(controller.signal);
     return () => controller.abort();
-  }, [filters]);
+  }, [loadAds]);
 
   return (
     <div className="min-h-screen bg-bg pb-20">
@@ -61,15 +80,9 @@ export default function Search() {
                 type="text"
                 placeholder="O que você procura em Tefé?"
                 className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-primary outline-none transition-all"
-                value={filters.search}
+                value={localSearch}
                 onChange={(e) => {
-                  const newSearch = e.target.value;
-                  setFilters({ ...filters, search: newSearch });
-                  if (!newSearch) {
-                    setSearchParams({});
-                  } else {
-                    setSearchParams({ search: newSearch });
-                  }
+                  setLocalSearch(e.target.value);
                 }}
               />
             </div>
@@ -193,6 +206,7 @@ export default function Search() {
                 variant="outline" 
                 className="flex-1 rounded-2xl px-8 border-2 py-4 h-auto font-black uppercase tracking-widest text-xs"
                 onClick={() => {
+                  setLocalSearch('');
                   setFilters({ search: '', category: 'Todos', type: 'all', condition: 'all' });
                   setSearchParams({});
                 }}

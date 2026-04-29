@@ -100,19 +100,8 @@ export default function Home() {
     const controller = new AbortController();
     if (isInitial) {
       abortControllerRef.current = controller;
-    }
-
-    console.log("FETCH_ADS_TRIGGER", { 
-      isInitial, 
-      category: (overrideFilters || filters).category,
-      requestId 
-    });
-    
-    if (isInitial) {
       setLoading(true);
       setError(null);
-      // Mantemos os anúncios antigos até a nova resposta chegar para evitar flicker
-      // setAds([]); 
       setPage(0);
     } else {
       setLoadingMore(true);
@@ -133,7 +122,6 @@ export default function Home() {
       
       if (isInitial) {
         setAds(result.ads);
-        setPage(0); // Resetamos o contador de página
       } else {
         setAds(prev => [...prev, ...result.ads]);
         setPage(targetPage);
@@ -143,11 +131,9 @@ export default function Home() {
       setHasMore(result.hasMore);
     } catch (err: any) {
       if (requestId !== requestRef.current) return;
+      if (err.name === 'AbortError') return;
       
-      // Se for um erro não crítico do Supabase, apenas paramos o loading
-      // sem mostrar a tela de erro, pois pode ser apenas um conflito de sessão
       if (isNonCriticalSupabaseError(err)) {
-        console.warn('Silent non-critical error handled in Home:', err);
         return;
       }
 
@@ -159,7 +145,16 @@ export default function Home() {
         setLoadingMore(false);
       }
     }
-  }, [filters, page]);
+  }, [
+    filters.category, 
+    filters.type, 
+    filters.sortBy, 
+    filters.condition, 
+    filters.search, 
+    page, 
+    loading, 
+    loadingMore
+  ]);
 
   const resetHomeFilters = useCallback(() => {
     const defaultFilters: AdFilter = {
@@ -191,8 +186,7 @@ export default function Home() {
   }, [location.state, location.pathname, resetHomeFilters, navigate]);
 
   useEffect(() => {
-    // A Home só carrega anúncios baseados em filtros de categoria/tipo/ordem
-    // A busca textual agora é tratada apenas pelo redirecionamento no handleSearch
+    // Only fetch if we are not already loading something initial
     loadAds(true);
     
     return () => {
@@ -200,7 +194,7 @@ export default function Home() {
         abortControllerRef.current.abort();
       }
     };
-  }, [filters.category, filters.type, filters.sortBy, filters.condition, loadAds]);
+  }, [filters.category, filters.type, filters.sortBy, filters.condition]); // Removed search from dependencies to avoid loop during typing
 
   // Redireciona para a página de busca ao submeter
   const handleSearch = (e?: React.FormEvent) => {

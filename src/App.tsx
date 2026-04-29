@@ -24,6 +24,7 @@ import {
 } from './pages';
 
 export default function App() {
+  // Stability mechanism for Supabase Auth Lock conflicts
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       const message = event.message || "";
