@@ -249,3 +249,59 @@ export async function deleteAd(id: string) {
     throw new Error('Erro ao excluir anúncio');
   }
 }
+
+export async function logAdClick(adId: string, type: 'whatsapp') {
+  try {
+    await supabase
+      .from('ad_clicks')
+      .insert([{ ad_id: adId, type }]);
+  } catch (err) {
+    console.warn('Erro ao registrar clique:', err);
+  }
+}
+
+export async function fetchAdminStats() {
+  const { data: ads, error: adsError } = await supabase
+    .from('ads')
+    .select('status, ad_type');
+  
+  if (adsError) throw new Error('Erro ao buscar estatísticas de anúncios');
+
+  const { count: usersCount, error: usersError } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true });
+
+  if (usersError) throw new Error('Erro ao buscar contagem de usuários');
+
+  const { data: clicks, error: clicksError } = await supabase
+    .from('ad_clicks')
+    .select('id, ad_id');
+
+  if (clicksError) throw new Error('Erro ao buscar cliques');
+
+  const stats = {
+    active: ads.filter(a => a.status === 'active').length,
+    sale: ads.filter(a => a.status === 'active' && a.ad_type === 'sale').length,
+    rent: ads.filter(a => a.status === 'active' && a.ad_type === 'rent').length,
+    service: ads.filter(a => a.status === 'active' && a.ad_type === 'service').length,
+    removed: ads.filter(a => a.status === 'removed').length,
+    totalUsers: usersCount || 0,
+    totalClicks: clicks.length || 0
+  };
+
+  return stats;
+}
+
+export async function fetchAdminAds() {
+  const { data, error } = await supabase
+    .from('ads')
+    .select('id, title, price, category, neighborhood, ad_type, status, created_at, ad_images(image_url), profiles(name)')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching admin ads:', error);
+    throw new Error('Erro ao buscar todos os anúncios');
+  }
+
+  return (data || []) as any[];
+}

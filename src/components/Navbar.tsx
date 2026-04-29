@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ShoppingBag, User, LogOut, PlusCircle, Search, Heart, MessageSquare } from 'lucide-react';
+import { ShoppingBag, User, LogOut, PlusCircle, Search, Heart, MessageSquare, Shield } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function Navbar() {
@@ -76,9 +76,11 @@ export default function Navbar() {
                 {isAdmin && (
                   <Link 
                     to="/admin" 
-                    className="px-2 py-1 text-[10px] font-black bg-white/10 text-white rounded border border-white/20 uppercase tracking-wider hidden sm:block"
+                    className="flex items-center gap-1 px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-black bg-white/20 text-white rounded-lg border border-white/20 uppercase tracking-wider hover:bg-white/30 transition-all shadow-sm active:scale-95"
+                    title="Painel Admin"
                   >
-                    Admin
+                    <Shield className="w-3 h-3" />
+                    <span className="hidden sm:inline">Admin</span>
                   </Link>
                 )}
                 <button 

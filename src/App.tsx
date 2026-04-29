@@ -19,10 +19,9 @@ import {
   ChatList,
   ChatWindow,
   AuthCallback,
-  MapView
+  MapView,
+  AdminDashboard
 } from './pages';
-
-const AdminPanel = () => <div className="p-8 text-center text-gray-500 font-bold uppercase tracking-widest bg-white rounded-xl shadow-lg m-4 border border-gray-100 italic">Área Administrativa (Em breve)</div>;
 
 export default function App() {
   return (
@@ -87,7 +86,7 @@ export default function App() {
 
         <Route path="/admin" element={
           <ProtectedRoute adminOnly>
-            <AdminPanel />
+            <AdminDashboard />
           </ProtectedRoute>
         } />
 

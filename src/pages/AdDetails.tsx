@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { fetchAdById } from '../services/ads';
+import { fetchAdById, logAdClick } from '../services/ads';
 import { Ad } from '../types';
 import { formatPrice, formatAdPrice, formatDate, cn } from '../lib/utils';
 import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, User, Heart, MessageSquare } from 'lucide-react';
@@ -319,6 +319,7 @@ Ainda está disponível?`;
                   href={whatsappUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
+                  onClick={() => ad && logAdClick(ad.id, 'whatsapp')}
                   className="flex items-center justify-center gap-2 bg-[#25D366] text-white font-bold py-4 rounded-lg hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-[#25D366]/20 border-b-4 border-[#128C7E] text-sm uppercase tracking-wider"
                 >
                   <MessageCircle className="w-5 h-5" />

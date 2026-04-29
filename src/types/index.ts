@@ -15,7 +15,7 @@ export interface Profile {
 
 export type AdType = 'sale' | 'rent' | 'service';
 export type AdCondition = 'new' | 'used';
-export type AdStatus = 'active' | 'sold' | 'hidden';
+export type AdStatus = 'active' | 'sold' | 'hidden' | 'removed';
 
 export interface Ad {
   id: string;
@@ -36,6 +36,13 @@ export interface Ad {
   updated_at?: string;
   profiles?: Profile;
   ad_images?: AdImage[];
+}
+
+export interface AdClick {
+  id: string;
+  ad_id: string;
+  type: 'whatsapp';
+  created_at: string;
 }
 
 export interface AdImage {

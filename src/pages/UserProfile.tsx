@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabase';
  * Reconstruída com base na UI real identificada no diagnóstico.
  */
 export default function Profile() {
-  const { user, profile, signOut, refreshProfile } = useAuth();
+  const { user, profile, isAdmin, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
   const handleAction = (path: string) => {
@@ -194,6 +194,27 @@ export default function Profile() {
           </div>
           <ChevronRight className="w-5 h-5 text-gray-300" />
         </div>
+
+        {/* Item: PAINEL ADMIN (SÓ PARA ADMINS) */}
+        {isAdmin && (
+          <div
+            onClick={() => handleAction('/admin')}
+            role="button"
+            tabIndex={0}
+            className="flex items-center justify-between p-6 hover:bg-primary/5 transition-all cursor-pointer border-b border-gray-50 active:scale-[0.98] relative z-10"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center shadow-sm border border-primary/10">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-gray-900 uppercase tracking-tight leading-none mb-1">Painel Admin</h4>
+                <p className="text-[10px] text-primary/60 font-bold uppercase tracking-widest leading-none">Moderação e Estatísticas</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-primary/30" />
+          </div>
+        )}
 
         {/* Item: NOTIFICAÇÕES (Em breve) */}
         <div className="flex items-center justify-between p-6 opacity-50 bg-gray-50/30 border-b border-gray-50 cursor-not-allowed">
