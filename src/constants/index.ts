@@ -26,7 +26,24 @@ export const NEIGHBORHOODS = [
 
 export const AD_TYPES = [
   { value: 'sale', label: 'Venda' },
-  { value: 'rent', label: 'Aluguel' }
+  { value: 'rent', label: 'Aluguel' },
+  { value: 'service', label: 'Serviços' }
+];
+
+export const SERVICE_CATEGORIES = [
+  'Diarista',
+  'Pedreiro',
+  'Encanador',
+  'Eletricista',
+  'Pintor',
+  'Jardineiro',
+  'Babá',
+  'Manicure',
+  'Cabeleireiro',
+  'Frete',
+  'Mototáxi',
+  'Técnico de internet',
+  'Outros serviços'
 ];
 
 export const AD_CONDITIONS = [

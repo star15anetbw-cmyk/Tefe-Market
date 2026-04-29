@@ -269,13 +269,15 @@ Ainda está disponível?`;
             <div className="flex flex-wrap gap-2 mb-4">
               <span className={cn(
                 "px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] rounded",
-                ad.ad_type === 'sale' ? "bg-primary text-white" : "bg-blue-600 text-white"
+                ad.ad_type === 'sale' ? "bg-primary text-white" : ad.ad_type === 'rent' ? "bg-blue-600 text-white" : "bg-purple-600 text-white"
               )}>
-                {ad.ad_type === 'sale' ? 'Venda' : 'Aluguel'}
+                {ad.ad_type === 'sale' ? 'Venda' : ad.ad_type === 'rent' ? 'Aluguel' : 'Serviço'}
               </span>
-              <span className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] rounded bg-gray-100 text-gray-600">
-                {ad.condition === 'new' ? 'Novo' : 'Usado'}
-              </span>
+              {ad.ad_type !== 'service' && (
+                <span className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] rounded bg-gray-100 text-gray-600">
+                  {ad.condition === 'new' ? 'Novo' : 'Usado'}
+                </span>
+              )}
               <span className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] rounded bg-secondary/10 text-secondary flex items-center gap-1.5">
                 <Tag className="w-3 h-3" />
                 {ad.category}

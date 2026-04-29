@@ -315,7 +315,7 @@ export default function Home() {
         {/* Controls Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-            {['all', 'sale', 'rent'].map((t) => (
+            {['all', 'sale', 'rent', 'service'].map((t) => (
               <button
                 key={t}
                 onClick={() => setFilters({ ...filters, type: t as any })}
@@ -324,7 +324,7 @@ export default function Home() {
                   filters.type === t ? "bg-gray-900 text-white border-gray-900 shadow-md" : "bg-white text-gray-400 border-gray-100 hover:border-gray-200"
                 )}
               >
-                {t === 'all' ? 'Ver Tudo' : t === 'sale' ? 'Venda' : 'Aluguel'}
+                {t === 'all' ? 'Ver Tudo' : t === 'sale' ? 'Venda' : t === 'rent' ? 'Aluguel' : 'Serviços'}
               </button>
             ))}
             <div className="h-6 w-[1px] bg-gray-200 mx-2 flex-shrink-0"></div>

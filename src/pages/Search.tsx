@@ -111,17 +111,17 @@ export default function Search() {
               <div className="grid grid-cols-2 gap-4">
                 <section>
                   <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Tipo</h3>
-                  <div className="flex bg-gray-100 p-1 rounded-lg">
-                    {['all', 'sale', 'rent'].map(type => (
+                  <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar">
+                    {['all', 'sale', 'rent', 'service'].map(type => (
                       <button
                         key={type}
                         onClick={() => setFilters({ ...filters, type: type as any })}
                         className={cn(
-                          "flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-md transition-all",
+                          "flex-1 py-1.5 px-3 whitespace-nowrap text-[10px] font-black uppercase tracking-widest rounded-md transition-all",
                           filters.type === type ? "bg-white text-primary shadow-sm" : "text-gray-400"
                         )}
                       >
-                        {type === 'all' ? 'Tudo' : type === 'sale' ? 'Venda' : 'Aluguel'}
+                        {type === 'all' ? 'Tudo' : type === 'sale' ? 'Venda' : type === 'rent' ? 'Aluguel' : 'Serviços'}
                       </button>
                     ))}
                   </div>

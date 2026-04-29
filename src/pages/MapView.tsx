@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { fetchAds } from '../services/ads';
-import { Ad, AdFilter } from '../types';
+import { Ad, AdFilter, AdType } from '../types';
 import { CATEGORIES, NEIGHBORHOODS } from '../constants';
 import { TEFE_CENTER, getRandomCoordInNeighborhood } from '../constants/locations';
 import { Search as SearchIcon, Filter, LayoutGrid, MapPin, Tag, ChevronRight } from 'lucide-react';
@@ -21,9 +21,9 @@ const DefaultIcon = L.icon({
 });
 
 // Custom icon for seller locations or specific categories
-const CustomMarkerIcon = (isSale: boolean) => L.divIcon({
+const CustomMarkerIcon = (type: AdType) => L.divIcon({
   className: 'custom-div-icon',
-  html: `<div style="background-color: ${isSale ? '#064e3b' : '#2563eb'}; width: 12px; height: 12px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>`,
+  html: `<div style="background-color: ${type === 'sale' ? '#064e3b' : type === 'rent' ? '#2563eb' : '#9333ea'}; width: 12px; height: 12px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>`,
   iconSize: [20, 20],
   iconAnchor: [10, 10]
 });
@@ -118,17 +118,17 @@ export default function MapView() {
               <div className="grid grid-cols-2 gap-3 pb-2">
                 <section>
                   <h3 className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Tipo</h3>
-                  <div className="flex bg-gray-100 p-1 rounded-lg">
-                    {['all', 'sale', 'rent'].map(type => (
+                  <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto no-scrollbar">
+                    {['all', 'sale', 'rent', 'service'].map(type => (
                       <button
                         key={type}
                         onClick={() => setFilters({ ...filters, type: type as any })}
                         className={cn(
-                          "flex-1 py-1 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
+                          "flex-1 py-1 px-2 whitespace-nowrap text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
                           filters.type === type ? "bg-white text-primary shadow-sm" : "text-gray-400"
                         )}
                       >
-                        {type === 'all' ? 'Tudo' : type === 'sale' ? 'Venda' : 'Aluguel'}
+                        {type === 'all' ? 'Tudo' : type === 'sale' ? 'Venda' : type === 'rent' ? 'Aluguel' : 'Serviços'}
                       </button>
                     ))}
                   </div>
@@ -181,7 +181,7 @@ export default function MapView() {
             <Marker 
               key={ad.id} 
               position={[ad.lat!, ad.lng!]}
-              icon={CustomMarkerIcon(ad.ad_type === 'sale')}
+              icon={CustomMarkerIcon(ad.ad_type)}
             >
               <Popup className="ad-popup" minWidth={180}>
                 <div className="p-0 overflow-hidden">

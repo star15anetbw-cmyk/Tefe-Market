@@ -13,7 +13,7 @@ export interface Profile {
   updated_at?: string;
 }
 
-export type AdType = 'sale' | 'rent';
+export type AdType = 'sale' | 'rent' | 'service';
 export type AdCondition = 'new' | 'used';
 export type AdStatus = 'active' | 'sold' | 'hidden';
 

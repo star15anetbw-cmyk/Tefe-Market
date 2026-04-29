@@ -5,7 +5,7 @@ import { createAd, uploadAdImage } from '../services/ads';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { Camera, AlertCircle, MessageSquare } from 'lucide-react';
-import { CATEGORIES, NEIGHBORHOODS, AD_TYPES, AD_CONDITIONS } from '../constants';
+import { CATEGORIES, NEIGHBORHOODS, AD_TYPES, AD_CONDITIONS, SERVICE_CATEGORIES } from '../constants';
 import { cn } from '../lib/utils';
 
 export default function CreateAd() {
@@ -70,15 +70,18 @@ export default function CreateAd() {
     setError(null);
 
     try {
+      const priceStr = formData.price.toString().replace(',', '.');
+      const price = parseFloat(priceStr);
+      
       // 1. Criar o anúncio (dados textuais)
       const adData = {
         user_id: user.id,
         title: formData.title,
         description: formData.description,
-        price: parseFloat(formData.price),
+        price: isNaN(price) ? 0 : price,
         category: formData.category,
         ad_type: formData.ad_type as any,
-        condition: formData.condition as any,
+        condition: formData.ad_type === 'service' ? 'new' as any : formData.condition as any, // Default to 'new' for services but UI handles it
         neighborhood: formData.neighborhood,
         status: 'active' as const
       };
@@ -95,6 +98,7 @@ export default function CreateAd() {
 
       navigate('/meus-anuncios');
     } catch (err: any) {
+      console.error("Erro ao publicar anúncio:", err);
       setError(err.message || 'Erro ao publicar anúncio.');
     } finally {
       setLoading(false);
@@ -207,7 +211,7 @@ export default function CreateAd() {
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               >
-                {CATEGORIES.map(c => (
+                {(formData.ad_type === 'service' ? SERVICE_CATEGORIES : CATEGORIES).map(c => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
@@ -223,7 +227,15 @@ export default function CreateAd() {
                   <button
                     key={type.value}
                     type="button"
-                    onClick={() => setFormData({ ...formData, ad_type: type.value })}
+                    onClick={() => {
+                      const newType = type.value;
+                      const nextCategories = newType === 'service' ? SERVICE_CATEGORIES : CATEGORIES;
+                      setFormData({ 
+                        ...formData, 
+                        ad_type: newType,
+                        category: nextCategories[0] // Reset category when switching type
+                      });
+                    }}
                     className={cn(
                       'flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded transition-all',
                       formData.ad_type === type.value 
@@ -236,26 +248,28 @@ export default function CreateAd() {
                 ))}
               </div>
             </div>
-            <div>
-              <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-4 text-center md:text-left">Condição</label>
-              <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100">
-                {AD_CONDITIONS.map(cond => (
-                  <button
-                    key={cond.value}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, condition: cond.value })}
-                    className={cn(
-                      'flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded transition-all',
-                      formData.condition === cond.value 
-                        ? 'bg-white text-primary shadow-sm border border-gray-100' 
-                        : 'text-gray-400 hover:text-gray-600'
-                    )}
-                  >
-                    {cond.label}
-                  </button>
-                ))}
+            {formData.ad_type !== 'service' && (
+              <div>
+                <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-4 text-center md:text-left">Condição</label>
+                <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100">
+                  {AD_CONDITIONS.map(cond => (
+                    <button
+                      key={cond.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, condition: cond.value })}
+                      className={cn(
+                        'flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded transition-all',
+                        formData.condition === cond.value 
+                          ? 'bg-white text-primary shadow-sm border border-gray-100' 
+                          : 'text-gray-400 hover:text-gray-600'
+                      )}
+                    >
+                      {cond.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </section>
 
           {/* Localização */}

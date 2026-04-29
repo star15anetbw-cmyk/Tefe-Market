@@ -85,9 +85,9 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
           <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
             <span className={cn(
               "px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md text-white shadow-sm backdrop-blur-md",
-              ad.ad_type === 'sale' ? "bg-primary/90" : "bg-blue-600/90"
+              ad.ad_type === 'sale' ? "bg-primary/90" : ad.ad_type === 'rent' ? "bg-blue-600/90" : "bg-purple-600/90"
             )}>
-              {ad.ad_type === 'sale' ? 'Venda' : 'Aluguel'}
+              {ad.ad_type === 'sale' ? 'Venda' : ad.ad_type === 'rent' ? 'Aluguel' : 'Serviço'}
             </span>
           </div>
           
