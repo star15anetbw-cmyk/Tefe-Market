@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { fetchAds } from '../services/ads';
 import { Ad, AdFilter } from '../types';
 import AdCard from '../components/AdCard';
@@ -40,6 +40,7 @@ const SORT_OPTIONS = [
 
 export default function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -57,7 +58,7 @@ export default function Home() {
     sortBy: 'recent'
   });
 
-  const loadAds = useCallback(async (isInitial = true) => {
+  const loadAds = useCallback(async (isInitial = true, overrideFilters?: AdFilter) => {
     const requestId = ++requestRef.current;
     
     if (isInitial) {
@@ -72,9 +73,10 @@ export default function Home() {
     try {
       // Determinamos a página alvo antes da query
       const targetPage = isInitial ? 0 : page + 1;
+      const activeFilters = overrideFilters || filters;
       
       const result = await fetchAds({ 
-        ...filters, 
+        ...activeFilters, 
         page: targetPage, 
         pageSize: 12 
       });
@@ -103,6 +105,35 @@ export default function Home() {
       }
     }
   }, [filters, page]);
+
+  const resetHomeFilters = useCallback(() => {
+    console.log('HOME_RESET_FILTERS');
+    const defaultFilters: AdFilter = {
+      search: '',
+      category: 'Todos',
+      type: 'all',
+      condition: 'all',
+      sortBy: 'recent'
+    };
+
+    setFilters(defaultFilters);
+    setPage(0);
+    loadAds(true, defaultFilters);
+
+    if (location.search) {
+      navigate('/', { replace: true });
+    }
+  }, [location.search, navigate, loadAds]);
+
+  // Reset logic when navigation state triggers it
+  useEffect(() => {
+    const locState = location.state as { resetHome?: number } | null;
+    if (locState?.resetHome) {
+      resetHomeFilters();
+      // Clear state after reset to avoid repeated triggers
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, resetHomeFilters, navigate]);
 
   useEffect(() => {
     // A Home só carrega anúncios baseados em filtros de categoria/tipo/ordem

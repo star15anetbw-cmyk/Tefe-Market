@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Search, MessageSquare, User, Plus } from 'lucide-react';
+import { Home, Search, MessageSquare, User, Plus, LayoutGrid } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -9,7 +9,7 @@ export default function BottomNav() {
   const navItems = [
     { icon: Home, label: 'Início', path: '/' },
     { icon: Search, label: 'Buscar', path: '/buscar' },
-    // { icon: MessageSquare, label: 'Chats', path: '/chats' }, // Desativado temporariamente para o MVP
+    { icon: LayoutGrid, label: 'Anúncios', path: '/meus-anuncios' },
     { icon: User, label: 'Perfil', path: '/perfil' },
   ];
 
@@ -20,6 +20,7 @@ export default function BottomNav() {
           <NavLink
             key={item.path}
             to={item.path}
+            state={item.path === '/' ? { resetHome: Date.now() } : undefined}
             className={({ isActive }) => cn(
               "flex-1 flex flex-col items-center gap-1 transition-all",
               isActive ? "text-primary scale-110" : "text-gray-300 hover:text-gray-500"
