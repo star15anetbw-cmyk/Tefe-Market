@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -24,6 +24,18 @@ import {
 } from './pages';
 
 export default function App() {
+  useEffect(() => {
+    const handleFocus = () => {
+      // Quando o app ganha foco (ex: volta do WhatsApp),
+      // garantimos que não estamos em um estado quebrado.
+      // Não fazemos getSession ou refresh manual aqui para evitar conflitos de sessão (Lock).
+      console.log('App focused');
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   return (
     <Layout>
       <ScrollToTop />

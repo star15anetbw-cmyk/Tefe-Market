@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { User, Session, SignInWithPasswordCredentials, SignUpWithPasswordCredentials } from '@supabase/supabase-js';
 import { mapAuthError } from '../services/auth';
+import { isNonCriticalSupabaseError } from '../lib/utils';
 
 interface AuthContextType {
   user: User | null;
@@ -106,7 +107,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           if (mounted) setProfile(null);
         }
-      } catch (err) {
+      } catch (err: any) {
+        if (isNonCriticalSupabaseError(err)) {
+          console.warn('Silent non-critical error in auth change:', err);
+          if (mounted && !authInitialized) {
+            authInitialized = true;
+            setLoading(false);
+            clearTimeout(safetyTimer);
+          }
+          return;
+        }
         console.error('Auth update error:', err);
         if (mounted && !authInitialized) {
           authInitialized = true;
