@@ -271,7 +271,36 @@ USING (auth.uid() = user_id);
 CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON public.favorites(user_id);
 CREATE INDEX IF NOT EXISTS idx_favorites_ad_id ON public.favorites(ad_id);
 
--- 13. CONFIGURAÇÃO DE STORAGE (IMAGES)
+-- 13. TABELA DE CLIQUES (TRACKING)
+CREATE TABLE IF NOT EXISTS public.ad_clicks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ad_id UUID NOT NULL REFERENCES public.ads(id) ON DELETE CASCADE,
+    type TEXT NOT NULL, -- 'whatsapp', etc.
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Habilitar RLS
+ALTER TABLE public.ad_clicks ENABLE ROW LEVEL SECURITY;
+
+-- Políticas
+CREATE POLICY "Clicks are insertable by everyone" 
+ON public.ad_clicks FOR INSERT 
+WITH CHECK (true);
+
+CREATE POLICY "Clicks viewable by admins" 
+ON public.ad_clicks FOR SELECT 
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles 
+        WHERE profiles.id = auth.uid() 
+        AND profiles.role = 'admin'
+    )
+);
+
+-- Índices
+CREATE INDEX IF NOT EXISTS idx_ad_clicks_ad_id ON public.ad_clicks(ad_id);
+
+-- 14. CONFIGURAÇÃO DE STORAGE (IMAGES)
 -- Bucket Público: Imagens de anúncios são acessíveis via URL pública sem necessidade de token.
 -- IMPORTANTE: No Supabase, buckets marcados como 'public' ignoram políticas de SELECT para leitura via URL de objeto. 
 -- As políticas de RLS abaixo controlam apenas operações via API/SDK (listagem e escrita).

@@ -14,22 +14,27 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
 
   const loadData = async (signal?: AbortSignal) => {
+    // Garantir que estamos lidando com um AbortSignal real
+    const actualSignal = (signal instanceof AbortSignal) ? signal : undefined;
+    
     setLoading(true);
+    setError(null);
     try {
       const [s, a] = await Promise.all([
-        fetchAdminStats(signal), 
-        fetchAdminAds(signal)
+        fetchAdminStats(actualSignal), 
+        fetchAdminAds(actualSignal)
       ]);
-      if (signal?.aborted) return;
+      
+      if (actualSignal?.aborted) return;
+      
       setStats(s);
       setAds(a);
     } catch (err: any) {
-      if (err.name === 'AbortError') return;
+      if (err.name === 'AbortError' || err.message?.includes('AbortError')) return;
+      console.error('Admin Dashboard Load Error:', err);
       setError(err.message || 'Erro ao carregar dados do painel');
     } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
@@ -93,7 +98,7 @@ export default function AdminDashboard() {
           </div>
           <p className="text-gray-400 font-medium italic">Gerencie o mercado e monitore o crescimento.</p>
         </div>
-        <Button onClick={loadData} variant="outline" className="flex items-center gap-2">
+        <Button onClick={() => loadData()} variant="outline" className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4" /> Atualizar Dados
         </Button>
       </div>
