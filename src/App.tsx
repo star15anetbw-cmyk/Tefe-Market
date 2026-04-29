@@ -25,15 +25,25 @@ import {
 
 export default function App() {
   useEffect(() => {
-    const handleFocus = () => {
-      // Quando o app ganha foco (ex: volta do WhatsApp),
-      // garantimos que não estamos em um estado quebrado.
-      // Não fazemos getSession ou refresh manual aqui para evitar conflitos de sessão (Lock).
-      console.log('App focused');
+    const handleError = (event: ErrorEvent) => {
+      const message = event.message || "";
+      
+      if (
+        message.includes('Lock') ||
+        message.includes('stole it') ||
+        message.includes('auth-token') ||
+        message.includes('NavigatorLockAcquireTimeoutError')
+      ) {
+        console.warn('Recuperando app após erro de lock...');
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
+      }
     };
 
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
   }, []);
 
   return (

@@ -35,6 +35,7 @@ export function isNonCriticalSupabaseError(error: any): boolean {
     message.includes('Lock') ||
     message.includes('stole it') ||
     message.includes('auth-token') ||
-    message.includes('session')
+    message.includes('session') ||
+    message.includes('NavigatorLockAcquireTimeoutError')
   );
 }

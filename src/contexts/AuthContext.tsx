@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     let mounted = true;
     let authInitialized = false;
+    let currentUserId: string | null = null;
 
     // Safety timeout: libera o loading em no máximo 10 segundos
     const safetyTimer = setTimeout(() => {
@@ -81,21 +82,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // supabase.auth.onAuthStateChange already provides INITIAL_SESSION in V2
     // which effectively acts as our initialization.
-    // We only need to start the onAuthStateChange listener.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
       console.log('AUTH_EVENT:', event);
       
-      // If we already initialized via INITIAL_SESSION, we don't need to re-run for same session
-      if (event === 'INITIAL_SESSION' && authInitialized) return;
+      // Prevent redundant fetches for the same user unless it's a profile update event
+      const userId = session?.user?.id ?? null;
+      if (userId === currentUserId && event !== 'SIGNED_IN' && event !== 'USER_UPDATED' && authInitialized) {
+        return;
+      }
+      currentUserId = userId;
 
       try {
         setSession(session);
         setUser(session?.user ?? null);
         
         // Mark as initialized and hide global loading
-        if (mounted) {
+        if (mounted && !authInitialized) {
           authInitialized = true;
           setLoading(false);
           clearTimeout(safetyTimer);

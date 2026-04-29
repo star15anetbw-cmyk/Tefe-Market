@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchAdminStats, fetchAdminAds, updateAdStatus } from '../services/ads';
-import { formatPrice, formatDate, cn } from '../lib/utils';
+import { formatPrice, formatDate, cn, isNonCriticalSupabaseError } from '../lib/utils';
 import { Shield, Users, Package, AlertTriangle, Eye, Trash2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, Tag, LayoutGrid } from 'lucide-react';
 import Button from '../components/ui/Button';
 
@@ -30,7 +30,7 @@ export default function AdminDashboard() {
       setStats(s);
       setAds(a);
     } catch (err: any) {
-      if (err.name === 'AbortError' || err.message?.includes('AbortError')) return;
+      if (err.name === 'AbortError' || isNonCriticalSupabaseError(err)) return;
       console.error('Admin Dashboard Load Error:', err);
       setError(err.message || 'Erro ao carregar dados do painel');
     } finally {

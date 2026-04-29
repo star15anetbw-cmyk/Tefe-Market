@@ -31,23 +31,15 @@ const createResilientSupabaseClient = (): SupabaseClient => {
     });
   }
 
-  try {
-    return createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
-    });
-  } catch (err) {
-    console.error('Supabase creation failed:', err);
-    // Fallback to non-persisting if storage fails
-    return createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false
-      }
-    });
-  }
+  // Create a single, stable client instance
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: false, // Prevent background conflicts (Lock)
+      detectSessionInUrl: true,
+      storageKey: "tefe-market-auth"
+    }
+  });
 };
 
 export const supabase = createResilientSupabaseClient();

@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { Ad, AdFilter, AdStatus } from '../types';
 import { isNonCriticalSupabaseError } from '../lib/utils';
 
-export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSignal) {
+export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSignal, retryCount = 0): Promise<{ ads: Ad[], totalCount: number, hasMore: boolean }> {
   const pageSize = filter.pageSize || 12;
   const page = filter.page || 0;
   
@@ -16,43 +16,50 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       query = query.abortSignal(signal);
     }
 
-  // Filtros
-  if (filter.search) {
-    const s = filter.search.trim();
-    if (s) {
-      const term = `%${s}%`;
-      query = query.or(`title.ilike.${term},description.ilike.${term},neighborhood.ilike.${term}`);
+    // Filtros
+    if (filter.search) {
+      const s = filter.search.trim();
+      if (s) {
+        const term = `%${s}%`;
+        query = query.or(`title.ilike.${term},description.ilike.${term},neighborhood.ilike.${term}`);
+      }
     }
-  }
 
-  if (filter.category && filter.category !== 'Todos') {
-    query = query.eq('category', filter.category);
-  }
+    if (filter.category && filter.category !== 'Todos') {
+      query = query.eq('category', filter.category);
+    }
 
-  if (filter.type && filter.type !== 'all') {
-    query = query.eq('ad_type', filter.type);
-  }
+    if (filter.type && filter.type !== 'all') {
+      query = query.eq('ad_type', filter.type);
+    }
 
-  // Ordenação
-  if (filter.sortBy === 'price_asc') {
-    query = query.order('price', { ascending: true });
-  } else if (filter.sortBy === 'price_desc') {
-    query = query.order('price', { ascending: false });
-  } else {
-    query = query.order('created_at', { ascending: false });
-  }
+    // Ordenação
+    if (filter.sortBy === 'price_asc') {
+      query = query.order('price', { ascending: true });
+    } else if (filter.sortBy === 'price_desc') {
+      query = query.order('price', { ascending: false });
+    } else {
+      query = query.order('created_at', { ascending: false });
+    }
 
-  // Paginação
-  const from = page * pageSize;
-  const to = from + pageSize - 1;
-  query = query.range(from, to);
+    // Paginação
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    query = query.range(from, to);
 
     const { data, error, count } = await query;
 
     if (error) {
-      if (isNonCriticalSupabaseError(error)) {
-        throw error; // Bubble up so Home/Search can preserve state if they want
+      if (isNonCriticalSupabaseError(error) && retryCount < 1) {
+        console.warn('Retrying fetchAds due to non-critical error:', error);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return fetchAds(filter, signal, retryCount + 1);
       }
+      
+      if (isNonCriticalSupabaseError(error)) {
+        throw error;
+      }
+
       console.error('Supabase fetchAds error:', error);
       throw new Error(error.message || 'Erro ao buscar anúncios');
     }
@@ -63,8 +70,13 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       hasMore: count ? (from + (data?.length || 0)) < count : false
     };
   } catch (err: any) {
+    if (isNonCriticalSupabaseError(err) && retryCount < 1 && !(err.name === 'AbortError')) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return fetchAds(filter, signal, retryCount + 1);
+    }
+
     if (isNonCriticalSupabaseError(err)) {
-      throw err; // Bubble up
+      throw err;
     }
     console.error('Unexpected error in fetchAds:', err);
     throw err;

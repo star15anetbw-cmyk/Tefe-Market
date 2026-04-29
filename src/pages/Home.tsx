@@ -48,6 +48,7 @@ export default function Home() {
   const [totalCount, setTotalCount] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const requestRef = useRef(0);
   
   const [localSearch, setLocalSearch] = useState('');
@@ -58,6 +59,19 @@ export default function Home() {
     condition: 'all',
     sortBy: 'recent'
   });
+
+  // Watch for long loading states
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (loading) {
+      timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 5000);
+    } else {
+      setLoadingTimeout(false);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   // Debounce search input to avoid many re-renders/fetches if search becomes live
   useEffect(() => {
@@ -367,12 +381,34 @@ export default function Home() {
         {/* Grid or Empty/Error States */}
         <div className="min-h-[40vh]">
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-              {[1, 2, 3, 4, 5, 6].map((n) => (
-                <div key={n} className="bg-white rounded-[2rem] aspect-[4/6] animate-pulse border border-gray-100 p-0 overflow-hidden">
-                  <div className="w-full aspect-[4/5] bg-gray-50"></div>
-                </div>
-              ))}
+            <div className="space-y-8">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <div key={n} className="bg-white rounded-[2rem] aspect-[4/6] animate-pulse border border-gray-100 p-0 overflow-hidden">
+                    <div className="w-full aspect-[4/5] bg-gray-50"></div>
+                  </div>
+                ))}
+              </div>
+              
+              {loadingTimeout && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col items-center justify-center p-8 bg-white rounded-3xl border border-gray-100 shadow-sm"
+                >
+                  <RefreshCw className="w-8 h-8 text-primary mb-4 animate-spin" />
+                  <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-4 text-center">
+                    Está demorando mais que o esperado...
+                  </p>
+                  <Button 
+                    onClick={() => window.location.reload()} 
+                    variant="outline"
+                    className="rounded-xl px-6 py-2 h-auto text-[9px] uppercase tracking-widest"
+                  >
+                    Recarregar Página
+                  </Button>
+                </motion.div>
+              )}
             </div>
           ) : error ? (
             <div className="py-24 text-center bg-white rounded-[3rem] border border-red-50 flex flex-col items-center">
