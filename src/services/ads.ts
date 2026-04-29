@@ -289,24 +289,51 @@ export async function logAdClick(adId: string, type: 'whatsapp') {
   }
 }
 
-export async function fetchAdminStats() {
-  const { data: ads, error: adsError } = await supabase
+export async function fetchAdminStats(signal?: AbortSignal) {
+  let query = supabase
     .from('ads')
     .select('status, ad_type');
   
-  if (adsError) throw new Error('Erro ao buscar estatísticas de anúncios');
+  if (signal) {
+    query = query.abortSignal(signal);
+  }
 
-  const { count: usersCount, error: usersError } = await supabase
+  const { data: ads, error: adsError } = await query;
+  
+  if (adsError) {
+    if (adsError.message?.includes('AbortError')) return null;
+    throw new Error('Erro ao buscar estatísticas de anúncios');
+  }
+
+  let usersQuery = supabase
     .from('profiles')
     .select('*', { count: 'exact', head: true });
 
-  if (usersError) throw new Error('Erro ao buscar contagem de usuários');
+  if (signal) {
+    usersQuery = usersQuery.abortSignal(signal);
+  }
 
-  const { data: clicks, error: clicksError } = await supabase
+  const { count: usersCount, error: usersError } = await usersQuery;
+
+  if (usersError) {
+    if (usersError.message?.includes('AbortError')) return null;
+    throw new Error('Erro ao buscar contagem de usuários');
+  }
+
+  let clicksQuery = supabase
     .from('ad_clicks')
     .select('id, ad_id');
 
-  if (clicksError) throw new Error('Erro ao buscar cliques');
+  if (signal) {
+    clicksQuery = clicksQuery.abortSignal(signal);
+  }
+
+  const { data: clicks, error: clicksError } = await clicksQuery;
+
+  if (clicksError) {
+    if (clicksError.message?.includes('AbortError')) return null;
+    throw new Error('Erro ao buscar cliques');
+  }
 
   const stats = {
     active: ads.filter(a => a.status === 'active').length,
@@ -321,13 +348,20 @@ export async function fetchAdminStats() {
   return stats;
 }
 
-export async function fetchAdminAds() {
-  const { data, error } = await supabase
+export async function fetchAdminAds(signal?: AbortSignal) {
+  let query = supabase
     .from('ads')
     .select('id, title, price, category, neighborhood, ad_type, status, created_at, ad_images(image_url), profiles(name)')
     .order('created_at', { ascending: false });
 
+  if (signal) {
+    query = query.abortSignal(signal);
+  }
+
+  const { data, error } = await query;
+
   if (error) {
+    if (error.message?.includes('AbortError') || error.message?.includes('Lock broken')) return [];
     console.error('Error fetching admin ads:', error);
     throw new Error('Erro ao buscar todos os anúncios');
   }

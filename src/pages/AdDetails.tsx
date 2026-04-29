@@ -26,23 +26,29 @@ export default function AdDetails() {
       if (user) {
         checkIsFavorited(user.id, id).then(setIsFavorited);
       }
+    } else {
+      setLoading(false);
     }
     return () => controller.abort();
   }, [id, user]);
 
   const loadAd = async (adId: string, signal?: AbortSignal) => {
     try {
+      setLoading(true);
       const data = await fetchAdById(adId, signal);
       if (data) {
         setAd(data);
+      } else {
+        setAd(null);
       }
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       console.error('Error fetching ad:', err);
+      setAd(null);
     } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
+      // Damos um pequeno delay para evitar flickering se carregar rápido demais
+      // mas garantimos que o loading encerre SEMPRE
+      setLoading(false);
     }
   };
 

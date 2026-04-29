@@ -119,10 +119,10 @@ ALTER TABLE public.ads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ad_images ENABLE ROW LEVEL SECURITY;
 
 -- 8. POLÍTICAS PARA PROFILES
--- Usuários autenticados podem ler apenas o próprio perfil
-CREATE POLICY "Users can view their own profile"
+-- Qualquer perfil é visível publicamente (necessário para ver informações do vendedor)
+CREATE POLICY "Profiles are viewable by everyone"
 ON public.profiles FOR SELECT
-USING (auth.uid() = id);
+USING (true);
 
 -- Usuários podem inserir seu próprio perfil durante o cadastro
 CREATE POLICY "Users can insert their own profile"
@@ -145,6 +145,28 @@ USING (status = 'active');
 CREATE POLICY "Users can view their own ads"
 ON public.ads FOR SELECT
 USING (auth.uid() = user_id);
+
+-- Admins podem ver TODOS os anúncios
+CREATE POLICY "Admins can view all ads"
+ON public.ads FOR SELECT
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'
+    )
+);
+
+-- Admins podem gerenciar TODOS os anúncios
+CREATE POLICY "Admins can manage all ads"
+ON public.ads FOR ALL
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'
+    )
+);
 
 -- Usuários podem criar anúncios (o user_id deve ser o próprio ID)
 CREATE POLICY "Users can insert their own ads"
@@ -171,6 +193,22 @@ USING (
         SELECT 1 FROM public.ads
         WHERE ads.id = ad_images.ad_id
         AND (ads.status = 'active' OR ads.user_id = auth.uid())
+    ) OR
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'
+    )
+);
+
+-- Admins podem gerenciar todas as imagens
+CREATE POLICY "Admins can manage all ad images"
+ON public.ad_images FOR ALL
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'
     )
 );
 

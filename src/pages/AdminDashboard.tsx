@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { fetchAdminStats, fetchAdminAds, updateAdStatus } from '../services/ads';
 import { formatPrice, formatDate, cn } from '../lib/utils';
 import { Shield, Users, Package, AlertTriangle, Eye, Trash2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, Tag, LayoutGrid } from 'lucide-react';
@@ -15,8 +16,10 @@ export default function AdminDashboard() {
   const loadData = async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      // stats and ads fetchers don't support signal yet, let's update them or just wrap
-      const [s, a] = await Promise.all([fetchAdminStats(), fetchAdminAds()]);
+      const [s, a] = await Promise.all([
+        fetchAdminStats(signal), 
+        fetchAdminAds(signal)
+      ]);
       if (signal?.aborted) return;
       setStats(s);
       setAds(a);
@@ -206,9 +209,9 @@ export default function AdminDashboard() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <a href={`#/anuncio/${ad.id}`} target="_blank" rel="noreferrer" className="w-9 h-9 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-primary/10 hover:text-primary rounded-xl transition-all shadow-sm">
+                      <Link to={`/anuncio/${ad.id}`} target="_blank" rel="noreferrer" className="w-9 h-9 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-primary/10 hover:text-primary rounded-xl transition-all shadow-sm">
                         <Eye className="w-4 h-4" />
-                      </a>
+                      </Link>
                       {ad.status === 'removed' ? (
                         <button 
                           onClick={() => handleActivate(ad.id)}
