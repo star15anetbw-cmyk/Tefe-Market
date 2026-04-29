@@ -4,7 +4,7 @@ import { Ad } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { Edit2, Trash2, Heart, PlusCircle, AlertCircle } from 'lucide-react';
 import Button from '../components/ui/Button';
-import { formatPrice, cn } from '../lib/utils';
+import { formatPrice, cn, isNonCriticalSupabaseError } from '../lib/utils';
 import { Link } from 'react-router-dom';
 
 export default function MyAds() {
@@ -29,7 +29,7 @@ export default function MyAds() {
         setAds(data);
       }
     } catch (err: any) {
-      if (err.name === 'AbortError') return;
+      if (err.name === 'AbortError' || isNonCriticalSupabaseError(err)) return;
       console.error(err);
     } finally {
       if (!signal?.aborted) {

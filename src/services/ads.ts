@@ -51,7 +51,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
 
     if (error) {
       if (isNonCriticalSupabaseError(error)) {
-        return { ads: [], totalCount: 0, hasMore: false };
+        throw error; // Bubble up so Home/Search can preserve state if they want
       }
       console.error('Supabase fetchAds error:', error);
       throw new Error(error.message || 'Erro ao buscar anúncios');
@@ -64,7 +64,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     };
   } catch (err: any) {
     if (isNonCriticalSupabaseError(err)) {
-      return { ads: [], totalCount: 0, hasMore: false };
+      throw err; // Bubble up
     }
     console.error('Unexpected error in fetchAds:', err);
     throw err;
@@ -85,7 +85,7 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
     const { data, error } = await query.maybeSingle();
 
     if (error) {
-      if (isNonCriticalSupabaseError(error)) return null;
+      if (isNonCriticalSupabaseError(error)) throw error;
       console.error('Supabase error fetching ad by id:', error);
       throw error;
     }
@@ -100,7 +100,7 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
 
     return ad as Ad;
   } catch (err: any) {
-    if (isNonCriticalSupabaseError(err)) return null;
+    if (isNonCriticalSupabaseError(err)) throw err;
     console.error('Unexpected error in fetchAdById:', err);
     throw err;
   }
@@ -120,7 +120,7 @@ export async function fetchUserAds(userId: string, signal?: AbortSignal) {
   const { data, error } = await query;
 
   if (error) {
-    if (isNonCriticalSupabaseError(error)) return [];
+    if (isNonCriticalSupabaseError(error)) throw error;
     console.error('Error fetching user ads:', error);
     throw new Error('Erro ao buscar seus anúncios');
   }

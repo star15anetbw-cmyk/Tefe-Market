@@ -333,16 +333,18 @@ Ainda está disponível?`;
               */}
               
               {whatsappUrl && (
-                <a 
-                  href={whatsappUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  onClick={() => ad && logAdClick(ad.id, 'whatsapp')}
-                  className="flex items-center justify-center gap-2 bg-[#25D366] text-white font-bold py-4 rounded-lg hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-[#25D366]/20 border-b-4 border-[#128C7E] text-sm uppercase tracking-wider"
+                <button 
+                  onClick={() => {
+                    if (ad) {
+                      logAdClick(ad.id, 'whatsapp');
+                      window.location.href = whatsappUrl;
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-[#25D366] text-white font-bold py-4 rounded-lg hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-[#25D366]/20 border-b-4 border-[#128C7E] text-sm uppercase tracking-wider cursor-pointer"
                 >
                   <MessageCircle className="w-5 h-5" />
                   Falar no WhatsApp
-                </a>
+                </button>
               )}
               
               <button 
