@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { Ad, AdFilter, AdStatus } from '../types';
+import { isNonCriticalSupabaseError } from '../lib/utils';
 
 export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSignal) {
   const pageSize = filter.pageSize || 12;
@@ -49,11 +50,10 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     const { data, error, count } = await query;
 
     if (error) {
-      console.error('Supabase fetchAds error:', error);
-      // Don't throw if it's a known non-critical error or just return empty
-      if (error.message?.includes('AbortError') || error.message?.includes('Lock broken')) {
+      if (isNonCriticalSupabaseError(error)) {
         return { ads: [], totalCount: 0, hasMore: false };
       }
+      console.error('Supabase fetchAds error:', error);
       throw new Error(error.message || 'Erro ao buscar anúncios');
     }
 
@@ -63,7 +63,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       hasMore: count ? (from + (data?.length || 0)) < count : false
     };
   } catch (err: any) {
-    if (err.name === 'AbortError' || err.message?.includes('AbortError') || err.message?.includes('Lock broken')) {
+    if (isNonCriticalSupabaseError(err)) {
       return { ads: [], totalCount: 0, hasMore: false };
     }
     console.error('Unexpected error in fetchAds:', err);
@@ -85,7 +85,7 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
     const { data, error } = await query.maybeSingle();
 
     if (error) {
-      if (error.message?.includes('AbortError') || error.message?.includes('Lock broken')) return null;
+      if (isNonCriticalSupabaseError(error)) return null;
       console.error('Supabase error fetching ad by id:', error);
       throw error;
     }
@@ -100,7 +100,7 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
 
     return ad as Ad;
   } catch (err: any) {
-    if (err.name === 'AbortError') return null;
+    if (isNonCriticalSupabaseError(err)) return null;
     console.error('Unexpected error in fetchAdById:', err);
     throw err;
   }
@@ -120,7 +120,7 @@ export async function fetchUserAds(userId: string, signal?: AbortSignal) {
   const { data, error } = await query;
 
   if (error) {
-    if (error.message?.includes('AbortError') || error.message?.includes('Lock broken')) return [];
+    if (isNonCriticalSupabaseError(error)) return [];
     console.error('Error fetching user ads:', error);
     throw new Error('Erro ao buscar seus anúncios');
   }
@@ -292,13 +292,22 @@ export async function deleteAd(id: string) {
 }
 
 export async function logAdClick(adId: string, type: 'whatsapp') {
-  try {
-    await supabase
-      .from('ad_clicks')
-      .insert([{ ad_id: adId, type }]);
-  } catch (err) {
-    console.warn('Erro ao registrar clique:', err);
-  }
+  // Fire and forget: inicia a execução mas não aguarda o resultado no fluxo principal
+  (async () => {
+    try {
+      const { error } = await supabase
+        .from('ad_clicks')
+        .insert([{ ad_id: adId, type }]);
+      
+      if (error && !isNonCriticalSupabaseError(error)) {
+        console.warn('Click logging failed:', error);
+      }
+    } catch (err) {
+      if (!isNonCriticalSupabaseError(err)) {
+        console.warn('Unexpected error logging click:', err);
+      }
+    }
+  })();
 }
 
 export async function fetchAdminStats(signal?: AbortSignal) {
@@ -310,7 +319,10 @@ export async function fetchAdminStats(signal?: AbortSignal) {
     if (signal instanceof AbortSignal) query = query.abortSignal(signal);
 
     const { data: ads, error: adsError } = await query;
-    if (adsError) throw adsError;
+    if (adsError) {
+      if (isNonCriticalSupabaseError(adsError)) return null;
+      throw adsError;
+    }
 
     let usersQuery = supabase
       .from('profiles')
@@ -319,7 +331,10 @@ export async function fetchAdminStats(signal?: AbortSignal) {
     if (signal instanceof AbortSignal) usersQuery = usersQuery.abortSignal(signal);
 
     const { count: usersCount, error: usersError } = await usersQuery;
-    if (usersError) throw usersError;
+    if (usersError) {
+      if (isNonCriticalSupabaseError(usersError)) return null;
+      throw usersError;
+    }
 
     let clicksQuery = supabase
       .from('ad_clicks')
@@ -328,7 +343,10 @@ export async function fetchAdminStats(signal?: AbortSignal) {
     if (signal instanceof AbortSignal) clicksQuery = clicksQuery.abortSignal(signal);
 
     const { data: clicks, error: clicksError } = await clicksQuery;
-    if (clicksError) throw clicksError;
+    if (clicksError) {
+      if (isNonCriticalSupabaseError(clicksError)) return null;
+      throw clicksError;
+    }
 
     const stats = {
       active: ads.filter(a => a.status === 'active').length,
@@ -342,7 +360,7 @@ export async function fetchAdminStats(signal?: AbortSignal) {
 
     return stats;
   } catch (err: any) {
-    if (err.name === 'AbortError' || err.message?.includes('AbortError')) return null;
+    if (isNonCriticalSupabaseError(err)) return null;
     console.error('Error fetching admin stats:', err);
     throw new Error('Erro ao buscar estatísticas de anúncios');
   }
@@ -358,11 +376,14 @@ export async function fetchAdminAds(signal?: AbortSignal) {
     if (signal instanceof AbortSignal) query = query.abortSignal(signal);
 
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+      if (isNonCriticalSupabaseError(error)) return [];
+      throw error;
+    }
 
     return (data || []) as any[];
   } catch (err: any) {
-    if (err.name === 'AbortError' || err.message?.includes('AbortError')) return [];
+    if (isNonCriticalSupabaseError(err)) return [];
     console.error('Error fetching admin ads:', err);
     throw new Error('Erro ao buscar todos os anúncios');
   }

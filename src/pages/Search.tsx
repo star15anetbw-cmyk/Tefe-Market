@@ -6,7 +6,7 @@ import AdCard from '../components/AdCard';
 import { Search as SearchIcon, Filter, MapPin } from 'lucide-react';
 import { CATEGORIES } from '../constants';
 import Button from '../components/ui/Button';
-import { cn } from '../lib/utils';
+import { cn, isNonCriticalSupabaseError } from '../lib/utils';
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -35,7 +35,7 @@ export default function Search() {
       const result = await fetchAds(filters, signal);
       setAds(result.ads);
     } catch (err: any) {
-      if (err.name === 'AbortError') return;
+      if (err.name === 'AbortError' || isNonCriticalSupabaseError(err)) return;
       console.error(err);
     } finally {
       if (!signal?.aborted) {

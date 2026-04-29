@@ -20,7 +20,7 @@ import {
   AlertCircle,
   User
 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, isNonCriticalSupabaseError } from '../lib/utils';
 import Button from '../components/ui/Button';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -97,7 +97,8 @@ export default function Home() {
     if (isInitial) {
       setLoading(true);
       setError(null);
-      setAds([]); 
+      // Mantemos os anúncios antigos até a nova resposta chegar para evitar flicker
+      // setAds([]); 
       setPage(0);
     } else {
       setLoadingMore(true);
@@ -128,6 +129,14 @@ export default function Home() {
       setHasMore(result.hasMore);
     } catch (err: any) {
       if (requestId !== requestRef.current) return;
+      
+      // Se for um erro não crítico do Supabase, apenas paramos o loading
+      // sem mostrar a tela de erro, pois pode ser apenas um conflito de sessão
+      if (isNonCriticalSupabaseError(err)) {
+        console.warn('Silent non-critical error handled in Home:', err);
+        return;
+      }
+
       console.error('Error loading ads:', err);
       setError(err.message || 'Não foi possível carregar os anúncios.');
     } finally {

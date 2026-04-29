@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchAdById, logAdClick } from '../services/ads';
 import { Ad } from '../types';
-import { formatPrice, formatAdPrice, formatDate, cn } from '../lib/utils';
+import { formatPrice, formatAdPrice, formatDate, cn, isNonCriticalSupabaseError } from '../lib/utils';
 import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, User, Heart, MessageSquare } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -45,8 +45,9 @@ export default function AdDetails() {
       
       setAd(data);
     } catch (err: any) {
-      if (err.name === 'AbortError') return;
+      if (err.name === 'AbortError' || isNonCriticalSupabaseError(err)) return;
       console.error('Error fetching ad:', err);
+      // Only set to null if it's a real hard error (or let it keep previous state if possible)
       setAd(null);
     } finally {
       // Se auth ainda carregando, mantemos o loading local para evitar flicker de "não encontrado"

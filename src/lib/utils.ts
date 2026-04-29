@@ -26,3 +26,15 @@ export function formatDate(dateString: string) {
     year: 'numeric',
   });
 }
+
+export function isNonCriticalSupabaseError(error: any): boolean {
+  if (!error) return false;
+  const message = error.message || String(error);
+  return (
+    message.includes('AbortError') ||
+    message.includes('Lock') ||
+    message.includes('stole it') ||
+    message.includes('auth-token') ||
+    message.includes('session')
+  );
+}
