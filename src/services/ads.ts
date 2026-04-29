@@ -72,30 +72,38 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
 }
 
 export async function fetchAdById(id: string, signal?: AbortSignal) {
-  let query = supabase
-    .from('ads')
-    .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at), profiles(id, name, whatsapp, neighborhood, avatar_url, role)')
-    .eq('id', id);
+  try {
+    let query = supabase
+      .from('ads')
+      .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at), profiles(id, name, whatsapp, neighborhood, avatar_url, role)')
+      .eq('id', id);
 
-  if (signal) {
-    query = query.abortSignal(signal);
+    if (signal) {
+      query = query.abortSignal(signal);
+    }
+
+    const { data, error } = await query.maybeSingle();
+
+    if (error) {
+      if (error.message?.includes('AbortError') || error.message?.includes('Lock broken')) return null;
+      console.error('Supabase error fetching ad by id:', error);
+      throw error;
+    }
+
+    if (!data) return null;
+
+    // Flatten profiles if it's an array
+    const ad = {
+      ...data,
+      profiles: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles
+    };
+
+    return ad as Ad;
+  } catch (err: any) {
+    if (err.name === 'AbortError') return null;
+    console.error('Unexpected error in fetchAdById:', err);
+    throw err;
   }
-
-  const { data, error } = await query.single();
-
-  if (error) {
-    if (error.message?.includes('AbortError') || error.message?.includes('Lock broken')) return null;
-    console.error('Error fetching ad by id:', error);
-    throw new Error('Anúncio não encontrado');
-  }
-
-  // Flatten profiles if it's an array
-  const ad = {
-    ...data,
-    profiles: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles
-  };
-
-  return ad as Ad;
 }
 
 export async function fetchUserAds(userId: string, signal?: AbortSignal) {
@@ -159,12 +167,16 @@ export async function updateAdStatus(id: string, status: AdStatus) {
     .from('ads')
     .update({ status })
     .eq('id', id)
-    .select('id')
-    .single();
+    .select()
+    .maybeSingle();
 
   if (error) {
     console.error('Error updating ad status:', error);
-    throw new Error('Erro ao atualizar status do anúncio');
+    throw new Error(error.message || 'Erro ao atualizar status do anúncio');
+  }
+
+  if (!data) {
+    throw new Error('Anúncio não encontrado ou sem permissão para atualizar');
   }
 
   return data as Ad;

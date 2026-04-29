@@ -44,8 +44,10 @@ export default function AdminDashboard() {
     
     try {
       await updateAdStatus(id, 'removed');
+      alert('Anúncio removido com sucesso!');
       await loadData();
     } catch (err: any) {
+      console.error('Erro ao remover:', err);
       alert('Erro ao desativar anúncio: ' + err.message);
     }
   };
@@ -53,6 +55,7 @@ export default function AdminDashboard() {
   const handleActivate = async (id: string) => {
     try {
       await updateAdStatus(id, 'active');
+      alert('Anúncio reativado com sucesso!');
       await loadData();
     } catch (err: any) {
       alert('Erro ao ativar anúncio: ' + err.message);
@@ -209,7 +212,11 @@ export default function AdminDashboard() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <Link to={`/anuncio/${ad.id}`} target="_blank" rel="noreferrer" className="w-9 h-9 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-primary/10 hover:text-primary rounded-xl transition-all shadow-sm">
+                      <Link 
+                        to={`/anuncio/${ad.id}`} 
+                        className="w-9 h-9 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-primary/10 hover:text-primary rounded-xl transition-all shadow-sm"
+                        title="Visualizar Anúncio"
+                      >
                         <Eye className="w-4 h-4" />
                       </Link>
                       {ad.status === 'removed' ? (

@@ -11,7 +11,7 @@ import { getOrCreateChat } from '../services/chat';
 
 export default function AdDetails() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const [ad, setAd] = useState<Ad | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -30,25 +30,29 @@ export default function AdDetails() {
       setLoading(false);
     }
     return () => controller.abort();
-  }, [id, user]);
+  }, [id, user, isAdmin]);
 
   const loadAd = async (adId: string, signal?: AbortSignal) => {
     try {
       setLoading(true);
       const data = await fetchAdById(adId, signal);
-      if (data) {
-        setAd(data);
-      } else {
-        setAd(null);
+      
+      // Se não encontrou o anúncio, mas o auth ainda está carregando, 
+      // esperamos o auth terminar antes de dar o veredito (pode ser admin vendo removed)
+      if (!data && authLoading) {
+        return;
       }
+      
+      setAd(data);
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       console.error('Error fetching ad:', err);
       setAd(null);
     } finally {
-      // Damos um pequeno delay para evitar flickering se carregar rápido demais
-      // mas garantimos que o loading encerre SEMPRE
-      setLoading(false);
+      // Se auth ainda carregando, mantemos o loading local para evitar flicker de "não encontrado"
+      if (!authLoading || !signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
@@ -95,7 +99,7 @@ export default function AdDetails() {
   };
   */
 
-  if (loading) return (
+  if (loading || authLoading) return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
       <div className="flex items-center justify-between mb-6">
         <div className="h-6 bg-gray-100 rounded w-20"></div>

@@ -5,8 +5,15 @@
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ad_status') THEN
-        CREATE TYPE ad_status AS ENUM ('active', 'sold', 'hidden');
+        CREATE TYPE ad_status AS ENUM ('active', 'sold', 'hidden', 'removed');
     END IF;
+END $$;
+
+-- Garantir que 'removed' exista se o tipo já foi criado anteriormente
+ALTER TYPE ad_status ADD VALUE IF NOT EXISTS 'removed';
+
+DO $$ 
+BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ad_condition') THEN
         CREATE TYPE ad_condition AS ENUM ('new', 'used');
     END IF;
