@@ -24,7 +24,8 @@ export default function EditAd() {
     category: CATEGORIES[0],
     ad_type: 'sale',
     condition: 'used',
-    neighborhood: profile?.neighborhood || NEIGHBORHOODS[0]
+    neighborhood: profile?.neighborhood || NEIGHBORHOODS[0],
+    priceNegotiable: false
   });
 
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -52,7 +53,8 @@ export default function EditAd() {
         category: ad.category,
         ad_type: ad.ad_type,
         condition: ad.condition,
-        neighborhood: ad.neighborhood
+        neighborhood: ad.neighborhood,
+        priceNegotiable: ad.ad_type === 'service' && ad.price === 0
       });
       
       setExistingImages(ad.ad_images || []);
@@ -300,14 +302,6 @@ export default function EditAd() {
                 required
               />
             </div>
-            <Input
-              label="Preço (R$)"
-              type="number"
-              placeholder="0,00"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              required
-            />
             <div>
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Categoria</label>
               <select
@@ -320,13 +314,70 @@ export default function EditAd() {
                 ))}
               </select>
             </div>
+            
+            <div className="space-y-1">
+              <Input
+                label="Preço (R$)"
+                type="number"
+                placeholder="0,00"
+                value={formData.priceNegotiable ? '' : formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                required={!formData.priceNegotiable}
+                disabled={formData.priceNegotiable}
+                className={cn(
+                  "transition-all",
+                  formData.priceNegotiable ? "bg-gray-100 opacity-50 cursor-not-allowed" : ""
+                )}
+              />
+              {formData.ad_type === 'service' && (
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-purple-50/50 border border-purple-100/50 mt-2 animate-in fade-in zoom-in-95 duration-200">
+                  <input 
+                    type="checkbox" 
+                    id="priceNegotiableEdit"
+                    checked={formData.priceNegotiable}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      priceNegotiable: e.target.checked,
+                      price: e.target.checked ? '0' : (formData.price === '0' ? '' : formData.price)
+                    })}
+                    className="w-5 h-5 text-primary rounded-md border-gray-300 focus:ring-primary focus:ring-offset-0 cursor-pointer"
+                  />
+                  <label htmlFor="priceNegotiableEdit" className="text-[11px] font-black uppercase tracking-widest text-purple-700 cursor-pointer select-none">
+                    Preço a combinar
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {formData.ad_type === 'sale' && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-4 text-center md:text-left">Condição do Produto</label>
+                <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100 w-full sm:w-64">
+                  {AD_CONDITIONS.map(cond => (
+                    <button
+                      key={cond.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, condition: cond.value as any })}
+                      className={cn(
+                        'flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded transition-all',
+                        formData.condition === cond.value 
+                          ? 'bg-white text-primary shadow-md border border-gray-100' 
+                          : 'text-gray-400 hover:text-gray-600'
+                      )}
+                    >
+                      {cond.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
 
-          {/* Condição e Tipo */}
+          {/* Tipo de Anúncio (Manual na edição) */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-4 text-center md:text-left">Tipo de anúncio</label>
-              <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100">
+              <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100 w-full sm:w-80">
                 {AD_TYPES.map(type => (
                   <button
                     key={type.value}
@@ -337,7 +388,8 @@ export default function EditAd() {
                       setFormData({ 
                         ...formData, 
                         ad_type: newType,
-                        category: nextCategories.includes(formData.category) ? formData.category : nextCategories[0]
+                        category: nextCategories.includes(formData.category) ? formData.category : nextCategories[0],
+                        priceNegotiable: newType === 'service' ? formData.priceNegotiable : false
                       });
                     }}
                     className={cn(
@@ -352,28 +404,6 @@ export default function EditAd() {
                 ))}
               </div>
             </div>
-            {formData.ad_type !== 'service' && (
-              <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-4 text-center md:text-left">Condição</label>
-                <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100">
-                  {AD_CONDITIONS.map(cond => (
-                    <button
-                      key={cond.value}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, condition: cond.value as any })}
-                      className={cn(
-                        'flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded transition-all',
-                        formData.condition === cond.value 
-                          ? 'bg-white text-primary shadow-sm border border-gray-100' 
-                          : 'text-gray-400 hover:text-gray-600'
-                      )}
-                    >
-                      {cond.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </section>
 
           {/* Localização */}

@@ -12,6 +12,13 @@ export function formatPrice(price: number) {
   }).format(price);
 }
 
+export function formatAdPrice(price: number, adType: string) {
+  if (adType === 'service' && (price === 0 || !price)) {
+    return 'Preço a combinar';
+  }
+  return formatPrice(price);
+}
+
 export function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('pt-BR', {
     day: '2-digit',

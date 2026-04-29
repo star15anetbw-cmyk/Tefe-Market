@@ -12,6 +12,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onChange?: React.ChangeEventHandler<HTMLInputElement>;
   autoComplete?: string;
   minLength?: number;
+  disabled?: boolean;
 }
 
 export default function Input(props: InputProps) {

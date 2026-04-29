@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchAdById } from '../services/ads';
 import { Ad } from '../types';
-import { formatPrice, formatDate, cn } from '../lib/utils';
+import { formatPrice, formatAdPrice, formatDate, cn } from '../lib/utils';
 import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, User, Heart, MessageSquare } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -179,7 +179,7 @@ export default function AdDetails() {
     const message = `Olá! Vi seu anúncio no Tefé Market:
 
 📦 ${ad.title}
-💰 ${formatPrice(ad.price || 0)}
+💰 ${formatAdPrice(ad.price || 0, ad.ad_type)}
 
 Ainda está disponível?`;
 
@@ -271,7 +271,7 @@ Ainda está disponível?`;
                 "px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] rounded",
                 ad.ad_type === 'sale' ? "bg-primary text-white" : ad.ad_type === 'rent' ? "bg-blue-600 text-white" : "bg-purple-600 text-white"
               )}>
-                {ad.ad_type === 'sale' ? 'Venda' : ad.ad_type === 'rent' ? 'Aluguel' : 'Serviço'}
+                {ad.ad_type === 'sale' ? 'Venda' : ad.ad_type === 'rent' ? 'Aluguel' : 'Serviços'}
               </span>
               {ad.ad_type !== 'service' && (
                 <span className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] rounded bg-gray-100 text-gray-600">
@@ -300,7 +300,7 @@ Ainda está disponível?`;
             </div>
 
             <div className="text-3xl font-black text-primary mb-8">
-              {formatPrice(ad.price || 0)}
+              {formatAdPrice(ad.price || 0, ad.ad_type)}
             </div>
 
             <div className="grid grid-cols-1 gap-3">

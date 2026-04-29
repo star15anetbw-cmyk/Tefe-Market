@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Ad } from '../types';
-import { formatPrice, cn } from '../lib/utils';
+import { formatPrice, formatAdPrice, cn } from '../lib/utils';
 import { MapPin, Clock, Heart, Eye } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
@@ -87,7 +87,7 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
               "px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md text-white shadow-sm backdrop-blur-md",
               ad.ad_type === 'sale' ? "bg-primary/90" : ad.ad_type === 'rent' ? "bg-blue-600/90" : "bg-purple-600/90"
             )}>
-              {ad.ad_type === 'sale' ? 'Venda' : ad.ad_type === 'rent' ? 'Aluguel' : 'Serviço'}
+              {ad.ad_type === 'sale' ? 'Venda' : ad.ad_type === 'rent' ? 'Aluguel' : 'Serviços'}
             </span>
           </div>
           
@@ -111,7 +111,7 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
 
           <div className="mt-auto pt-1">
             <div className="font-bold text-lg text-gray-900 leading-tight mb-2 tracking-tight">
-              {formatPrice(ad.price)}
+              {formatAdPrice(ad.price, ad.ad_type)}
             </div>
             
             <div className="flex items-center justify-between text-[10px] text-gray-400 font-medium border-t border-gray-50 pt-2">

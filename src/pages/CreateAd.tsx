@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { createAd, uploadAdImage } from '../services/ads';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import { Camera, AlertCircle, MessageSquare } from 'lucide-react';
+import { Camera, AlertCircle, MessageSquare, Tag, LayoutGrid } from 'lucide-react';
 import { CATEGORIES, NEIGHBORHOODS, AD_TYPES, AD_CONDITIONS, SERVICE_CATEGORIES } from '../constants';
 import { cn } from '../lib/utils';
 
@@ -14,6 +14,7 @@ export default function CreateAd() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -21,12 +22,25 @@ export default function CreateAd() {
     category: CATEGORIES[0],
     ad_type: 'sale',
     condition: 'used',
-    neighborhood: profile?.neighborhood || NEIGHBORHOODS[0]
+    neighborhood: profile?.neighborhood || NEIGHBORHOODS[0],
+    priceNegotiable: false
   });
 
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const MAX_IMAGES = 5;
+
+  const selectAdType = (type: string) => {
+    const nextCategories = type === 'service' ? SERVICE_CATEGORIES : CATEGORIES;
+    setFormData(prev => ({
+      ...prev,
+      ad_type: type,
+      category: nextCategories[0],
+      priceNegotiable: false
+    }));
+    setStep(1);
+    window.scrollTo(0, 0);
+  };
 
   // Sincroniza bairro quando o perfil carregar
   React.useEffect(() => {
@@ -105,11 +119,82 @@ export default function CreateAd() {
     }
   };
 
+  if (step === 0) {
+    return (
+      <div className="max-w-xl mx-auto mt-8 px-4 pb-20">
+        <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center">
+          <h1 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">O que você deseja anunciar?</h1>
+          <p className="text-gray-400 font-medium mb-8">Escolha uma opção para começar</p>
+          
+          <div className="grid grid-cols-1 gap-4">
+            <button 
+              onClick={() => selectAdType('sale')}
+              className="flex items-center gap-5 p-6 rounded-2xl bg-gray-50 border-2 border-transparent hover:border-primary hover:bg-primary/5 transition-all group text-left"
+            >
+              <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+                <Tag className="w-7 h-7 text-primary group-hover:text-white" />
+              </div>
+              <div>
+                <h3 className="font-black text-gray-900 uppercase tracking-tighter text-lg">Vender</h3>
+                <p className="text-xs text-gray-400 font-medium tracking-tight">Produtos novos ou usados</p>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => selectAdType('rent')}
+              className="flex items-center gap-5 p-6 rounded-2xl bg-gray-50 border-2 border-transparent hover:border-blue-600 hover:bg-blue-50 transition-all group text-left"
+            >
+              <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <LayoutGrid className="w-7 h-7 text-blue-600 group-hover:text-white" />
+              </div>
+              <div>
+                <h3 className="font-black text-gray-900 uppercase tracking-tighter text-lg">Alugar</h3>
+                <p className="text-xs text-gray-400 font-medium tracking-tight">Casas, quartos, pontos e outros</p>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => selectAdType('service')}
+              className="flex items-center gap-5 p-6 rounded-2xl bg-gray-50 border-2 border-transparent hover:border-purple-600 hover:bg-purple-50 transition-all group text-left"
+            >
+              <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                <MessageSquare className="w-7 h-7 text-purple-600 group-hover:text-white" />
+              </div>
+              <div>
+                <h3 className="font-black text-gray-900 uppercase tracking-tighter text-lg">Serviços</h3>
+                <p className="text-xs text-gray-400 font-medium tracking-tight">Diarista, pedreiro, frete e mais</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto mt-8 px-4 pb-20">
       <div className="bg-white p-6 sm:p-10 rounded-xl shadow-lg border border-gray-200">
-        <h1 className="text-2xl font-black text-gray-900 mb-1 leading-tight">O que você está anunciando?</h1>
-        <p className="text-gray-400 text-sm mb-8">Preencha os detalhes e venda rápido no Tefé Market.</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className={cn(
+                "px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-md text-white",
+                formData.ad_type === 'sale' ? "bg-primary" : formData.ad_type === 'rent' ? "bg-blue-600" : "bg-purple-600"
+              )}>
+                {formData.ad_type === 'sale' ? 'Venda' : formData.ad_type === 'rent' ? 'Aluguel' : 'Serviços'}
+              </span>
+              <h1 className="text-2xl font-black text-gray-900 leading-tight">Anunciar {formData.ad_type === 'sale' ? 'Produto' : formData.ad_type === 'rent' ? 'Imóvel' : 'Serviço'}</h1>
+            </div>
+            <p className="text-gray-400 text-sm italic">Preencha os detalhes e publique rápido.</p>
+          </div>
+          <button 
+            type="button"
+            onClick={() => setStep(0)}
+            className="text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 px-4 py-2 rounded-lg border border-primary/20 transition-all w-fit"
+          >
+            Alterar tipo
+          </button>
+        </div>
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3 text-red-700">
@@ -180,7 +265,7 @@ export default function CreateAd() {
             <div className="md:col-span-2">
               <Input
                 label="Título do Anúncio"
-                placeholder="Ex: iPhone 13 Pro 128GB - Novo"
+                placeholder={formData.ad_type === 'sale' ? "Ex: iPhone 13 Pro 128GB - Novo" : formData.ad_type === 'rent' ? "Ex: Casa com 2 quartos no Centro" : "Ex: Diarista com experiência"}
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 required
@@ -190,20 +275,12 @@ export default function CreateAd() {
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Descrição detalhada</label>
               <textarea
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 min-h-[120px] text-sm"
-                placeholder="Descreva o que está vendendo..."
+                placeholder={formData.ad_type === 'service' ? "Descreva seu serviço, horários e experiência..." : "Descreva detalhes importantes..."}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
               />
             </div>
-            <Input
-              label="Preço (R$)"
-              type="number"
-              placeholder="0,00"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              required
-            />
             <div>
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Categoria</label>
               <select
@@ -216,51 +293,54 @@ export default function CreateAd() {
                 ))}
               </select>
             </div>
-          </section>
-
-          {/* Condição e Tipo */}
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-4 text-center md:text-left">Tipo de anúncio</label>
-              <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100">
-                {AD_TYPES.map(type => (
-                  <button
-                    key={type.value}
-                    type="button"
-                    onClick={() => {
-                      const newType = type.value;
-                      const nextCategories = newType === 'service' ? SERVICE_CATEGORIES : CATEGORIES;
-                      setFormData({ 
-                        ...formData, 
-                        ad_type: newType,
-                        category: nextCategories[0] // Reset category when switching type
-                      });
-                    }}
-                    className={cn(
-                      'flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded transition-all',
-                      formData.ad_type === type.value 
-                        ? 'bg-white text-primary shadow-sm border border-gray-100' 
-                        : 'text-gray-400 hover:text-gray-600'
-                    )}
-                  >
-                    {type.label}
-                  </button>
-                ))}
-              </div>
+            
+            <div className="space-y-1">
+              <Input
+                label="Preço (R$)"
+                type="number"
+                placeholder="0,00"
+                value={formData.priceNegotiable ? '' : formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                required={!formData.priceNegotiable}
+                disabled={formData.priceNegotiable}
+                className={cn(
+                  "transition-all",
+                  formData.priceNegotiable ? "bg-gray-100 opacity-50 cursor-not-allowed" : ""
+                )}
+              />
+              {formData.ad_type === 'service' && (
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-purple-50/50 border border-purple-100/50 mt-2 animate-in fade-in zoom-in-95 duration-200">
+                  <input 
+                    type="checkbox" 
+                    id="priceNegotiableCreate"
+                    checked={formData.priceNegotiable}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      priceNegotiable: e.target.checked,
+                      price: e.target.checked ? '0' : (formData.price === '0' ? '' : formData.price)
+                    })}
+                    className="w-5 h-5 text-primary rounded-md border-gray-300 focus:ring-primary focus:ring-offset-0 cursor-pointer"
+                  />
+                  <label htmlFor="priceNegotiableCreate" className="text-[11px] font-black uppercase tracking-widest text-purple-700 cursor-pointer select-none">
+                    Preço a combinar
+                  </label>
+                </div>
+              )}
             </div>
-            {formData.ad_type !== 'service' && (
-              <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-4 text-center md:text-left">Condição</label>
-                <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100">
+
+            {formData.ad_type === 'sale' && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-4">Condição do Produto</label>
+                <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100 w-full sm:w-64">
                   {AD_CONDITIONS.map(cond => (
                     <button
                       key={cond.value}
                       type="button"
                       onClick={() => setFormData({ ...formData, condition: cond.value })}
                       className={cn(
-                        'flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded transition-all',
+                        'flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded transition-all',
                         formData.condition === cond.value 
-                          ? 'bg-white text-primary shadow-sm border border-gray-100' 
+                          ? 'bg-white text-primary shadow-md border border-gray-100' 
                           : 'text-gray-400 hover:text-gray-600'
                       )}
                     >
@@ -288,10 +368,13 @@ export default function CreateAd() {
             </div>
           </section>
 
-          <div className="pt-4">
-            <Button type="submit" className="w-full py-4 text-sm uppercase tracking-widest font-black" loading={loading}>
+          <div className="pt-4 px-2">
+            <Button type="submit" className="w-full py-5 text-[12px] uppercase tracking-[0.2em] font-black shadow-xl shadow-primary/20" loading={loading}>
               Publicar Agora
             </Button>
+            <p className="text-center text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-4">
+              Ao publicar, você concorda com os termos do Tefé Market.
+            </p>
           </div>
         </form>
       </div>
