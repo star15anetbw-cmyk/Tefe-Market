@@ -29,20 +29,25 @@ export default function Search() {
     }
   }, [queryTerm]);
 
-  const loadAds = async () => {
+  const loadAds = async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const result = await fetchAds(filters);
+      const result = await fetchAds(filters, signal);
       setAds(result.ads);
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    loadAds();
+    const controller = new AbortController();
+    loadAds(controller.signal);
+    return () => controller.abort();
   }, [filters]);
 
   return (

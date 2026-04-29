@@ -78,48 +78,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }, 10000);
 
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!mounted) return;
-
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        // Libera o loading principal assim que temos a sessão do usuário
-        // O perfil pode carregar em background
-        if (mounted) {
-          authInitialized = true;
-          setLoading(false);
-          clearTimeout(safetyTimer);
-        }
-
-        if (session?.user) {
-          const prof = await fetchProfile(session.user.id);
-          if (mounted) setProfile(prof);
-        }
-      } catch (err) {
-        console.error('Auth initialization error:', err);
-        if (mounted) {
-          setLoading(false);
-          clearTimeout(safetyTimer);
-        }
-      }
-    };
-
-    initAuth();
-
+    // supabase.auth.onAuthStateChange already provides INITIAL_SESSION in V2
+    // which effectively acts as our initialization.
+    // We only need to start the onAuthStateChange listener.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
+      console.log('AUTH_EVENT:', event);
+      
+      // If we already initialized via INITIAL_SESSION, we don't need to re-run for same session
       if (event === 'INITIAL_SESSION' && authInitialized) return;
 
       try {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Se já estávamos bloqueados no loading e o evento chegou, liberamos
-        if (mounted && !authInitialized) {
+        // Mark as initialized and hide global loading
+        if (mounted) {
           authInitialized = true;
           setLoading(false);
           clearTimeout(safetyTimer);
@@ -132,7 +107,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (mounted) setProfile(null);
         }
       } catch (err) {
-        console.error('Auth change processing error:', err);
+        console.error('Auth update error:', err);
+        if (mounted && !authInitialized) {
+          authInitialized = true;
+          setLoading(false);
+          clearTimeout(safetyTimer);
+        }
       }
     });
 

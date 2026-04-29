@@ -20,22 +20,29 @@ export default function AdDetails() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    const controller = new AbortController();
     if (id) {
-      loadAd(id);
+      loadAd(id, controller.signal);
       if (user) {
         checkIsFavorited(user.id, id).then(setIsFavorited);
       }
     }
+    return () => controller.abort();
   }, [id, user]);
 
-  const loadAd = async (adId: string) => {
+  const loadAd = async (adId: string, signal?: AbortSignal) => {
     try {
-      const data = await fetchAdById(adId);
-      setAd(data);
-    } catch (err) {
+      const data = await fetchAdById(adId, signal);
+      if (data) {
+        setAd(data);
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       console.error('Error fetching ad:', err);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 

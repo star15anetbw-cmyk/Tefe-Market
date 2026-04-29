@@ -14,20 +14,27 @@ export default function MyAds() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     if (user) {
-      loadAds();
+      loadAds(controller.signal);
     }
+    return () => controller.abort();
   }, [user]);
 
-  const loadAds = async () => {
+  const loadAds = async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const data = await fetchUserAds(user!.id);
-      setAds(data);
-    } catch (err) {
+      const data = await fetchUserAds(user!.id, signal);
+      if (!signal?.aborted) {
+        setAds(data);
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 

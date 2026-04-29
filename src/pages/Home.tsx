@@ -111,7 +111,7 @@ export default function Home() {
         ...activeFilters, 
         page: targetPage, 
         pageSize: 12 
-      });
+      }, controller.signal);
       
       // Proteção contra Race Condition: se uma nova busca começou, ignoramos esta resposta
       if (requestId !== requestRef.current) return;
@@ -171,7 +171,13 @@ export default function Home() {
     // A Home só carrega anúncios baseados em filtros de categoria/tipo/ordem
     // A busca textual agora é tratada apenas pelo redirecionamento no handleSearch
     loadAds(true);
-  }, [filters.category, filters.type, filters.sortBy, filters.condition]);
+    
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [filters.category, filters.type, filters.sortBy, filters.condition, loadAds]);
 
   // Redireciona para a página de busca ao submeter
   const handleSearch = (e?: React.FormEvent) => {

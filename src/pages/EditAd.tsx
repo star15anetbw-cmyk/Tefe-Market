@@ -34,14 +34,18 @@ export default function EditAd() {
   const MAX_IMAGES = 5;
 
   useEffect(() => {
+    const controller = new AbortController();
     if (id) {
-      loadAd(id);
+      loadAd(id, controller.signal);
     }
+    return () => controller.abort();
   }, [id]);
 
-  const loadAd = async (adId: string) => {
+  const loadAd = async (adId: string, signal?: AbortSignal) => {
     try {
-      const ad = await fetchAdById(adId);
+      const ad = await fetchAdById(adId, signal);
+      if (!ad || signal?.aborted) return;
+      
       if (user && ad.user_id !== user.id) {
         navigate('/meus-anuncios');
         return;
@@ -58,10 +62,13 @@ export default function EditAd() {
       });
       
       setExistingImages(ad.ad_images || []);
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       setError('Erro ao carregar anúncio.');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 

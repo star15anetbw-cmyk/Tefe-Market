@@ -12,21 +12,28 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const loadData = async () => {
+  const loadData = async (signal?: AbortSignal) => {
     setLoading(true);
     try {
+      // stats and ads fetchers don't support signal yet, let's update them or just wrap
       const [s, a] = await Promise.all([fetchAdminStats(), fetchAdminAds()]);
+      if (signal?.aborted) return;
       setStats(s);
       setAds(a);
     } catch (err: any) {
+      if (err.name === 'AbortError') return;
       setError(err.message || 'Erro ao carregar dados do painel');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    loadData();
+    const controller = new AbortController();
+    loadData(controller.signal);
+    return () => controller.abort();
   }, []);
 
   const handleDeactivate = async (id: string) => {

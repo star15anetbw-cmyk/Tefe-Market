@@ -1,14 +1,19 @@
 import { supabase } from '../lib/supabase';
 import { Ad, AdFilter, AdStatus } from '../types';
 
-export async function fetchAds(filter: Partial<AdFilter> = {}) {
+export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSignal) {
   const pageSize = filter.pageSize || 12;
   const page = filter.page || 0;
   
-  let query = supabase
-    .from('ads')
-    .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)', { count: 'exact' })
-    .eq('status', 'active');
+  try {
+    let query = supabase
+      .from('ads')
+      .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)', { count: 'exact' })
+      .eq('status', 'active');
+
+    if (signal) {
+      query = query.abortSignal(signal);
+    }
 
   // Filtros
   if (filter.search) {
@@ -41,28 +46,45 @@ export async function fetchAds(filter: Partial<AdFilter> = {}) {
   const to = from + pageSize - 1;
   query = query.range(from, to);
 
-  const { data, error, count } = await query;
+    const { data, error, count } = await query;
 
-  if (error) {
-    console.error('Error fetching ads:', error);
-    throw new Error('Erro ao buscar anúncios');
+    if (error) {
+      console.error('Supabase fetchAds error:', error);
+      // Don't throw if it's a known non-critical error or just return empty
+      if (error.message?.includes('AbortError') || error.message?.includes('Lock broken')) {
+        return { ads: [], totalCount: 0, hasMore: false };
+      }
+      throw new Error(error.message || 'Erro ao buscar anúncios');
+    }
+
+    return {
+      ads: (data || []) as Ad[],
+      totalCount: count || 0,
+      hasMore: count ? (from + (data?.length || 0)) < count : false
+    };
+  } catch (err: any) {
+    if (err.name === 'AbortError' || err.message?.includes('AbortError') || err.message?.includes('Lock broken')) {
+      return { ads: [], totalCount: 0, hasMore: false };
+    }
+    console.error('Unexpected error in fetchAds:', err);
+    throw err;
   }
-
-  return {
-    ads: (data || []) as Ad[],
-    totalCount: count || 0,
-    hasMore: count ? (from + (data?.length || 0)) < count : false
-  };
 }
 
-export async function fetchAdById(id: string) {
-  const { data, error } = await supabase
+export async function fetchAdById(id: string, signal?: AbortSignal) {
+  let query = supabase
     .from('ads')
     .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at), profiles(id, name, whatsapp, neighborhood, avatar_url, role)')
-    .eq('id', id)
-    .single();
+    .eq('id', id);
+
+  if (signal) {
+    query = query.abortSignal(signal);
+  }
+
+  const { data, error } = await query.single();
 
   if (error) {
+    if (error.message?.includes('AbortError') || error.message?.includes('Lock broken')) return null;
     console.error('Error fetching ad by id:', error);
     throw new Error('Anúncio não encontrado');
   }
@@ -76,14 +98,21 @@ export async function fetchAdById(id: string) {
   return ad as Ad;
 }
 
-export async function fetchUserAds(userId: string) {
-  const { data, error } = await supabase
+export async function fetchUserAds(userId: string, signal?: AbortSignal) {
+  let query = supabase
     .from('ads')
     .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
+  if (signal) {
+    query = query.abortSignal(signal);
+  }
+
+  const { data, error } = await query;
+
   if (error) {
+    if (error.message?.includes('AbortError') || error.message?.includes('Lock broken')) return [];
     console.error('Error fetching user ads:', error);
     throw new Error('Erro ao buscar seus anúncios');
   }
