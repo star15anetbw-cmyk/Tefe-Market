@@ -61,7 +61,11 @@ export default function EditAd() {
         priceNegotiable: ad.ad_type === 'service' && ad.price === 0
       });
       
-      setExistingImages(ad.ad_images || []);
+      setExistingImages((ad.ad_images || []).sort((a, b) => {
+        if (a.is_primary) return -1;
+        if (b.is_primary) return 1;
+        return (a.sort_order || 0) - (b.sort_order || 0);
+      }));
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       setError('Erro ao carregar anúncio.');
@@ -125,10 +129,17 @@ export default function EditAd() {
     try {
       setSaving(true);
       await setPrimaryImage(id!, imageId);
-      setExistingImages(prev => prev.map(img => ({
-        ...img,
-        is_primary: img.id === imageId
-      })));
+      setExistingImages(prev => {
+        const updated = prev.map(img => ({
+          ...img,
+          is_primary: img.id === imageId
+        }));
+        return updated.sort((a, b) => {
+          if (a.is_primary) return -1;
+          if (b.is_primary) return 1;
+          return (a.sort_order || 0) - (b.sort_order || 0);
+        });
+      });
     } catch (err) {
       alert('Erro ao definir imagem principal.');
     } finally {

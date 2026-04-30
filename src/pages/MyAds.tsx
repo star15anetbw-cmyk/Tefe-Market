@@ -116,7 +116,7 @@ export default function MyAds() {
             <div key={ad.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 p-4 flex gap-4 transition-all hover:shadow-md">
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-xl overflow-hidden shrink-0 relative">
                 <img 
-                  src={ad.ad_images?.find(img => img.is_primary)?.image_url || ad.ad_images?.[0]?.image_url || fallbackImage} 
+                  src={ad.ad_images?.[0]?.image_url || fallbackImage} 
                   alt={ad.title}
                   className={cn("w-full h-full object-cover", ad.status === 'sold' && "grayscale opacity-50")}
                   referrerPolicy="no-referrer"

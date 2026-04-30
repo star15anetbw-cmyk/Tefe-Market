@@ -10,7 +10,9 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     let query = supabase
       .from('ads')
       .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)', { count: 'exact' })
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .order('is_primary', { foreignTable: 'ad_images', ascending: false })
+      .order('sort_order', { foreignTable: 'ad_images', ascending: true });
 
     if (signal) {
       query = query.abortSignal(signal);
@@ -92,7 +94,9 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
     let query = supabase
       .from('ads')
       .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at), profiles(id, name, whatsapp, neighborhood, avatar_url, role)')
-      .eq('id', id);
+      .eq('id', id)
+      .order('is_primary', { foreignTable: 'ad_images', ascending: false })
+      .order('sort_order', { foreignTable: 'ad_images', ascending: true });
 
     if (signal) {
       query = query.abortSignal(signal);
@@ -127,7 +131,9 @@ export async function fetchUserAds(userId: string, signal?: AbortSignal) {
     .from('ads')
     .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .order('is_primary', { foreignTable: 'ad_images', ascending: false })
+    .order('sort_order', { foreignTable: 'ad_images', ascending: true });
 
   if (signal) {
     query = query.abortSignal(signal);

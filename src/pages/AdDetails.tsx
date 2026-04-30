@@ -18,6 +18,9 @@ export default function AdDetails() {
   const [isToggling, setIsToggling] = useState(false);
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
+  
+  // Galeria de imagens
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -100,6 +103,33 @@ export default function AdDetails() {
   };
   */
 
+  // Ordenar imagens para garantir que a primária seja a primeira do array
+  const images = [...(ad?.ad_images || [])].sort((a, b) => {
+    if (a.is_primary) return -1;
+    if (b.is_primary) return 1;
+    return (a.sort_order || 0) - (b.sort_order || 0);
+  });
+
+  const nextImage = () => {
+    if (images.length === 0) return;
+    setSelectedImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    if (images.length === 0) return;
+    setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (images.length <= 1) return;
+      if (e.key === 'ArrowRight') nextImage();
+      if (e.key === 'ArrowLeft') prevImage();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [images.length]);
+
   if (loading || authLoading) return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
       <div className="flex items-center justify-between mb-6">
@@ -143,19 +173,12 @@ export default function AdDetails() {
   const sellerName = profileData?.name || 'Vendedor Anônimo';
   const whatsappNumber = profileData?.whatsapp || '';
   
-  // Ordenar imagens para garantir que a primária seja a primeira do array
-  const images = [...(ad.ad_images || [])].sort((a, b) => {
-    if (a.is_primary) return -1;
-    if (b.is_primary) return 1;
-    return 0;
-  });
-
   const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23F9FAFB'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='24' font-weight='bold' fill='%23D1D5DB' text-anchor='middle' dy='.3em'%3ESEM IMAGEM%3C/text%3E%3C/svg%3E";
 
   if (images.length === 0) {
     images.push({ 
       id: 'placeholder', 
-      ad_id: ad.id, 
+      ad_id: ad?.id || '', 
       image_url: fallbackImage,
       is_primary: true,
       sort_order: 0
@@ -250,32 +273,64 @@ Ainda está disponível?`;
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Gallery Section */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200">
+          <div className="relative bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200 group">
             <img 
-              src={images[0].image_url} 
+              src={images[selectedImageIndex].image_url} 
               alt={ad.title} 
-              className="w-full aspect-[4/3] object-cover"
+              className="w-full aspect-[4/3] object-cover transition-all duration-300"
               referrerPolicy="no-referrer"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = fallbackImage;
               }}
             />
+            
+            {images.length > 1 && (
+              <>
+                <button 
+                  onClick={prevImage}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-lg text-gray-800 hover:bg-white hover:scale-110 transition-all opacity-0 group-hover:opacity-100"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button 
+                  onClick={nextImage}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-lg text-gray-800 hover:bg-white hover:scale-110 transition-all opacity-0 group-hover:opacity-100"
+                >
+                  <ChevronLeft className="w-6 h-6 rotate-180" />
+                </button>
+                
+                {/* Image Counter Overlay */}
+                <div className="absolute bottom-4 right-4 px-3 py-1 bg-black/50 backdrop-blur-sm rounded-full text-white text-[10px] font-black uppercase tracking-widest">
+                  {selectedImageIndex + 1} / {images.length}
+                </div>
+              </>
+            )}
           </div>
           
           {images.length > 1 && (
-            <div className="grid grid-cols-4 gap-4">
-              {images.slice(1).map((img, i) => (
-                <div key={i} className="rounded-lg overflow-hidden shadow-sm aspect-square bg-white border border-gray-200">
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+              {images.map((img, i) => (
+                <button 
+                  key={i} 
+                  onClick={() => setSelectedImageIndex(i)}
+                  className={cn(
+                    "rounded-xl overflow-hidden shadow-sm aspect-square bg-white border-2 transition-all active:scale-95",
+                    selectedImageIndex === i ? "border-primary ring-2 ring-primary/20 scale-105 z-10" : "border-gray-100 hover:border-gray-300"
+                  )}
+                >
                   <img 
                     src={img.image_url} 
                     alt={`${ad.title} - ${i + 1}`} 
-                    className="w-full h-full object-cover"
+                    className={cn(
+                      "w-full h-full object-cover transition-opacity",
+                      selectedImageIndex === i ? "opacity-100" : "opacity-60 hover:opacity-100"
+                    )}
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = fallbackImage;
                     }}
                   />
-                </div>
+                </button>
               ))}
             </div>
           )}
