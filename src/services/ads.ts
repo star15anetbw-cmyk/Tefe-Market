@@ -33,6 +33,10 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       query = query.eq('ad_type', filter.type);
     }
 
+    if (filter.neighborhood && filter.neighborhood !== 'Todos os bairros') {
+      query = query.eq('neighborhood', filter.neighborhood);
+    }
+
     // Ordenação
     if (filter.sortBy === 'price_asc') {
       query = query.order('price', { ascending: true });

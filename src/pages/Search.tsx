@@ -4,13 +4,14 @@ import { fetchAds } from '../services/ads';
 import { Ad, AdFilter } from '../types';
 import AdCard from '../components/AdCard';
 import { Search as SearchIcon, Filter, MapPin } from 'lucide-react';
-import { CATEGORIES } from '../constants';
+import { CATEGORIES, FILTER_NEIGHBORHOODS } from '../constants';
 import Button from '../components/ui/Button';
 import { cn, isNonCriticalSupabaseError } from '../lib/utils';
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryTerm = searchParams.get('search') || '';
+  const queryNeighborhood = searchParams.get('neighborhood') || 'Todos os bairros';
 
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(false);
@@ -18,6 +19,7 @@ export default function Search() {
   const [localSearch, setLocalSearch] = useState(queryTerm);
   const [filters, setFilters] = useState<AdFilter>({
     search: queryTerm,
+    neighborhood: queryNeighborhood,
     category: 'Todos',
     type: 'all',
     condition: 'all'
@@ -31,14 +33,14 @@ export default function Search() {
         return { ...prev, search: localSearch };
       });
       
-      if (localSearch) {
-        setSearchParams({ search: localSearch }, { replace: true });
-      } else {
-        setSearchParams({}, { replace: true });
-      }
+      const params: any = {};
+      if (localSearch) params.search = localSearch;
+      if (filters.neighborhood && filters.neighborhood !== 'Todos os bairros') params.neighborhood = filters.neighborhood;
+      
+      setSearchParams(params, { replace: true });
     }, 500);
     return () => clearTimeout(timer);
-  }, [localSearch, setSearchParams]);
+  }, [localSearch, filters.neighborhood, setSearchParams]);
 
   // Sync with URL query term
   useEffect(() => {
@@ -123,6 +125,22 @@ export default function Search() {
                       {cat}
                     </button>
                   ))}
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Bairro</h3>
+                <div className="relative">
+                  <select
+                    className="w-full pl-4 pr-10 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:border-primary outline-none appearance-none transition-all"
+                    value={filters.neighborhood}
+                    onChange={(e) => setFilters({ ...filters, neighborhood: e.target.value })}
+                  >
+                    {FILTER_NEIGHBORHOODS.map(n => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                  <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
                 </div>
               </section>
 

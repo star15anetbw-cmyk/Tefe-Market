@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { fetchAds } from '../services/ads';
 import { Ad, AdFilter, AdType } from '../types';
-import { CATEGORIES, NEIGHBORHOODS } from '../constants';
+import { CATEGORIES, NEIGHBORHOODS, FILTER_NEIGHBORHOODS } from '../constants';
 import { TEFE_CENTER, getRandomCoordInNeighborhood } from '../constants/locations';
 import { Search as SearchIcon, Filter, LayoutGrid, MapPin, Tag, ChevronRight } from 'lucide-react';
 import {Link} from 'react-router-dom';
@@ -34,6 +34,7 @@ export default function MapView() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<AdFilter>({
     search: '',
+    neighborhood: 'Todos os bairros',
     category: 'Todos',
     type: 'all',
     condition: 'all'
@@ -112,6 +113,22 @@ export default function MapView() {
                       {cat}
                     </button>
                   ))}
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Bairro</h3>
+                <div className="relative">
+                  <select
+                    className="w-full pl-4 pr-10 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold focus:border-primary outline-none appearance-none transition-all"
+                    value={filters.neighborhood}
+                    onChange={(e) => setFilters({ ...filters, neighborhood: e.target.value })}
+                  >
+                    {FILTER_NEIGHBORHOODS.map(n => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                  <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
                 </div>
               </section>
 

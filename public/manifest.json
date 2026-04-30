@@ -1,0 +1,17 @@
+{
+  "name": "Tefé Market",
+  "short_name": "TeféMarket",
+  "description": "O Marketplace da Terra da Castanha - Tefé, AM",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

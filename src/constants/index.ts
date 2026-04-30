@@ -11,18 +11,29 @@ export const CATEGORIES = [
   'Outros'
 ];
 
-export const NEIGHBORHOODS = [
-  'Centro',
-  'Abial',
-  'Jerusalém',
-  'Juruá',
-  'Mutirão',
-  'Santo Antônio',
-  'Santa Tereza',
-  'Fonte Boa',
-  'Vila de Tefé',
-  'Outro'
+export const TEFE_NEIGHBORHOODS = [
+  "Abial",
+  "Aeroporto",
+  "Castanheira",
+  "Centro",
+  "Colônia Ventura",
+  "Fonte Boa",
+  "Juruá",
+  "Jutaí",
+  "Monte Castelo",
+  "Mutirão",
+  "Nossa Senhora de Fátima",
+  "Olaria",
+  "Santa Luzia",
+  "Santo Antônio",
+  "São Francisco",
+  "São João",
+  "Vila Nova",
 ];
+
+export const NEIGHBORHOODS = TEFE_NEIGHBORHOODS;
+
+export const FILTER_NEIGHBORHOODS = ["Todos os bairros", ...TEFE_NEIGHBORHOODS];
 
 export const AD_TYPES = [
   { value: 'sale', label: 'Venda' },

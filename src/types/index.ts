@@ -61,6 +61,7 @@ export interface AdFilter {
   category: string;
   type: AdType | 'all';
   condition: AdCondition | 'all';
+  neighborhood?: string;
   sortBy?: AdSortBy;
   page?: number;
   pageSize?: number;
