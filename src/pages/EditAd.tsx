@@ -134,9 +134,9 @@ export default function EditAd() {
     try {
       console.log("STAR CLICK DEBUG:", {
         adId: id,
-        clickedImage: image,
         clickedImageId: image.id,
       });
+      console.log("FULL IMAGE OBJECT:", image);
 
       setSaving(true);
       await setPrimaryImage(id, image.id);
