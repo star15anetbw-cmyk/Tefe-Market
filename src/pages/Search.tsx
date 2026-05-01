@@ -54,10 +54,10 @@ export default function Search() {
     setLoading(true);
     try {
       const result = await fetchAds(filters, signal);
-      setAds(result.ads);
+      setAds(Array.isArray(result.ads) ? result.ads : []);
     } catch (err: any) {
       if (err.name === 'AbortError' || isNonCriticalSupabaseError(err)) return;
-      console.error(err);
+      console.error('Error loading search ads:', err);
     } finally {
       if (!signal?.aborted) {
         setLoading(false);

@@ -10,9 +10,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     let query = supabase
       .from('ads')
       .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)', { count: 'exact' })
-      .eq('status', 'active')
-      .order('is_primary', { foreignTable: 'ad_images', ascending: false })
-      .order('sort_order', { foreignTable: 'ad_images', ascending: true });
+      .eq('status', 'active');
 
     if (signal) {
       query = query.abortSignal(signal);
@@ -94,9 +92,7 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
     let query = supabase
       .from('ads')
       .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at), profiles(id, name, whatsapp, neighborhood, avatar_url, role)')
-      .eq('id', id)
-      .order('is_primary', { foreignTable: 'ad_images', ascending: false })
-      .order('sort_order', { foreignTable: 'ad_images', ascending: true });
+      .eq('id', id);
 
     if (signal) {
       query = query.abortSignal(signal);
@@ -131,9 +127,7 @@ export async function fetchUserAds(userId: string, signal?: AbortSignal) {
     .from('ads')
     .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .order('is_primary', { foreignTable: 'ad_images', ascending: false })
-    .order('sort_order', { foreignTable: 'ad_images', ascending: true });
+    .order('created_at', { ascending: false });
 
   if (signal) {
     query = query.abortSignal(signal);
@@ -283,21 +277,31 @@ export async function deleteAdImage(imageId: string, imageUrl: string) {
 }
 
 export async function setPrimaryImage(adId: string, imageId: string) {
-  // 1. Desmarcar todas
-  await supabase
+  // 1. Desmarcar todas as imagens deste anúncio como principal
+  const { error: resetError } = await supabase
     .from('ad_images')
     .update({ is_primary: false })
     .eq('ad_id', adId);
 
-  // 2. Marcar a escolhida
-  const { error } = await supabase
+  if (resetError) {
+    console.error('Error resetting images primary state:', resetError);
+    if (!isNonCriticalSupabaseError(resetError)) {
+      throw new Error('Falha ao atualizar imagens anteriores. Tente novamente.');
+    }
+  }
+
+  // 2. Definir a nova imagem principal e garantir que ela tenha prioridade na ordenação
+  const { error: setError } = await supabase
     .from('ad_images')
-    .update({ is_primary: true })
+    .update({ 
+      is_primary: true,
+      sort_order: 0 
+    })
     .eq('id', imageId);
 
-  if (error) {
-    console.error('Error setting primary image:', error);
-    throw new Error('Erro ao definir imagem principal');
+  if (setError) {
+    console.error('Error setting primary image:', setError);
+    throw new Error('Erro ao definir imagem principal no banco de dados.');
   }
 }
 

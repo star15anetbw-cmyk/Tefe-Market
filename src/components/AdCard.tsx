@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Ad } from '../types';
-import { formatPrice, formatAdPrice, cn } from '../lib/utils';
+import { formatPrice, formatAdPrice, cn, getAdCoverImage } from '../lib/utils';
 import { MapPin, Clock, Heart, Eye } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,8 +21,8 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
   // Fallback visual para imagens ausentes
   const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23F9FAFB'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='24' font-weight='bold' fill='%23D1D5DB' text-anchor='middle' dy='.3em'%3ESEM IMAGEM%3C/text%3E%3C/svg%3E";
 
-  // Usar a primeira imagem do array (que já vem ordenada pelo banco: is_primary primeiro)
-  const mainImage = ad.ad_images?.[0]?.image_url || fallbackImage;
+  // Usar helper seguro para imagem de capa
+  const mainImage = getAdCoverImage(ad.ad_images) || fallbackImage;
 
   useEffect(() => {
     if (user) {

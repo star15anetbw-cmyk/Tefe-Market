@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchAdById, logAdClick } from '../services/ads';
 import { Ad } from '../types';
 import { formatPrice, formatAdPrice, formatDate, cn, isNonCriticalSupabaseError } from '../lib/utils';
-import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, User, Heart, MessageSquare } from 'lucide-react';
+import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, ChevronRight, User, Heart, MessageSquare } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { checkIsFavorited, toggleFavorite } from '../services/favorites';
@@ -12,15 +12,59 @@ import { getOrCreateChat } from '../services/chat';
 export default function AdDetails() {
   const { id } = useParams<{ id: string }>();
   const { user, isAdmin, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  
   const [ad, setAd] = useState<Ad | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
-  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   
   // Galeria de imagens
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // Ordenar imagens para garantir que a primária seja a primeira do array de forma estável
+  const images = React.useMemo(() => {
+    const rawImages = ad?.ad_images || [];
+    if (rawImages.length === 0) {
+      const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23F9FAFB'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='24' font-weight='bold' fill='%23D1D5DB' text-anchor='middle' dy='.3em'%3ESEM IMAGEM%3C/text%3E%3C/svg%3E";
+      return [{ 
+        id: 'placeholder', 
+        ad_id: ad?.id || '', 
+        image_url: fallbackImage,
+        is_primary: true,
+        sort_order: 0
+      }];
+    }
+    
+    return [...rawImages].sort((a, b) => {
+      if (a.is_primary) return -1;
+      if (b.is_primary) return 1;
+      const orderA = typeof a.sort_order === 'number' ? a.sort_order : 999;
+      const orderB = typeof b.sort_order === 'number' ? b.sort_order : 999;
+      return orderA - orderB;
+    });
+  }, [ad]);
+
+  const nextImage = useCallback(() => {
+    if (images.length <= 1) return;
+    setSelectedImageIndex((prev) => (prev + 1) % images.length);
+  }, [images.length]);
+
+  const prevImage = useCallback(() => {
+    if (images.length <= 1) return;
+    setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  }, [images.length]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (images.length <= 1) return;
+      if (e.key === 'ArrowRight') nextImage();
+      if (e.key === 'ArrowLeft') prevImage();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [images.length, nextImage, prevImage]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -50,10 +94,8 @@ export default function AdDetails() {
     } catch (err: any) {
       if (err.name === 'AbortError' || isNonCriticalSupabaseError(err)) return;
       console.error('Error fetching ad:', err);
-      // Only set to null if it's a real hard error (or let it keep previous state if possible)
       setAd(null);
     } finally {
-      // Se auth ainda carregando, mantemos o loading local para evitar flicker de "não encontrado"
       if (!authLoading || !signal?.aborted) {
         setLoading(false);
       }
@@ -75,60 +117,11 @@ export default function AdDetails() {
       await toggleFavorite(user.id, ad.id, previousState);
     } catch (err) {
       console.error('Error toggling favorite:', err);
-      // Revert on error
       checkIsFavorited(user.id, ad.id).then(setIsFavorited);
     } finally {
       setIsToggling(false);
     }
   };
-
-  /* Chat interno desativado temporariamente para o MVP
-  const handleStartChat = async () => {
-    if (!user || !ad) {
-      navigate('/login');
-      return;
-    }
-
-    if (user.id === ad.user_id) {
-      alert('Você não pode iniciar um chat com seu próprio anúncio.');
-      return;
-    }
-
-    try {
-      const chatId = await getOrCreateChat(ad.id, user.id, ad.user_id);
-      navigate(`/chat/${chatId}`);
-    } catch (err) {
-      console.error('Error starting chat:', err);
-    }
-  };
-  */
-
-  // Ordenar imagens para garantir que a primária seja a primeira do array
-  const images = [...(ad?.ad_images || [])].sort((a, b) => {
-    if (a.is_primary) return -1;
-    if (b.is_primary) return 1;
-    return (a.sort_order || 0) - (b.sort_order || 0);
-  });
-
-  const nextImage = () => {
-    if (images.length === 0) return;
-    setSelectedImageIndex((prev) => (prev + 1) % images.length);
-  };
-
-  const prevImage = () => {
-    if (images.length === 0) return;
-    setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (images.length <= 1) return;
-      if (e.key === 'ArrowRight') nextImage();
-      if (e.key === 'ArrowLeft') prevImage();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [images.length]);
 
   if (loading || authLoading) return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">

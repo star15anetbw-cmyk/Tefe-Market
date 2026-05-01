@@ -111,33 +111,40 @@ export default function Home() {
       const targetPage = isInitial ? 0 : page + 1;
       const activeFilters = overrideFilters || filters;
       
+      console.log('Fetching ads with filters:', activeFilters);
+      
       const result = await fetchAds({ 
         ...activeFilters, 
         page: targetPage, 
         pageSize: 12 
       }, controller.signal);
       
+      console.log('Ads fetch result count:', result.ads?.length);
+      
       // Proteção contra Race Condition: se uma nova busca começou, ignoramos esta resposta
       if (requestId !== requestRef.current) return;
       
       if (isInitial) {
-        setAds(result.ads);
+        setAds(Array.isArray(result.ads) ? result.ads : []);
       } else {
-        setAds(prev => [...prev, ...result.ads]);
+        setAds(prev => [...prev, ...(Array.isArray(result.ads) ? result.ads : [])]);
         setPage(targetPage);
       }
       
-      setTotalCount(result.totalCount);
-      setHasMore(result.hasMore);
+      setTotalCount(result.totalCount || 0);
+      setHasMore(result.hasMore || false);
     } catch (err: any) {
       if (requestId !== requestRef.current) return;
       if (err.name === 'AbortError') return;
       
+      console.error('CRITICAL: Error loading ads in Home:', err);
+      
       if (isNonCriticalSupabaseError(err)) {
+        setLoading(false);
+        setLoadingMore(false);
         return;
       }
 
-      console.error('Error loading ads:', err);
       setError(err.message || 'Não foi possível carregar os anúncios.');
     } finally {
       if (requestId === requestRef.current) {

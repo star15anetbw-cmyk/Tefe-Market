@@ -5,6 +5,26 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function getAdCoverImage(images: any[] | undefined | null): string | null {
+  if (!Array.isArray(images) || images.length === 0) return null;
+
+  // prioridade 1: imagem destaque
+  const primary = images.find(img => img?.is_primary === true);
+  if (primary?.image_url) return primary.image_url;
+
+  // prioridade 2: menor sort_order
+  const sorted = [...images].sort((a, b) => {
+    const orderA = typeof a?.sort_order === "number" ? a.sort_order : 999;
+    const orderB = typeof b?.sort_order === "number" ? b.sort_order : 999;
+    return orderA - orderB;
+  });
+
+  if (sorted[0]?.image_url) return sorted[0].image_url;
+
+  // fallback final
+  return images[0]?.image_url ?? null;
+}
+
 export function formatPrice(price: number) {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',

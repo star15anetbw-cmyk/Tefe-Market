@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { fetchUserAds, deleteAd, updateAdStatus } from '../services/ads';
 import { Ad } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { Edit2, Trash2, Heart, PlusCircle, AlertCircle } from 'lucide-react';
+import {PlusCircle, AlertCircle, Trash2, Edit2, Heart} from 'lucide-react';
 import Button from '../components/ui/Button';
-import { formatPrice, cn, isNonCriticalSupabaseError } from '../lib/utils';
+import { formatPrice, cn, isNonCriticalSupabaseError, getAdCoverImage } from '../lib/utils';
 import { Link } from 'react-router-dom';
 
 export default function MyAds() {
@@ -116,7 +116,7 @@ export default function MyAds() {
             <div key={ad.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 p-4 flex gap-4 transition-all hover:shadow-md">
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-xl overflow-hidden shrink-0 relative">
                 <img 
-                  src={ad.ad_images?.[0]?.image_url || fallbackImage} 
+                  src={getAdCoverImage(ad.ad_images) || fallbackImage} 
                   alt={ad.title}
                   className={cn("w-full h-full object-cover", ad.status === 'sold' && "grayscale opacity-50")}
                   referrerPolicy="no-referrer"
