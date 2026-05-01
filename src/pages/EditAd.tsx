@@ -126,13 +126,19 @@ export default function EditAd() {
   };
 
   const handleSetPrimary = async (imageId: string) => {
+    console.log("STAR CLICK DEBUG:", {
+      adId: id,
+      imageId: imageId,
+    });
     try {
       setSaving(true);
       await setPrimaryImage(id!, imageId);
+      
       setExistingImages(prev => {
         const updated = prev.map(img => ({
           ...img,
-          is_primary: img.id === imageId
+          is_primary: img.id === imageId,
+          sort_order: img.id === imageId ? 0 : (img.sort_order || 999)
         }));
         return updated.sort((a, b) => {
           if (a.is_primary) return -1;
@@ -140,8 +146,11 @@ export default function EditAd() {
           return (a.sort_order || 0) - (b.sort_order || 0);
         });
       });
+      
+      alert('Imagem destaque atualizada');
     } catch (err) {
-      alert('Erro ao definir imagem principal.');
+      console.error('Error setting primary image:', err);
+      alert('Erro ao definir imagem destaque');
     } finally {
       setSaving(false);
     }

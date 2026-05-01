@@ -277,31 +277,30 @@ export async function deleteAdImage(imageId: string, imageUrl: string) {
 }
 
 export async function setPrimaryImage(adId: string, imageId: string) {
-  // 1. Desmarcar todas as imagens deste anúncio como principal
+  console.log("setPrimaryImage called:", { adId, imageId });
   const { error: resetError } = await supabase
-    .from('ad_images')
+    .from("ad_images")
     .update({ is_primary: false })
-    .eq('ad_id', adId);
+    .eq("ad_id", adId);
+  
+  console.log("reset primary result:", resetError);
 
   if (resetError) {
-    console.error('Error resetting images primary state:', resetError);
-    if (!isNonCriticalSupabaseError(resetError)) {
-      throw new Error('Falha ao atualizar imagens anteriores. Tente novamente.');
-    }
+    console.error("Erro ao resetar imagens primárias:", resetError);
+    throw resetError;
   }
 
-  // 2. Definir a nova imagem principal e garantir que ela tenha prioridade na ordenação
-  const { error: setError } = await supabase
-    .from('ad_images')
-    .update({ 
-      is_primary: true,
-      sort_order: 0 
-    })
-    .eq('id', imageId);
+  const { error: primaryError } = await supabase
+    .from("ad_images")
+    .update({ is_primary: true, sort_order: 0 })
+    .eq("ad_id", adId)
+    .eq("id", imageId);
 
-  if (setError) {
-    console.error('Error setting primary image:', setError);
-    throw new Error('Erro ao definir imagem principal no banco de dados.');
+  console.log("set primary result:", primaryError);
+
+  if (primaryError) {
+    console.error("Erro ao definir imagem primária:", primaryError);
+    throw primaryError;
   }
 }
 

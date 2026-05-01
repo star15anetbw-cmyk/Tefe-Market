@@ -24,12 +24,6 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
   // Usar helper seguro para imagem de capa
   const coverImage = getAdCoverImage(ad.ad_images) || fallbackImage;
 
-  console.log("AdCard cover debug:", {
-    title: ad.title,
-    images: ad.ad_images,
-    coverImage
-  });
-
   useEffect(() => {
     if (user) {
       checkIsFavorited(user.id, ad.id).then(setIsFavorited);
