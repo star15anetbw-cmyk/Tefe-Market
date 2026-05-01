@@ -22,7 +22,13 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
   const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23F9FAFB'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='24' font-weight='bold' fill='%23D1D5DB' text-anchor='middle' dy='.3em'%3ESEM IMAGEM%3C/text%3E%3C/svg%3E";
 
   // Usar helper seguro para imagem de capa
-  const mainImage = getAdCoverImage(ad.ad_images) || fallbackImage;
+  const coverImage = getAdCoverImage(ad.ad_images) || fallbackImage;
+
+  console.log("AdCard cover debug:", {
+    title: ad.title,
+    images: ad.ad_images,
+    coverImage
+  });
 
   useEffect(() => {
     if (user) {
@@ -70,7 +76,7 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
           featured ? "aspect-[16/9]" : "aspect-[4/3]"
         )}>
           <img 
-            src={mainImage} 
+            src={coverImage} 
             alt={ad.title} 
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             referrerPolicy="no-referrer"

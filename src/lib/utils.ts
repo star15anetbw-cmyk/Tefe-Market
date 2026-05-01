@@ -10,7 +10,6 @@ export function getAdCoverImage(images: any[] | undefined | null): string | null
 
   // prioridade 1: imagem destaque
   const primary = images.find(img => img?.is_primary === true);
-  if (primary?.image_url) return primary.image_url;
 
   // prioridade 2: menor sort_order
   const sorted = [...images].sort((a, b) => {
@@ -19,6 +18,11 @@ export function getAdCoverImage(images: any[] | undefined | null): string | null
     return orderA - orderB;
   });
 
+  console.log("getAdCoverImage images:", images);
+  console.log("primary image:", primary);
+  console.log("selected cover:", primary?.image_url || sorted[0]?.image_url || images[0]?.image_url);
+
+  if (primary?.image_url) return primary.image_url;
   if (sorted[0]?.image_url) return sorted[0].image_url;
 
   // fallback final
