@@ -278,25 +278,28 @@ export async function deleteAdImage(imageId: string, imageUrl: string) {
 
 export async function setPrimaryImage(adId: string, imageId: string) {
   console.log("setPrimaryImage called:", { adId, imageId });
-  const { error: resetError } = await supabase
+  
+  const { data: resetData, error: resetError } = await supabase
     .from("ad_images")
     .update({ is_primary: false })
-    .eq("ad_id", adId);
-  
-  console.log("reset primary result:", resetError);
+    .eq("ad_id", adId)
+    .select("id, is_primary, sort_order");
+
+  console.log("reset primary result:", { resetData, resetError });
 
   if (resetError) {
     console.error("Erro ao resetar imagens primárias:", resetError);
     throw resetError;
   }
 
-  const { error: primaryError } = await supabase
+  const { data: primaryData, error: primaryError } = await supabase
     .from("ad_images")
     .update({ is_primary: true, sort_order: 0 })
     .eq("ad_id", adId)
-    .eq("id", imageId);
+    .eq("id", imageId)
+    .select("id, is_primary, sort_order");
 
-  console.log("set primary result:", primaryError);
+  console.log("set primary result:", { primaryData, primaryError });
 
   if (primaryError) {
     console.error("Erro ao definir imagem primária:", primaryError);
