@@ -125,20 +125,27 @@ export default function EditAd() {
     setPreviews(previews.filter((_, i) => i !== index));
   };
 
-  const handleSetPrimary = async (imageId: string) => {
-    console.log("STAR CLICK DEBUG:", {
-      adId: id,
-      imageId: imageId,
-    });
+  const handleSetPrimaryImage = async (image: any) => {
+    if (!id || !image?.id) {
+      console.error("Imagem sem id ou anúncio sem id:", { adId: id, image });
+      return;
+    }
+
     try {
+      console.log("STAR CLICK DEBUG:", {
+        adId: id,
+        clickedImage: image,
+        clickedImageId: image.id,
+      });
+
       setSaving(true);
-      await setPrimaryImage(id!, imageId);
+      await setPrimaryImage(id, image.id);
       
       setExistingImages(prev => {
         const updated = prev.map(img => ({
           ...img,
-          is_primary: img.id === imageId,
-          sort_order: img.id === imageId ? 0 : (img.sort_order || 999)
+          is_primary: img.id === image.id,
+          sort_order: img.id === image.id ? 0 : (img.sort_order || 999)
         }));
         return updated.sort((a, b) => {
           if (a.is_primary) return -1;
@@ -149,7 +156,7 @@ export default function EditAd() {
       
       alert('Imagem destaque atualizada');
     } catch (err) {
-      console.error('Error setting primary image:', err);
+      console.error('Erro ao definir imagem destaque:', err);
       alert('Erro ao definir imagem destaque');
     } finally {
       setSaving(false);
@@ -250,7 +257,11 @@ export default function EditAd() {
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                     <button 
                       type="button"
-                      onClick={() => handleSetPrimary(img.id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSetPrimaryImage(img);
+                      }}
                       className={cn(
                         "p-2 rounded-full transition-all",
                         img.is_primary ? "bg-primary text-white" : "bg-white text-gray-400 hover:text-primary"
