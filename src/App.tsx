@@ -20,7 +20,8 @@ import {
   ChatWindow,
   AuthCallback,
   MapView,
-  AdminDashboard
+  AdminDashboard,
+  CreateExternalAd
 } from './pages';
 
 export default function App() {
@@ -33,9 +34,16 @@ export default function App() {
         message.includes('Lock') ||
         message.includes('stole it') ||
         message.includes('auth-token') ||
-        message.includes('NavigatorLockAcquireTimeoutError')
+        message.includes('NavigatorLockAcquireTimeoutError') ||
+        message.includes('Refresh Token Not Found') ||
+        message.includes('invalid_refresh_token')
       ) {
-        console.warn('Recuperando app após erro de lock...');
+        console.warn('Recuperando app após erro de autenticação ou lock...');
+        
+        // Se for erro de refresh token, limpa o que pode estar causando loop
+        if (message.includes('Refresh Token')) {
+          localStorage.removeItem('tefe-market-auth');
+        }
         
         setTimeout(() => {
           window.location.reload();
@@ -110,6 +118,11 @@ export default function App() {
         <Route path="/admin" element={
           <ProtectedRoute adminOnly>
             <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/novo-anuncio" element={
+          <ProtectedRoute adminOnly>
+            <CreateExternalAd />
           </ProtectedRoute>
         } />
 

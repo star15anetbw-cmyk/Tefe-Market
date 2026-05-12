@@ -98,9 +98,16 @@ export default function AdminDashboard() {
           </div>
           <p className="text-gray-400 font-medium italic">Gerencie o mercado e monitore o crescimento.</p>
         </div>
-        <Button onClick={() => loadData()} variant="outline" className="flex items-center gap-2">
-          <TrendingUp className="w-4 h-4" /> Atualizar Dados
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/admin/novo-anuncio">
+            <Button className="flex items-center gap-2 shadow-lg shadow-primary/20">
+              <Package className="w-4 h-4" /> Anúncio Manual
+            </Button>
+          </Link>
+          <Button onClick={() => loadData()} variant="outline" className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" /> Atualizar Dados
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -192,7 +199,16 @@ export default function AdminDashboard() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-xs font-black text-gray-700 uppercase tracking-tight">{ad.profiles?.name || 'Sistema'}</div>
+                    <div className="text-xs font-black text-gray-700 uppercase tracking-tight">
+                      {ad.is_external ? (
+                        <div className="flex flex-col">
+                          <span className="text-emerald-600">Manual: {ad.external_seller_name}</span>
+                          <span className="text-[9px] text-gray-400 normal-case">{ad.external_seller_phone}</span>
+                        </div>
+                      ) : (
+                        ad.profiles?.name || 'Sistema'
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-xs font-bold text-gray-600">{ad.neighborhood}</div>

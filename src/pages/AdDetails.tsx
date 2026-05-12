@@ -163,8 +163,10 @@ export default function AdDetails() {
 
   // Guards defensivos para evitar crash de renderização
   const profileData = Array.isArray(ad.profiles) ? ad.profiles[0] : ad.profiles;
-  const sellerName = profileData?.name || 'Vendedor Anônimo';
-  const whatsappNumber = profileData?.whatsapp || '';
+  
+  // Lógica para decidir nome e telefone do vendedor (preferência para dados externos)
+  const sellerName = ad.is_external ? (ad.external_seller_name || 'Anunciante Externo') : (profileData?.name || 'Vendedor Anônimo');
+  const whatsappNumber = ad.is_external ? ad.external_seller_phone : profileData?.whatsapp;
   
   const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23F9FAFB'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='24' font-weight='bold' fill='%23D1D5DB' text-anchor='middle' dy='.3em'%3ESEM IMAGEM%3C/text%3E%3C/svg%3E";
 

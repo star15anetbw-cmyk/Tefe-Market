@@ -35,7 +35,7 @@ const createResilientSupabaseClient = (): SupabaseClient => {
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
-      autoRefreshToken: false, // Prevent background conflicts (Lock)
+      autoRefreshToken: true, // Permite que o SDK gerencie a renovação do token
       detectSessionInUrl: true,
       storageKey: "tefe-market-auth"
     }

@@ -56,6 +56,8 @@ export function isNonCriticalSupabaseError(error: any): boolean {
     message.includes('stole it') ||
     message.includes('auth-token') ||
     message.includes('session') ||
-    message.includes('NavigatorLockAcquireTimeoutError')
+    message.includes('NavigatorLockAcquireTimeoutError') ||
+    message.includes('Refresh Token Not Found') ||
+    message.includes('invalid_refresh_token')
   );
 }

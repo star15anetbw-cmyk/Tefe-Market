@@ -9,7 +9,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
   try {
     let query = supabase
       .from('ads')
-      .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)', { count: 'exact' })
+      .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, is_external, external_seller_name, external_seller_phone, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)', { count: 'exact' })
       .eq('status', 'active');
 
     if (signal) {
@@ -91,7 +91,7 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
   try {
     let query = supabase
       .from('ads')
-      .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at), profiles(id, name, whatsapp, neighborhood, avatar_url, role)')
+      .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, is_external, external_seller_name, external_seller_phone, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at), profiles(id, name, whatsapp, neighborhood, avatar_url, role)')
       .eq('id', id);
 
     if (signal) {
@@ -125,7 +125,7 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
 export async function fetchUserAds(userId: string, signal?: AbortSignal) {
   let query = supabase
     .from('ads')
-    .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)')
+    .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, is_external, external_seller_name, external_seller_phone, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -277,15 +277,11 @@ export async function deleteAdImage(imageId: string, imageUrl: string) {
 }
 
 export async function setPrimaryImage(adId: string, imageId: string) {
-  console.log("setPrimaryImage called:", { adId, imageId });
-  
   const { data: resetData, error: resetError } = await supabase
     .from("ad_images")
     .update({ is_primary: false })
     .eq("ad_id", adId)
     .select("id, is_primary, sort_order");
-
-  console.log("reset primary result:", { resetData, resetError });
 
   if (resetError) {
     console.error("Erro ao resetar imagens primárias:", resetError);
@@ -298,8 +294,6 @@ export async function setPrimaryImage(adId: string, imageId: string) {
     .eq("ad_id", adId)
     .eq("id", imageId)
     .select("id, is_primary, sort_order");
-
-  console.log("set primary result:", { primaryData, primaryError });
 
   if (primaryError) {
     console.error("Erro ao definir imagem primária:", primaryError);
@@ -398,7 +392,7 @@ export async function fetchAdminAds(signal?: AbortSignal) {
   try {
     let query = supabase
       .from('ads')
-      .select('id, title, price, category, neighborhood, ad_type, status, created_at, ad_images(image_url), profiles(name)')
+      .select('id, title, price, category, neighborhood, ad_type, status, is_external, external_seller_name, external_seller_phone, created_at, ad_images(image_url), profiles(name)')
       .order('created_at', { ascending: false });
 
     if (signal instanceof AbortSignal) query = query.abortSignal(signal);

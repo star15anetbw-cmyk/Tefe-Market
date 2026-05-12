@@ -32,6 +32,9 @@ export interface Ad {
   interests?: number;
   lat?: number;
   lng?: number;
+  is_external?: boolean;
+  external_seller_name?: string;
+  external_seller_phone?: string;
   created_at: string;
   updated_at?: string;
   profiles?: Profile;
