@@ -57,7 +57,8 @@ export default function Register() {
     try {
       await signInWithGoogle();
     } catch (err: any) {
-      setError(err.message);
+      console.error('GOOGLE_LOGIN_ERROR:', err);
+      setError('Não foi possível iniciar o login com Google. Verifique sua conexão e tente novamente.');
       setLoading(false);
     }
   };

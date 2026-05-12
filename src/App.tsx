@@ -18,7 +18,6 @@ import {
   Favorites,
   ChatList,
   ChatWindow,
-  AuthCallback,
   MapView,
   AdminDashboard,
   CreateExternalAd
@@ -62,7 +61,6 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<Register />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/buscar" element={<Search />} />
         <Route path="/mapa" element={<MapView />} />
         <Route path="/anuncio/:id" element={<AdDetails />} />

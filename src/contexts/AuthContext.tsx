@@ -169,12 +169,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw new Error(mapAuthError(error));
     },
     signInWithGoogle: async () => {
-      // Usamos uma rota de callback real (/auth/callback) para o fluxo PKCE
-      // Isso evita conflitos com HashRouter e segue as melhores práticas de produção.
+      // Redirecionamos para a origem da aplicação. O Supabase Auth detectará 
+      // automaticamente o código/token na URL ao carregar o app.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/auth/callback'
+          redirectTo: window.location.origin
         }
       });
 
