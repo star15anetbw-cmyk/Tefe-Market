@@ -23,6 +23,15 @@ import {
 import { cn, isNonCriticalSupabaseError } from '../lib/utils';
 import Button from '../components/ui/Button';
 import { motion, AnimatePresence } from 'motion/react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, Scrollbar, A11y, Mousewheel, FreeMode } from 'swiper/modules';
+
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import 'swiper/css/scrollbar';
+import 'swiper/css/free-mode';
 
 const VISUAL_CATEGORIES = [
   { name: 'Eletrônicos', icon: Smartphone, color: 'bg-blue-500' },
@@ -210,6 +219,12 @@ export default function Home() {
   
   const featuredAds = isDefaultView ? ads.slice(0, 6) : [];
   const mainAds = isDefaultView ? ads.slice(6) : ads;
+  
+  const handleWheelScroll = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.deltaY !== 0) {
+      e.currentTarget.scrollLeft += e.deltaY;
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-main">
@@ -269,40 +284,50 @@ export default function Home() {
         {/* Categories Carousel */}
         <div className="space-y-4">
           <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-3">
-            <div className="flex overflow-x-auto no-scrollbar gap-2 py-1 px-1">
-              <button
-                onClick={() => {
-                  if (filters.category === 'Todos') {
-                    loadAds(true);
-                  } else {
-                    setFilters({ ...filters, category: 'Todos' });
-                  }
-                }}
-                className={cn(
-                  "flex items-center gap-2 px-6 py-3 rounded-2xl flex-shrink-0 transition-all font-black text-[10px] uppercase tracking-widest",
-                  filters.category === 'Todos' ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
-                )}
-              >
-                <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-                Todos
-              </button>
+            <Swiper
+              modules={[Navigation, Pagination, Scrollbar, A11y, Mousewheel, FreeMode]}
+              spaceBetween={8}
+              slidesPerView="auto"
+              freeMode={true}
+              mousewheel={{ forceToAxis: true }}
+              className="categories-swiper"
+            >
+              <SwiperSlide className="!w-auto">
+                <button
+                  onClick={() => {
+                    if (filters.category === 'Todos') {
+                      loadAds(true);
+                    } else {
+                      setFilters({ ...filters, category: 'Todos' });
+                    }
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 px-6 py-3 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest",
+                    filters.category === 'Todos' ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
+                  )}
+                >
+                  <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                  Todos
+                </button>
+              </SwiperSlide>
 
-            {VISUAL_CATEGORIES.map((cat) => (
-              <button
-                key={cat.name}
-                onClick={() => setFilters({ ...filters, category: cat.name })}
-                className={cn(
-                  "flex items-center gap-2 px-6 py-3 rounded-2xl flex-shrink-0 transition-all font-black text-[10px] uppercase tracking-widest",
-                  filters.category === cat.name ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
-                )}
-              >
-                <cat.icon className="w-4 h-4" />
-                {cat.name}
-              </button>
-            ))}
+              {VISUAL_CATEGORIES.map((cat) => (
+                <SwiperSlide key={cat.name} className="!w-auto">
+                  <button
+                    onClick={() => setFilters({ ...filters, category: cat.name })}
+                    className={cn(
+                      "flex items-center gap-2 px-6 py-3 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest",
+                      filters.category === cat.name ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
+                    )}
+                  >
+                    <cat.icon className="w-4 h-4" />
+                    {cat.name}
+                  </button>
+                </SwiperSlide>
+              ))}
+            </Swiper>
           </div>
         </div>
-      </div>
 
       {/* Featured Section */}
       <AnimatePresence>
@@ -321,22 +346,32 @@ export default function Home() {
                 </h2>
               </div>
             </div>
-            <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 -mx-4 px-4 snap-x snap-mandatory">
+            <Swiper
+              modules={[Navigation, A11y, Mousewheel, FreeMode]}
+              spaceBetween={16}
+              slidesPerView="auto"
+              freeMode={true}
+              mousewheel={{ forceToAxis: true }}
+              className="featured-swiper !px-4 !-mx-4 pb-4"
+            >
               {featuredAds.map(ad => (
-                <div key={ad.id} className="min-w-[calc(55%-8px)] sm:min-w-[calc(25%-12px)] snap-start transition-transform active:scale-95 duration-200">
+                <SwiperSlide key={ad.id} className="min-w-[calc(55%-8px)] sm:min-w-[calc(25%-12px)] transition-transform active:scale-95 duration-200">
                   <AdCard ad={ad} />
-                </div>
+                </SwiperSlide>
               ))}
-            </div>
+            </Swiper>
           </motion.section>
         )}
       </AnimatePresence>
 
       {/* Main Feed Section */}
-      <main className="space-y-8">
+      <main className="space-y-8 relative z-30">
         {/* Controls Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <div 
+            className="flex items-center gap-2 overflow-x-auto no-scrollbar lg:scrollbar-thin lg:scrollbar-thumb-gray-200 lg:scrollbar-track-transparent pb-1"
+            onWheel={handleWheelScroll}
+          >
             {['all', 'sale', 'rent', 'service'].map((t) => (
               <button
                 key={t}
@@ -436,12 +471,15 @@ export default function Home() {
               )}
 
               {hasMore && (
-                <div className="flex justify-center pt-8 pb-12">
+                <div className="flex justify-center pt-12 pb-16 relative z-40">
                   <Button 
-                    onClick={() => loadAds(false)} 
+                    onClick={() => {
+                      console.log("Carregando mais anúncios...");
+                      loadAds(false);
+                    }} 
                     disabled={loadingMore}
                     variant="outline"
-                    className="rounded-2xl px-12 py-5 border-2 font-black uppercase tracking-[0.2em] text-[10px] gap-3"
+                    className="rounded-2xl px-12 py-5 border-2 border-primary/20 hover:border-primary font-black uppercase tracking-[0.2em] text-[10px] gap-3 active:scale-95 transition-all shadow-xl hover:shadow-primary/10 bg-white"
                   >
                     {loadingMore ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Carregar Mais"}
                   </Button>

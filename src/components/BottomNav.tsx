@@ -19,7 +19,7 @@ export default function BottomNav() {
   const visibleItems = navItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 px-1 py-1 z-[100] shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 px-1 py-1 z-[100] shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
       <div className={cn(
         "flex justify-between items-center mx-auto gap-0",
         isAdmin ? "max-w-2xl" : "max-w-lg"
