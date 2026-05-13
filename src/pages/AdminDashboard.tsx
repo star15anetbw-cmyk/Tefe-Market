@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchAdminStats, fetchAdminAds, updateAdStatus } from '../services/ads';
+import { fetchAdminStats, fetchAdminAds, updateAdStatus, toggleAdVerification } from '../services/ads';
 import { formatPrice, formatDate, cn, isNonCriticalSupabaseError } from '../lib/utils';
-import { Shield, Users, Package, AlertTriangle, Eye, Trash2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, Tag, LayoutGrid } from 'lucide-react';
+import { Shield, Users, Package, AlertTriangle, Eye, Trash2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, Tag, LayoutGrid, CheckCircle2 } from 'lucide-react';
 import Button from '../components/ui/Button';
 
 export default function AdminDashboard() {
@@ -64,6 +64,15 @@ export default function AdminDashboard() {
       await loadData();
     } catch (err: any) {
       alert('Erro ao ativar anúncio: ' + err.message);
+    }
+  };
+
+  const handleToggleVerify = async (id: string, currentStatus: boolean) => {
+    try {
+      await toggleAdVerification(id, !currentStatus);
+      await loadData();
+    } catch (err: any) {
+      alert('Erro ao atualizar verificação: ' + err.message);
     }
   };
 
@@ -191,7 +200,10 @@ export default function AdminDashboard() {
                         )}
                       </div>
                       <div>
-                        <div className="font-bold text-gray-900 text-sm line-clamp-1">{ad.title}</div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="font-bold text-gray-900 text-sm line-clamp-1">{ad.title}</div>
+                          {ad.is_verified && <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" title="Verificado" />}
+                        </div>
                         <div className="text-[10px] text-gray-400 font-medium flex items-center gap-2 mt-0.5">
                           <Clock className="w-3 h-3" /> {formatDate(ad.created_at)}
                         </div>
@@ -240,6 +252,20 @@ export default function AdminDashboard() {
                       >
                         <Eye className="w-4 h-4" />
                       </Link>
+                      
+                      <button 
+                        onClick={() => handleToggleVerify(ad.id, !!ad.is_verified)}
+                        className={cn(
+                          "w-9 h-9 flex items-center justify-center rounded-xl transition-all shadow-sm",
+                          ad.is_verified 
+                            ? "bg-green-500 text-white hover:bg-green-600" 
+                            : "bg-gray-50 text-gray-400 hover:bg-green-50 hover:text-green-500"
+                        )}
+                        title={ad.is_verified ? "Remover Verificação" : "Verificar Anúncio"}
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+
                       {ad.status === 'removed' ? (
                         <button 
                           onClick={() => handleActivate(ad.id)}

@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchAdById, logAdClick } from '../services/ads';
 import { Ad } from '../types';
 import { formatPrice, formatAdPrice, formatDate, cn, isNonCriticalSupabaseError } from '../lib/utils';
-import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, ChevronRight, User, Heart, MessageSquare } from 'lucide-react';
+import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, ChevronRight, User, Heart, MessageSquare, CheckCircle2 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { checkIsFavorited, toggleFavorite } from '../services/favorites';
@@ -350,6 +350,12 @@ Ainda está disponível?`;
                 <Tag className="w-3 h-3" />
                 {ad.category}
               </span>
+              {ad.is_verified && (
+                <span className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] rounded bg-green-500 text-white flex items-center gap-1.5 shadow-sm">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Anúncio Verificado
+                </span>
+              )}
             </div>
 
             <h1 className="text-2xl font-black text-gray-900 mb-2 leading-tight">

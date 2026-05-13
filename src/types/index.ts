@@ -33,6 +33,7 @@ export interface Ad {
   lat?: number;
   lng?: number;
   is_external?: boolean;
+  is_verified?: boolean;
   external_seller_name?: string;
   external_seller_phone?: string;
   created_at: string;

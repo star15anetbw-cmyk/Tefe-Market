@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS public.ads (
     status ad_status DEFAULT 'active',
     lat DOUBLE PRECISION,
     lng DOUBLE PRECISION,
+    is_verified BOOLEAN DEFAULT false,
     views INTEGER DEFAULT 0,
     interests INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now(),

@@ -9,7 +9,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
   try {
     let query = supabase
       .from('ads')
-      .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, is_external, external_seller_name, external_seller_phone, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)', { count: 'exact' })
+      .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, is_external, is_verified, external_seller_name, external_seller_phone, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)', { count: 'exact' })
       .eq('status', 'active');
 
     if (signal) {
@@ -91,7 +91,7 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
   try {
     let query = supabase
       .from('ads')
-      .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, is_external, external_seller_name, external_seller_phone, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at), profiles(id, name, whatsapp, neighborhood, avatar_url, role)')
+      .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, is_external, is_verified, external_seller_name, external_seller_phone, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at), profiles(id, name, whatsapp, neighborhood, avatar_url, role)')
       .eq('id', id);
 
     if (signal) {
@@ -125,7 +125,7 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
 export async function fetchUserAds(userId: string, signal?: AbortSignal) {
   let query = supabase
     .from('ads')
-    .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, is_external, external_seller_name, external_seller_phone, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)')
+    .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, is_external, is_verified, external_seller_name, external_seller_phone, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -193,6 +193,22 @@ export async function updateAdStatus(id: string, status: AdStatus) {
 
   if (!data) {
     throw new Error('Anúncio não encontrado ou sem permissão para atualizar');
+  }
+
+  return data as Ad;
+}
+
+export async function toggleAdVerification(id: string, isVerified: boolean) {
+  const { data, error } = await supabase
+    .from('ads')
+    .update({ is_verified: isVerified })
+    .eq('id', id)
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error toggling ad verification:', error);
+    throw new Error(error.message || 'Erro ao atualizar verificação do anúncio');
   }
 
   return data as Ad;
@@ -392,7 +408,7 @@ export async function fetchAdminAds(signal?: AbortSignal) {
   try {
     let query = supabase
       .from('ads')
-      .select('id, title, price, category, neighborhood, ad_type, status, is_external, external_seller_name, external_seller_phone, created_at, ad_images(image_url), profiles(name)')
+      .select('id, title, price, category, neighborhood, ad_type, status, is_external, is_verified, external_seller_name, external_seller_phone, created_at, ad_images(image_url), profiles(name)')
       .order('created_at', { ascending: false });
 
     if (signal instanceof AbortSignal) query = query.abortSignal(signal);
