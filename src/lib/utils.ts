@@ -61,3 +61,35 @@ export function isNonCriticalSupabaseError(error: any): boolean {
     message.includes('invalid_refresh_token')
   );
 }
+
+/**
+ * Embaralhamento inteligente para anúncios.
+ * Considera aleatoriedade, recência e penalidade por muitas visualizações.
+ */
+export function smartShuffle<T extends { created_at?: string; views?: number }>(items: T[]): T[] {
+  if (!items.length) return [];
+  
+  const scoredItems = items.map(item => {
+    // Fator aleatório (0 a 2)
+    const randomFactor = Math.random() * 2;
+    
+    // Boost de recência (até 1.5)
+    // Anúncios novos (últimos 7 dias) ganham mais destaque
+    const date = item.created_at ? new Date(item.created_at).getTime() : Date.now();
+    const ageInDays = (Date.now() - date) / (1000 * 60 * 60 * 24);
+    const recencyBoost = Math.exp(-ageInDays / 7) * 1.5;
+    
+    // Penalidade por exposição (até 0.5)
+    // Se o anúncio já tem muitas views, damos chance aos outros
+    const views = item.views || 0;
+    const exposurePenalty = Math.min(0.5, views / 1000); 
+
+    const score = randomFactor + recencyBoost - exposurePenalty;
+    return { item, score };
+  });
+
+  // Ordena pelo score calculado (maior primeiro)
+  return scoredItems
+    .sort((a, b) => b.score - a.score)
+    .map(si => si.item);
+}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Ad } from '../types';
 import { formatPrice, formatAdPrice, cn, getAdCoverImage } from '../lib/utils';
-import { MapPin, Clock, Heart, Eye, CheckCircle2 } from 'lucide-react';
+import { MapPin, Clock, Heart, Eye, BadgeCheck } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { checkIsFavorited, toggleFavorite } from '../services/favorites';
@@ -65,10 +65,7 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
       )}
     >
       <Link to={`/anuncio/${ad.id}`} className="block relative group-hover:no-underline flex flex-col h-full">
-        <div className={cn(
-          "relative overflow-hidden bg-gray-100",
-          featured ? "aspect-[16/9]" : "aspect-[4/3]"
-        )}>
+        <div className="relative overflow-hidden bg-gray-100 aspect-[4/3] w-full">
           <img 
             src={coverImage} 
             alt={ad.title} 
@@ -88,8 +85,11 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
               {ad.ad_type === 'sale' ? 'Venda' : ad.ad_type === 'rent' ? 'Aluguel' : 'Serviços'}
             </span>
             {ad.is_verified && (
-              <span className="flex items-center gap-1 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md text-white shadow-sm backdrop-blur-md bg-green-500/90">
-                <CheckCircle2 className="w-2.5 h-2.5" />
+              <span 
+                title="Este anúncio foi verificado pela nossa equipe para garantir maior segurança e autenticidade das informações."
+                className="flex items-center gap-1 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md text-white shadow-sm backdrop-blur-md bg-emerald-500/90 cursor-help"
+              >
+                <BadgeCheck className="w-2.5 h-2.5" />
                 Verificado
               </span>
             )}

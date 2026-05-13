@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { cn, isNonCriticalSupabaseError, smartShuffle } from '../lib/utils';
 import { useSearchParams, Link } from 'react-router-dom';
 import { fetchAds } from '../services/ads';
 import { Ad, AdFilter } from '../types';
 import AdCard from '../components/AdCard';
-import { Search as SearchIcon, Filter, MapPin } from 'lucide-react';
+import { Search as SearchIcon, Filter, MapPin, ChevronDown } from 'lucide-react';
 import { CATEGORIES, FILTER_NEIGHBORHOODS } from '../constants';
 import Button from '../components/ui/Button';
-import { cn, isNonCriticalSupabaseError } from '../lib/utils';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,8 +22,16 @@ export default function Search() {
     neighborhood: queryNeighborhood,
     category: 'Todos',
     type: 'all',
-    condition: 'all'
+    condition: 'all',
+    sortBy: 'recommended'
   });
+
+  const processedAds = useMemo(() => {
+    if (filters.sortBy === 'recommended') {
+      return smartShuffle(ads);
+    }
+    return ads;
+  }, [ads, filters.sortBy]);
 
   // Debounce search input
   useEffect(() => {
@@ -74,7 +82,7 @@ export default function Search() {
   return (
     <div className="min-h-screen bg-bg pb-20">
       <div className="bg-white sticky top-0 z-30 shadow-sm border-b border-gray-100">
-        <div className="max-w-4xl mx-auto p-4">
+        <div className="max-w-7xl mx-auto p-4">
           <div className="flex gap-2">
             <div className="relative flex-1">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -179,15 +187,36 @@ export default function Search() {
                     ))}
                   </div>
                 </section>
+                <section>
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Ordenação</h3>
+                  <div className="relative">
+                    <select
+                      className="w-full pl-4 pr-10 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:border-primary outline-none appearance-none transition-all"
+                      value={filters.sortBy}
+                      onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as any })}
+                    >
+                      <option value="recommended">Recomendados</option>
+                      <option value="recent">Mais recentes</option>
+                      <option value="price_asc">Menor preço</option>
+                      <option value="price_desc">Maior preço</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                  </div>
+                </section>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      <main className="max-w-4xl mx-auto p-4">
+      <main className="max-w-7xl mx-auto p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+            {processedAds.length} resultados encontrados
+          </span>
+        </div>
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
               <div key={n} className="bg-white rounded-3xl aspect-[4/6] animate-pulse border border-gray-100 shadow-sm overflow-hidden p-0 flex flex-col">
                 <div className="w-full aspect-[4/5] bg-gray-100"></div>
@@ -198,9 +227,9 @@ export default function Search() {
               </div>
             ))}
           </div>
-        ) : ads.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-            {ads.map(ad => (
+        ) : processedAds.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            {processedAds.map(ad => (
               <AdCard key={ad.id} ad={ad} />
             ))}
           </div>

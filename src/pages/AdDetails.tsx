@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchAdById, logAdClick } from '../services/ads';
 import { Ad } from '../types';
 import { formatPrice, formatAdPrice, formatDate, cn, isNonCriticalSupabaseError } from '../lib/utils';
-import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, ChevronRight, User, Heart, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, ChevronRight, User, Heart, MessageSquare, BadgeCheck } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { checkIsFavorited, toggleFavorite } from '../services/favorites';
@@ -268,11 +268,11 @@ Ainda está disponível?`;
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Gallery Section */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="relative bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200 group">
+          <div className="relative bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200 group aspect-[4/3] w-full">
             <img 
               src={images[selectedImageIndex].image_url} 
               alt={ad.title} 
-              className="w-full aspect-[4/3] object-cover transition-all duration-300"
+              className="w-full h-full object-cover transition-all duration-300"
               referrerPolicy="no-referrer"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = fallbackImage;
@@ -351,8 +351,11 @@ Ainda está disponível?`;
                 {ad.category}
               </span>
               {ad.is_verified && (
-                <span className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] rounded bg-green-500 text-white flex items-center gap-1.5 shadow-sm">
-                  <CheckCircle2 className="w-3 h-3" />
+                <span 
+                  title="Anúncio verificado pela nossa moderação: as informações e o anunciante foram auditados para sua segurança e confiança."
+                  className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] rounded bg-emerald-500 text-white flex items-center gap-1.5 shadow-sm cursor-help"
+                >
+                  <BadgeCheck className="w-3.5 h-3.5" />
                   Anúncio Verificado
                 </span>
               )}

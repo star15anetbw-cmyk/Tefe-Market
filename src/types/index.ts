@@ -58,7 +58,7 @@ export interface AdImage {
   created_at?: string;
 }
 
-export type AdSortBy = 'recent' | 'price_asc' | 'price_desc';
+export type AdSortBy = 'recent' | 'price_asc' | 'price_desc' | 'recommended';
 
 export interface AdFilter {
   search: string;

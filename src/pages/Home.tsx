@@ -20,7 +20,7 @@ import {
   AlertCircle,
   User
 } from 'lucide-react';
-import { cn, isNonCriticalSupabaseError } from '../lib/utils';
+import { cn, isNonCriticalSupabaseError, smartShuffle } from '../lib/utils';
 import Button from '../components/ui/Button';
 import { motion, AnimatePresence } from 'motion/react';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -42,6 +42,7 @@ const VISUAL_CATEGORIES = [
 ];
 
 const SORT_OPTIONS = [
+  { label: 'Recomendados', value: 'recommended' },
   { label: 'Mais Recentes', value: 'recent' },
   { label: 'Menor Preço', value: 'price_asc' },
   { label: 'Maior Preço', value: 'price_desc' },
@@ -66,7 +67,7 @@ export default function Home() {
     category: 'Todos',
     type: 'all',
     condition: 'all',
-    sortBy: 'recent'
+    sortBy: 'recommended'
   });
 
   // Watch for long loading states
@@ -170,7 +171,7 @@ export default function Home() {
       category: 'Todos',
       type: 'all',
       condition: 'all',
-      sortBy: 'recent'
+      sortBy: 'recommended'
     };
 
     setFilters(defaultFilters);
@@ -213,12 +214,31 @@ export default function Home() {
     }
   };
 
-  // Lógica de separação: Destaques vs Lista Principal
-  // A Home não mostra resultados de busca textual, apenas filtros globais
-  const isDefaultView = filters.category === 'Todos' && page === 0 && filters.sortBy === 'recent';
-  
-  const featuredAds = isDefaultView ? ads.slice(0, 6) : [];
-  const mainAds = isDefaultView ? ads.slice(6) : ads;
+  // Lógica de separação e ordenação inteligente: Destaques vs Lista Principal
+  const processedAds = React.useMemo(() => {
+    if (filters.sortBy === 'recommended') {
+      return smartShuffle(ads);
+    }
+    return ads;
+  }, [ads, filters.sortBy]);
+
+  const featuredAds = React.useMemo(() => {
+    const isDefaultView = filters.category === 'Todos' && page === 0 && !filters.search && filters.type === 'all';
+    if (!isDefaultView || ads.length === 0) return [];
+    
+    // Seleciona 8 anúncios aleatórios para o destaque usando smartShuffle
+    return smartShuffle(ads).slice(0, 8);
+  }, [ads, filters.category, page, filters.search, filters.type]);
+
+  const mainAds = React.useMemo(() => {
+    const isDefaultView = filters.category === 'Todos' && page === 0 && !filters.search && filters.type === 'all';
+    if (isDefaultView) {
+      // Na home padrão, remove os que já estão no destaque para evitar duplicidade visual imediata
+      const featuredIds = new Set(featuredAds.map(a => a.id));
+      return processedAds.filter(ad => !featuredIds.has(ad.id));
+    }
+    return processedAds;
+  }, [processedAds, featuredAds, filters.category, page, filters.search, filters.type]);
   
   const handleWheelScroll = (e: React.WheelEvent<HTMLDivElement>) => {
     if (e.deltaY !== 0) {
@@ -280,9 +300,9 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto w-full -mt-8 px-4 relative z-20 space-y-12 pb-32">
+      <div className="max-w-screen-2xl mx-auto w-full -mt-8 px-4 relative z-20 space-y-12 pb-32">
         {/* Categories Carousel */}
-        <div className="space-y-4">
+        <div className="space-y-4 max-w-7xl mx-auto">
           <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-3">
             <Swiper
               modules={[Navigation, Pagination, Scrollbar, A11y, Mousewheel, FreeMode]}
@@ -336,7 +356,7 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.98 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="space-y-6"
+            className="space-y-6 max-w-7xl mx-auto"
           >
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-2">
@@ -346,26 +366,34 @@ export default function Home() {
                 </h2>
               </div>
             </div>
-            <Swiper
-              modules={[Navigation, A11y, Mousewheel, FreeMode]}
-              spaceBetween={16}
-              slidesPerView="auto"
-              freeMode={true}
-              mousewheel={{ forceToAxis: true }}
-              className="featured-swiper !px-4 !-mx-4 pb-4"
-            >
-              {featuredAds.map(ad => (
-                <SwiperSlide key={ad.id} className="min-w-[calc(55%-8px)] sm:min-w-[calc(25%-12px)] transition-transform active:scale-95 duration-200">
-                  <AdCard ad={ad} />
-                </SwiperSlide>
+            {/* Desktop Grid / Mobile Carousel */}
+            <div className="hidden lg:grid lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {featuredAds.slice(0, 4).map(ad => (
+                <AdCard key={ad.id} ad={ad} featured />
               ))}
-            </Swiper>
+            </div>
+            <div className="lg:hidden">
+              <Swiper
+                modules={[Navigation, A11y, Mousewheel, FreeMode]}
+                spaceBetween={16}
+                slidesPerView="auto"
+                freeMode={true}
+                mousewheel={{ forceToAxis: true }}
+                className="featured-swiper !px-4 !-mx-4 pb-4"
+              >
+                {featuredAds.map(ad => (
+                  <SwiperSlide key={ad.id} className="min-w-[calc(70%-8px)] sm:min-w-[calc(40%-12px)] transition-transform active:scale-95 duration-200">
+                    <AdCard ad={ad} />
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
           </motion.section>
         )}
       </AnimatePresence>
 
       {/* Main Feed Section */}
-      <main className="space-y-8 relative z-30">
+      <main className="space-y-8 relative z-30 max-w-7xl mx-auto">
         {/* Controls Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div 
@@ -410,8 +438,8 @@ export default function Home() {
         <div className="min-h-[40vh]">
           {loading ? (
             <div className="space-y-8">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-                {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                   <div key={n} className="bg-white rounded-[2rem] aspect-[4/6] animate-pulse border border-gray-100 p-0 overflow-hidden">
                     <div className="w-full aspect-[4/5] bg-gray-50"></div>
                   </div>
@@ -448,7 +476,7 @@ export default function Home() {
           ) : ads.length > 0 ? (
             <div className="space-y-12">
               {mainAds.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                   {mainAds.map((ad, idx) => (
                     <motion.div
                       key={ad.id}

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchAdminStats, fetchAdminAds, updateAdStatus, toggleAdVerification } from '../services/ads';
 import { formatPrice, formatDate, cn, isNonCriticalSupabaseError } from '../lib/utils';
-import { Shield, Users, Package, AlertTriangle, Eye, Trash2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, Tag, LayoutGrid, CheckCircle2 } from 'lucide-react';
+import { Shield, Users, Package, AlertTriangle, Eye, Trash2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, Tag, LayoutGrid, BadgeCheck } from 'lucide-react';
 import Button from '../components/ui/Button';
 
 export default function AdminDashboard() {
@@ -202,7 +202,7 @@ export default function AdminDashboard() {
                       <div>
                         <div className="flex items-center gap-1.5">
                           <div className="font-bold text-gray-900 text-sm line-clamp-1">{ad.title}</div>
-                          {ad.is_verified && <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" title="Verificado" />}
+                          {ad.is_verified && <BadgeCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" title="Verificado" />}
                         </div>
                         <div className="text-[10px] text-gray-400 font-medium flex items-center gap-2 mt-0.5">
                           <Clock className="w-3 h-3" /> {formatDate(ad.created_at)}
@@ -256,20 +256,20 @@ export default function AdminDashboard() {
                       <button 
                         onClick={() => handleToggleVerify(ad.id, !!ad.is_verified)}
                         className={cn(
-                          "w-9 h-9 flex items-center justify-center rounded-xl transition-all shadow-sm",
+                          "w-9 h-9 flex items-center justify-center rounded-xl transition-all shadow-md",
                           ad.is_verified 
-                            ? "bg-green-500 text-white hover:bg-green-600" 
-                            : "bg-gray-50 text-gray-400 hover:bg-green-50 hover:text-green-500"
+                            ? "bg-emerald-500 text-white hover:bg-emerald-600" 
+                            : "bg-gray-100 text-gray-400 hover:bg-emerald-500 hover:text-white"
                         )}
-                        title={ad.is_verified ? "Remover Verificação" : "Verificar Anúncio"}
+                        title={ad.is_verified ? "Remover Verificação" : "Marcar como Verificado"}
                       >
-                        <CheckCircle2 className="w-4 h-4" />
+                        <BadgeCheck className="w-4 h-4" />
                       </button>
 
                       {ad.status === 'removed' ? (
                         <button 
                           onClick={() => handleActivate(ad.id)}
-                          className="w-9 h-9 flex items-center justify-center bg-emerald-50 text-emerald-500 hover:bg-emerald-100 rounded-xl transition-all shadow-sm"
+                          className="w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-500 hover:bg-blue-100 rounded-xl transition-all shadow-sm"
                           title="Reativar"
                         >
                           <CheckCircle className="w-4 h-4" />
