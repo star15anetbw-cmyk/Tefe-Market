@@ -6,7 +6,8 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { Camera, AlertCircle, ChevronLeft, Star, Trash2 } from 'lucide-react';
 import { CATEGORIES, NEIGHBORHOODS, AD_TYPES, AD_CONDITIONS, SERVICE_CATEGORIES } from '../constants';
-import { cn } from '../lib/utils';
+import { cn, handleImageError } from '../lib/utils';
+import { FALLBACK_IMAGE } from '../constants';
 import { Ad } from '../types';
 
 export default function EditAd() {
@@ -223,6 +224,13 @@ export default function EditAd() {
         <h1 className="text-2xl font-black text-gray-900 mb-1 leading-tight">Editar anúncio</h1>
         <p className="text-gray-400 text-sm mb-8">Atualize as informações do seu anúncio no Tefé Market.</p>
 
+        {saving && (
+          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-3 text-emerald-700 animate-pulse">
+            <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-[10px] font-black uppercase tracking-widest">Otimizando e salvando alterações...</span>
+          </div>
+        )}
+
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3 text-red-700">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -245,7 +253,7 @@ export default function EditAd() {
                   "relative aspect-square rounded-xl overflow-hidden border group shadow-sm transition-all",
                   img.is_primary ? "border-primary ring-2 ring-primary/20 shadow-lg" : "border-gray-200"
                 )}>
-                  <img src={img.image_url} alt="Ad" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <img src={img.image_url} alt="Ad" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={(e) => handleImageError(e, `Edit Ad Image ${img.id}`)} />
                   
                   {/* Overlay Actions */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
@@ -285,7 +293,7 @@ export default function EditAd() {
               {/* Previews de Novas Fotos */}
               {previews.map((src, index) => (
                 <div key={`new-${index}`} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 group shadow-sm opacity-90 border-emerald-200 ring-1 ring-emerald-100">
-                  <img src={src} alt={`New Preview ${index}`} className="w-full h-full object-cover" />
+                  <img src={src} alt={`New Preview ${index}`} className="w-full h-full object-cover" onError={(e) => handleImageError(e, `New Preview ${index}`)} />
                   <div className="absolute inset-0 bg-black/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
                       type="button"

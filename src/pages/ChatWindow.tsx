@@ -4,7 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchMessages, sendMessage, subscribeToMessages } from '../services/chat';
 import { Message, Chat } from '../types';
 import { ChevronLeft, Send, User as UserIcon, Tag, ExternalLink } from 'lucide-react';
-import { cn, formatPrice } from '../lib/utils';
+import { cn, formatPrice, handleImageError } from '../lib/utils';
+import { FALLBACK_IMAGE } from '../constants';
 import { supabase } from '../lib/supabase';
 
 export default function ChatWindow() {
@@ -118,8 +119,10 @@ export default function ChatWindow() {
             <img 
               src={chat.ad?.ad_images?.[0]?.image_url} 
               className="w-full h-full object-cover" 
+              loading="lazy"
               referrerPolicy="no-referrer"
               alt=""
+              onError={(e) => handleImageError(e, `Chat Ad: ${chat.ad?.title}`)}
             />
           </div>
           <div className="min-w-0">

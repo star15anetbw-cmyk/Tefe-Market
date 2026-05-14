@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchAdminStats, fetchAdminAds, updateAdStatus, toggleAdVerification } from '../services/ads';
-import { formatPrice, formatDate, cn, isNonCriticalSupabaseError } from '../lib/utils';
+import { formatPrice, formatDate, cn, isNonCriticalSupabaseError, handleImageError } from '../lib/utils';
+import { FALLBACK_IMAGE } from '../constants';
 import { Shield, Users, Package, AlertTriangle, Eye, Trash2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, Tag, LayoutGrid, BadgeCheck } from 'lucide-react';
 import Button from '../components/ui/Button';
 
@@ -194,7 +195,14 @@ export default function AdminDashboard() {
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm">
                         {ad.ad_images?.[0]?.image_url ? (
-                          <img src={ad.ad_images[0].image_url} alt="" className="w-full h-full object-cover" />
+                          <img 
+                            src={ad.ad_images[0].image_url} 
+                            alt="" 
+                            className="w-full h-full object-cover" 
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => handleImageError(e, ad.title)}
+                          />
                         ) : (
                           <Package className="w-5 h-5 text-gray-300 m-auto mt-3.5" />
                         )}

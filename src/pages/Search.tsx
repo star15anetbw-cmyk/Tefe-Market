@@ -3,10 +3,10 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { fetchAds } from '../services/ads';
 import { Ad, AdFilter } from '../types';
 import AdCard from '../components/AdCard';
-import { Search as SearchIcon, Filter, MapPin, ChevronDown } from 'lucide-react';
+import { Search as SearchIcon, Filter, MapPin, ChevronDown, RefreshCw } from 'lucide-react';
 import { CATEGORIES, FILTER_NEIGHBORHOODS } from '../constants';
 import Button from '../components/ui/Button';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,11 +26,21 @@ export default function Search() {
     sortBy: 'recommended'
   });
 
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const pageRef = useRef(0);
+
+  const scoresRef = useRef<Record<string, number>>({});
+
   const processedAds = useMemo(() => {
-    if (filters.sortBy === 'recommended') {
-      return smartShuffle(ads);
-    }
-    return ads;
+    if (filters.sortBy !== 'recommended') return ads;
+
+    const sorted = [...ads].sort((a, b) => {
+      if (scoresRef.current[a.id] === undefined) scoresRef.current[a.id] = Math.random() * 2;
+      if (scoresRef.current[b.id] === undefined) scoresRef.current[b.id] = Math.random() * 2;
+      return scoresRef.current[b.id] - scoresRef.current[a.id];
+    });
+    return sorted;
   }, [ads, filters.sortBy]);
 
   // Debounce search input
@@ -58,26 +68,68 @@ export default function Search() {
     }
   }, [queryTerm]);
 
-  const loadAds = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true);
+  const loadAds = useCallback(async (isInitial = true, signal?: AbortSignal) => {
+    if (isInitial) {
+      setLoading(true);
+      pageRef.current = 0;
+    } else {
+      setLoadingMore(true);
+    }
+
     try {
-      const result = await fetchAds(filters, signal);
-      setAds(Array.isArray(result.ads) ? result.ads : []);
+      const targetPage = isInitial ? 0 : pageRef.current + 1;
+      const pageSize = 12;
+
+      console.log('SEARCH_LOAD_ADS_TRIGGER', {
+        isInitial,
+        selectedCategory: filters.category,
+        selectedType: filters.type,
+        search: filters.search
+      });
+
+      console.log(`SEARCH_${isInitial ? 'INITIAL' : 'LOAD_MORE'}_FETCH`, {
+        page: targetPage,
+        filters
+      });
+
+      const result = await fetchAds({ ...filters, page: targetPage, pageSize }, signal);
+      
+      if (isInitial) {
+        setAds(Array.isArray(result.ads) ? result.ads : []);
+        pageRef.current = 0;
+      } else {
+        setAds(prev => {
+          const existingIds = new Set(prev.map(a => a.id));
+          const newAds = (Array.isArray(result.ads) ? result.ads : []).filter(a => !existingIds.has(a.id));
+          
+          console.log('SEARCH_LOAD_MORE_RESULT', {
+            returnedCount: (result.ads || []).length,
+            newAdsCount: newAds.length,
+            totalCount: result.totalCount,
+            hasMore: result.hasMore
+          });
+
+          return [...prev, ...newAds];
+        });
+        pageRef.current = targetPage;
+      }
+      setHasMore(result.hasMore);
     } catch (err: any) {
       if (err.name === 'AbortError' || isNonCriticalSupabaseError(err)) return;
       console.error('Error loading search ads:', err);
     } finally {
       if (!signal?.aborted) {
         setLoading(false);
+        setLoadingMore(false);
       }
     }
   }, [filters]);
 
   useEffect(() => {
     const controller = new AbortController();
-    loadAds(controller.signal);
+    loadAds(true, controller.signal);
     return () => controller.abort();
-  }, [loadAds]);
+  }, [filters.category, filters.neighborhood, filters.type, filters.condition, filters.sortBy, filters.search]);
 
   return (
     <div className="min-h-screen bg-bg pb-20">
@@ -218,11 +270,15 @@ export default function Search() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
-              <div key={n} className="bg-white rounded-3xl aspect-[4/6] animate-pulse border border-gray-100 shadow-sm overflow-hidden p-0 flex flex-col">
-                <div className="w-full aspect-[4/5] bg-gray-100"></div>
-                <div className="p-3 space-y-2">
-                  <div className="h-4 bg-gray-100 rounded-full w-2/3"></div>
-                  <div className="h-2 bg-gray-50 rounded-full w-1/2"></div>
+              <div key={n} className="bg-white rounded-2xl aspect-[4/6] animate-pulse border border-gray-100 p-3 overflow-hidden flex flex-col gap-3">
+                <div className="w-full aspect-[4/3] bg-gray-50 rounded-xl"></div>
+                <div className="space-y-2">
+                   <div className="h-3 bg-gray-50 rounded w-3/4"></div>
+                   <div className="h-3 bg-gray-50 rounded w-1/2"></div>
+                </div>
+                <div className="mt-auto flex justify-between items-center">
+                   <div className="h-4 bg-gray-100 rounded w-1/3"></div>
+                   <div className="h-2 bg-gray-50 rounded w-1/4"></div>
                 </div>
               </div>
             ))}
@@ -254,13 +310,39 @@ export default function Search() {
                 className="flex-1 rounded-2xl px-8 border-2 py-4 h-auto font-black uppercase tracking-widest text-xs"
                 onClick={() => {
                   setLocalSearch('');
-                  setFilters({ search: '', category: 'Todos', type: 'all', condition: 'all' });
+                  setFilters({ search: '', category: 'Todos', type: 'all', condition: 'all', neighborhood: 'Todos os bairros', sortBy: 'recommended' });
                   setSearchParams({});
                 }}
               >
                 Limpar Busca
               </Button>
             </div>
+          </div>
+        )}
+
+        {hasMore ? (
+          <div className="mt-12 flex justify-center pb-20">
+            <Button
+              onClick={() => loadAds(false)}
+              disabled={loadingMore}
+              variant="outline"
+              className="rounded-2xl px-12 py-4 border-2 border-primary/20 hover:border-primary font-black uppercase tracking-widest text-[10px] gap-3 active:scale-95 transition-all shadow-xl hover:shadow-primary/10 bg-white"
+            >
+              {loadingMore ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                  <span>Carregando...</span>
+                </>
+              ) : (
+                "Carregar Mais"
+              )}
+            </Button>
+          </div>
+        ) : ads.length > 0 && (
+          <div className="mt-12 flex justify-center pb-20">
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-300">
+              Todos os resultados foram carregados
+            </p>
           </div>
         )}
       </main>

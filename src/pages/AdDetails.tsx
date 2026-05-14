@@ -2,8 +2,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchAdById, logAdClick } from '../services/ads';
 import { Ad } from '../types';
-import { formatPrice, formatAdPrice, formatDate, cn, isNonCriticalSupabaseError } from '../lib/utils';
-import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, ChevronRight, User, Heart, MessageSquare, BadgeCheck } from 'lucide-react';
+import { formatPrice, formatAdPrice, formatDate, cn, isNonCriticalSupabaseError, handleImageError } from '../lib/utils';
+import { FALLBACK_IMAGE } from '../constants';
+import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, ChevronRight, User, Heart, MessageSquare, BadgeCheck, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { checkIsFavorited, toggleFavorite } from '../services/favorites';
@@ -27,11 +29,10 @@ export default function AdDetails() {
   const images = React.useMemo(() => {
     const rawImages = ad?.ad_images || [];
     if (rawImages.length === 0) {
-      const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23F9FAFB'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='24' font-weight='bold' fill='%23D1D5DB' text-anchor='middle' dy='.3em'%3ESEM IMAGEM%3C/text%3E%3C/svg%3E";
       return [{ 
         id: 'placeholder', 
         ad_id: ad?.id || '', 
-        image_url: fallbackImage,
+        image_url: FALLBACK_IMAGE,
         is_primary: true,
         sort_order: 0
       }];
@@ -168,13 +169,11 @@ export default function AdDetails() {
   const sellerName = ad.is_external ? (ad.external_seller_name || 'Anunciante Externo') : (profileData?.name || 'Vendedor Anônimo');
   const whatsappNumber = ad.is_external ? ad.external_seller_phone : profileData?.whatsapp;
   
-  const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23F9FAFB'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='24' font-weight='bold' fill='%23D1D5DB' text-anchor='middle' dy='.3em'%3ESEM IMAGEM%3C/text%3E%3C/svg%3E";
-
   if (images.length === 0) {
     images.push({ 
       id: 'placeholder', 
       ad_id: ad?.id || '', 
-      image_url: fallbackImage,
+      image_url: FALLBACK_IMAGE,
       is_primary: true,
       sort_order: 0
     });
@@ -269,14 +268,17 @@ Ainda está disponível?`;
         {/* Gallery Section */}
         <div className="lg:col-span-7 space-y-4">
           <div className="relative bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200 group aspect-[4/3] w-full">
-            <img 
+            <motion.img 
+              key={selectedImageIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
               src={images[selectedImageIndex].image_url} 
               alt={ad.title} 
               className="w-full h-full object-cover transition-all duration-300"
+              loading="lazy"
               referrerPolicy="no-referrer"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = fallbackImage;
-              }}
+              onError={(e) => handleImageError(e, ad.title)}
             />
             
             {images.length > 1 && (
@@ -320,10 +322,9 @@ Ainda está disponível?`;
                       "w-full h-full object-cover transition-opacity",
                       selectedImageIndex === i ? "opacity-100" : "opacity-60 hover:opacity-100"
                     )}
+                    loading="lazy"
                     referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = fallbackImage;
-                    }}
+                    onError={(e) => handleImageError(e, `${ad.title} (thumbnail)`)}
                   />
                 </button>
               ))}
@@ -426,8 +427,12 @@ Ainda está disponível?`;
           </div>
 
           <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex items-center gap-4">
-            <div className="p-2 bg-white rounded-lg shadow-sm border border-primary/10">
-              <User className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 bg-white rounded-lg shadow-sm border border-primary/10 flex items-center justify-center overflow-hidden">
+              {profileData?.avatar_url ? (
+                <img src={profileData.avatar_url} alt={sellerName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <User className="w-6 h-6 text-primary" />
+              )}
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-primary opacity-60">Anunciante</p>

@@ -71,3 +71,5 @@ export const AD_CONDITIONS = [
   { value: 'new', label: 'Novo' },
   { value: 'used', label: 'Usado' }
 ];
+
+export const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1594322436404-5a0526db4d13?q=80&w=800&auto=format&fit=crop';

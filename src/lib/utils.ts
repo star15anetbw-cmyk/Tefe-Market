@@ -1,8 +1,22 @@
+import React from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { FALLBACK_IMAGE } from '../constants';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+export function handleImageError(e: React.SyntheticEvent<HTMLImageElement, Event>, context?: string) {
+  const target = e.target as HTMLImageElement;
+  // @ts-ignore - import.meta.env is a Vite-specific property
+  if (import.meta.env.DEV) {
+    console.warn(`[Image Error] Failed to load image${context ? ` for ${context}` : ''}:`, target.src);
+  }
+  // Prevent infinite loop if fallback also fails
+  if (target.src !== FALLBACK_IMAGE) {
+    target.src = FALLBACK_IMAGE;
+  }
 }
 
 export function getAdCoverImage(images: any[] | undefined | null): string | null {

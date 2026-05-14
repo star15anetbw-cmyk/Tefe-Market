@@ -4,7 +4,8 @@ import { Ad } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import {PlusCircle, AlertCircle, Trash2, Edit2, Heart} from 'lucide-react';
 import Button from '../components/ui/Button';
-import { formatPrice, cn, isNonCriticalSupabaseError, getAdCoverImage } from '../lib/utils';
+import { formatPrice, cn, isNonCriticalSupabaseError, getAdCoverImage, handleImageError } from '../lib/utils';
+import { FALLBACK_IMAGE } from '../constants';
 import { Link } from 'react-router-dom';
 
 export default function MyAds() {
@@ -70,8 +71,6 @@ export default function MyAds() {
     }
   };
 
-  const fallbackImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%23F3F4F6'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' font-weight='bold' fill='%239CA3AF' text-anchor='middle' dy='.3em'%3ESEM FOTO%3C/text%3E%3C/svg%3E";
-
   if (loading && ads.length === 0) {
     return (
       <div className="max-w-4xl mx-auto p-4 pb-24 min-h-screen">
@@ -116,10 +115,12 @@ export default function MyAds() {
             <div key={ad.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 p-4 flex gap-4 transition-all hover:shadow-md">
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-xl overflow-hidden shrink-0 relative">
                 <img 
-                  src={getAdCoverImage(ad.ad_images) || fallbackImage} 
+                  src={getAdCoverImage(ad.ad_images) || FALLBACK_IMAGE} 
                   alt={ad.title}
                   className={cn("w-full h-full object-cover", ad.status === 'sold' && "grayscale opacity-50")}
+                  loading="lazy"
                   referrerPolicy="no-referrer"
+                  onError={(e) => handleImageError(e, ad.title)}
                 />
                 {ad.status === 'sold' && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40">

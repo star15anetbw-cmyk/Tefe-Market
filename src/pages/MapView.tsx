@@ -7,7 +7,8 @@ import { CATEGORIES, NEIGHBORHOODS, FILTER_NEIGHBORHOODS } from '../constants';
 import { TEFE_CENTER, getRandomCoordInNeighborhood } from '../constants/locations';
 import { Search as SearchIcon, Filter, LayoutGrid, MapPin, Tag, ChevronRight } from 'lucide-react';
 import {Link} from 'react-router-dom';
-import { cn, formatPrice } from '../lib/utils';
+import { cn, formatPrice, handleImageError } from '../lib/utils';
+import { FALLBACK_IMAGE } from '../constants';
 import Button from '../components/ui/Button';
 
 // Fix for default marker icon in Leaflet
@@ -208,8 +209,10 @@ export default function MapView() {
                            <img 
                             src={ad.ad_images[0].image_url} 
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                            loading="lazy"
                             referrerPolicy="no-referrer"
                             alt=""
+                            onError={(e) => handleImageError(e, ad.title)}
                            />
                         </div>
                      )}

@@ -1,3 +1,4 @@
+import imageCompression from 'browser-image-compression';
 import { supabase } from '../lib/supabase';
 import { Ad, AdFilter, AdStatus } from '../types';
 import { isNonCriticalSupabaseError } from '../lib/utils';
@@ -9,7 +10,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
   try {
     let query = supabase
       .from('ads')
-      .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, is_external, is_verified, external_seller_name, external_seller_phone, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at)', { count: 'exact' })
+      .select('id, user_id, title, description, price, category, neighborhood, condition, ad_type, status, lat, lng, views, interests, is_external, is_verified, external_seller_name, external_seller_phone, created_at, updated_at, ad_images(id, ad_id, image_url, is_primary, sort_order, created_at), profiles(id, name, avatar_url, whatsapp)', { count: 'exact' })
       .eq('status', 'active');
 
     if (signal) {
@@ -17,19 +18,42 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     }
 
     // Filtros
+    console.log('FETCH_ADS_INPUT', { filter });
+
     if (filter.search) {
       const s = filter.search.trim();
       if (s) {
         const term = `%${s}%`;
+        console.log('QUERY_STEP: filter by search=' + s);
         query = query.or(`title.ilike.${term},description.ilike.${term},neighborhood.ilike.${term}`);
       }
     }
 
     if (filter.category && filter.category !== 'Todos') {
-      query = query.eq('category', filter.category);
+      const cat = filter.category.trim();
+      const normalizedCat = cat.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ç/g, "c");
+      
+      const isServiceSearch = [
+        'servicos', 'servico', 'service'
+      ].includes(normalizedCat);
+      
+      console.log('CATEGORY_FILTER_NORMALIZATION', {
+        original: filter.category,
+        normalized: normalizedCat,
+        isServiceSearch
+      });
+
+      if (isServiceSearch) {
+        console.log('QUERY_STEP: filter by ad_type=service');
+        query = query.eq('ad_type', 'service');
+      } else {
+        console.log('QUERY_STEP: filter by category=' + filter.category);
+        query = query.eq('category', filter.category);
+      }
     }
 
     if (filter.type && filter.type !== 'all') {
+      console.log('QUERY_STEP: filter by ad_type=' + filter.type);
       query = query.eq('ad_type', filter.type);
     }
 
@@ -53,6 +77,13 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
 
     const { data, error, count } = await query;
 
+    console.log('FETCH_ADS_RESULT', {
+      countReturned: data?.length || 0,
+      totalCount: count,
+      firstAdCategory: data?.[0]?.category,
+      allCategories: Array.from(new Set(data?.map(a => a.category) || []))
+    });
+
     if (error) {
       if (isNonCriticalSupabaseError(error) && retryCount < 1) {
         console.warn('Retrying fetchAds due to non-critical error:', error);
@@ -69,7 +100,10 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     }
 
     return {
-      ads: (data || []) as Ad[],
+      ads: (data || []).map(ad => ({
+        ...ad,
+        profiles: Array.isArray(ad.profiles) ? ad.profiles[0] : ad.profiles
+      })) as Ad[],
       totalCount: count || 0,
       hasMore: count ? (from + (data?.length || 0)) < count : false
     };
@@ -215,16 +249,45 @@ export async function toggleAdVerification(id: string, isVerified: boolean) {
 }
 
 export async function uploadAdImage(adId: string, userId: string, file: File, isPrimary = false) {
+  // 1. Impedir uploads acima de 3MB antes de qualquer processamento
+  const MAX_SIZE = 3 * 1024 * 1024;
+  if (file.size > MAX_SIZE) {
+    throw new Error('A imagem selecionada é muito grande (máximo 3MB). Por favor, escolha uma imagem menor.');
+  }
+
+  // 2. Otimizar imagem (Comprimir, Redimensionar, Converter para WebP)
+  let fileToUpload: File | Blob = file;
+  let extension = file.name.split('.').pop() || 'jpg';
+
+  try {
+    const options = {
+      maxSizeMB: 0.8, // Tenta comprimir para ficar abaixo de 800KB
+      maxWidthOrHeight: 1200,
+      useWebWorker: true,
+      fileType: 'image/webp' as any,
+      initialQuality: 0.75
+    };
+
+    const compressedBlob = await imageCompression(file, options);
+    
+    // Criar um novo File a partir do Blob comprimido para manter metadados básicos ou extensões corretas
+    fileToUpload = new File([compressedBlob], `image.webp`, { type: 'image/webp' });
+    extension = 'webp';
+  } catch (compressionError) {
+    console.warn('Erro ao comprimir imagem, tentando upload original:', compressionError);
+    // Se falhar a compressão, usamos o arquivo original (que já passou no teste de 3MB)
+  }
+
   // Convenção: ad-images/{user_id}/{ad_id}/{filename}
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+  const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${extension}`;
   const filePath = `${userId}/${adId}/${fileName}`;
 
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from('ad-images')
-    .upload(filePath, file, {
+    .upload(filePath, fileToUpload, {
       cacheControl: '3600',
-      upsert: false
+      upsert: false,
+      contentType: extension === 'webp' ? 'image/webp' : undefined
     });
 
   if (uploadError) {
@@ -408,7 +471,7 @@ export async function fetchAdminAds(signal?: AbortSignal) {
   try {
     let query = supabase
       .from('ads')
-      .select('id, title, price, category, neighborhood, ad_type, status, is_external, is_verified, external_seller_name, external_seller_phone, created_at, ad_images(image_url), profiles(name)')
+      .select('id, title, price, category, neighborhood, ad_type, status, is_external, is_verified, external_seller_name, external_seller_phone, created_at, ad_images(image_url), profiles(name, avatar_url)')
       .order('created_at', { ascending: false });
 
     if (signal instanceof AbortSignal) query = query.abortSignal(signal);
@@ -419,7 +482,10 @@ export async function fetchAdminAds(signal?: AbortSignal) {
       throw error;
     }
 
-    return (data || []) as any[];
+    return (data || []).map(ad => ({
+      ...ad,
+      profiles: Array.isArray(ad.profiles) ? ad.profiles[0] : ad.profiles
+    })) as any[];
   } catch (err: any) {
     if (isNonCriticalSupabaseError(err)) return [];
     console.error('Error fetching admin ads:', err);

@@ -6,7 +6,8 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { Camera, AlertCircle, MessageSquare, Tag, LayoutGrid } from 'lucide-react';
 import { CATEGORIES, NEIGHBORHOODS, AD_TYPES, AD_CONDITIONS, SERVICE_CATEGORIES } from '../constants';
-import { cn } from '../lib/utils';
+import { cn, handleImageError } from '../lib/utils';
+import { FALLBACK_IMAGE } from '../constants';
 
 export default function CreateAd() {
   const { user, profile } = useAuth();
@@ -196,6 +197,13 @@ export default function CreateAd() {
           </button>
         </div>
 
+        {loading && (
+          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-3 text-emerald-700 animate-pulse">
+            <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-[10px] font-black uppercase tracking-widest">Otimizando imagens e publicando...</span>
+          </div>
+        )}
+
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3 text-red-700">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -234,7 +242,7 @@ export default function CreateAd() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
               {previews.map((src, index) => (
                 <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 group shadow-sm">
-                  <img src={src} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                  <img src={src} alt={`Preview ${index}`} className="w-full h-full object-cover" onError={(e) => handleImageError(e, `Create Ad Preview ${index}`)} />
                   <button 
                     type="button"
                     onClick={() => removeImage(index)}
