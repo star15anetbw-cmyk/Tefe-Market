@@ -59,7 +59,6 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
-  const requestRef = useRef(0);
   
   const [localSearch, setLocalSearch] = useState('');
   const [filters, setFilters] = useState<AdFilter>({
@@ -72,115 +71,77 @@ export default function Home() {
   });
 
   const pageRef = useRef(0);
-
-  // Watch for long loading states
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (loading) {
-      timer = setTimeout(() => {
-        setLoadingTimeout(true);
-      }, 5000);
-    } else {
-      setLoadingTimeout(false);
-    }
-    return () => clearTimeout(timer);
-  }, [loading]);
-
-  // Debounce search input to avoid many re-renders/fetches if search becomes live
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setFilters(prev => {
-        if (prev.search === localSearch) return prev;
-        return { ...prev, search: localSearch };
-      });
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [localSearch]);
-
+  const initialLoadDoneRef = useRef(false);
+  const lastFilterSnapshotRef = useRef("");
   const abortControllerRef = useRef<AbortController | null>(null);
-  
-  const loadAds = useCallback(async (isInitial = true, overrideFilters?: AdFilter) => {
+  const requestRef = useRef(0);
+
+  const loadAdsData = useCallback(async (isInitial = true) => {
     const requestId = ++requestRef.current;
     
-    // Evita múltiplas chamadas simultâneas
+    // Evita múltiplas chamadas simultâneas para a mesma finalidade
     if (!isInitial && (loading || loadingMore)) return;
 
-    if (isInitial && abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    const controller = new AbortController();
     if (isInitial) {
-      abortControllerRef.current = controller;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      console.log("LOAD_INITIAL_START");
       setLoading(true);
       setError(null);
       setPage(0);
       pageRef.current = 0;
     } else {
+      console.log("LOAD_MORE_CLICK");
       setLoadingMore(true);
+    }
+    
+    const controller = new AbortController();
+    if (isInitial) {
+      abortControllerRef.current = controller;
     }
     
     try {
       const targetPage = isInitial ? 0 : pageRef.current + 1;
-      const activeFilters = overrideFilters || filters;
-      
-      console.log('HOME_LOAD_ADS_TRIGGER', {
-        isInitial,
-        selectedCategory: activeFilters.category,
-        selectedType: activeFilters.type,
-        search: activeFilters.search
-      });
-
       const pageSize = 12;
       const from = targetPage * pageSize;
       const to = from + pageSize - 1;
 
       if (!isInitial) {
-        console.log('LOAD_MORE_CLICK', {
-          requestId,
-          currentPage: pageRef.current,
-          targetPage,
-          from,
-          to,
-          adsBefore: ads.length,
-          filters: activeFilters
-        });
+        console.log("LOAD_MORE_RANGE", { page: targetPage, from, to });
       }
       
       const result = await fetchAds({ 
-        ...activeFilters, 
+        ...filters, 
         page: targetPage, 
         pageSize 
       }, controller.signal);
       
       if (requestId !== requestRef.current) {
-        console.log(`LOAD_MORE_ABORTED: Request ID ${requestId} is no longer current (current: ${requestRef.current})`);
+        console.log(`LOAD_ADS_STALE: Request ${requestId} ignored (current is ${requestRef.current})`);
         return;
       }
       
       if (isInitial) {
-        setAds(Array.isArray(result.ads) ? result.ads : []);
+        const adsList = Array.isArray(result.ads) ? result.ads : [];
+        setAds(adsList);
         setPage(0);
         pageRef.current = 0;
       } else {
+        const returnedAds = Array.isArray(result.ads) ? result.ads : [];
+        console.log("LOAD_MORE_RETURNED", { count: returnedAds.length, ids: returnedAds.map(a => a.id) });
+        
         const adsBeforeCount = ads.length;
         setAds(prev => {
+          const before = prev.length;
           const existingIds = new Set(prev.map(a => a.id));
-          const newAdsFromFetch = Array.isArray(result.ads) ? result.ads : [];
-          const deduplicatedNewAds = newAdsFromFetch.filter(a => !existingIds.has(a.id));
+          const deduplicatedNewAds = returnedAds.filter(a => !existingIds.has(a.id));
+          const next = before + deduplicatedNewAds.length;
           
-          console.log('LOAD_MORE_RESULT', {
-            requestId,
-            returnedCount: newAdsFromFetch.length,
-            newAdsCount: deduplicatedNewAds.length,
-            adsBefore: adsBeforeCount,
-            adsAfter: prev.length + deduplicatedNewAds.length,
-            hasMore: result.hasMore,
-            totalCount: result.totalCount
-          });
-
+          console.log("LOAD_MORE_APPEND", { before, after: next });
           return [...prev, ...deduplicatedNewAds];
         });
+        
         setPage(targetPage);
         pageRef.current = targetPage;
       }
@@ -189,15 +150,15 @@ export default function Home() {
       setHasMore(result.hasMore || false);
     } catch (err: any) {
       if (requestId !== requestRef.current) return;
-      if (err.name === 'AbortError') return;
+      if (err.name === 'AbortError') {
+        console.log(`LOAD_ADS_ABORTED: Request ${requestId}`);
+        return;
+      }
       
       console.error('Erro ao carregar anúncios:', err);
       
       if (isInitial) {
         setError(err.message || 'Não foi possível carregar os anúncios.');
-      } else {
-        // Para load more, apenas logamos e permitimos tentar de novo
-        setLoadingMore(false);
       }
     } finally {
       if (requestId === requestRef.current) {
@@ -211,8 +172,18 @@ export default function Home() {
     filters.sortBy, 
     filters.condition, 
     filters.search,
-    filters.neighborhood
+    filters.neighborhood,
+    ads.length // Added ads.length to correctly log "before" in append log
   ]);
+
+  // Wrapper functions for clarity as requested
+  const loadInitialAds = useCallback(() => {
+    loadAdsData(true);
+  }, [loadAdsData]);
+
+  const loadMoreAds = useCallback(() => {
+    loadAdsData(false);
+  }, [loadAdsData]);
 
   const resetHomeFilters = useCallback(() => {
     const defaultFilters: AdFilter = {
@@ -244,15 +215,65 @@ export default function Home() {
   }, [location.state, location.pathname, resetHomeFilters, navigate]);
 
   useEffect(() => {
-    // Only fetch if we are not already loading something initial
-    loadAds(true);
+    console.log("HOME_EFFECT_TRIGGERED");
+    
+    const filterSnapshot = JSON.stringify({
+      c: filters.category,
+      t: filters.type,
+      s: filters.sortBy,
+      cd: filters.condition,
+      sr: filters.search,
+      n: filters.neighborhood
+    });
+
+    // Skip if filters haven't changed (StrictMode double trigger or unrelated re-renders)
+    if (initialLoadDoneRef.current && lastFilterSnapshotRef.current === filterSnapshot) {
+      return;
+    }
+
+    lastFilterSnapshotRef.current = filterSnapshot;
+    initialLoadDoneRef.current = true;
+    
+    loadInitialAds();
     
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [filters.category, filters.type, filters.sortBy, filters.condition, filters.search, filters.neighborhood]);
+  }, [
+    filters.category, 
+    filters.type, 
+    filters.sortBy, 
+    filters.condition, 
+    filters.search, 
+    filters.neighborhood, 
+    loadInitialAds
+  ]);
+
+  // Watch for long loading states
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (loading) {
+      timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 5000);
+    } else {
+      setLoadingTimeout(false);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  // Debounce search input to avoid many re-renders/fetches if search becomes live
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters(prev => {
+        if (prev.search === localSearch) return prev;
+        return { ...prev, search: localSearch };
+      });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [localSearch]);
 
   // Redireciona para a página de busca ao submeter
   const handleSearch = (e?: React.FormEvent) => {
@@ -386,7 +407,7 @@ export default function Home() {
                 <button
                   onClick={() => {
                     if (filters.category === 'Todos') {
-                      loadAds(true);
+                      loadInitialAds();
                     } else {
                       setFilters({ ...filters, category: 'Todos' });
                     }
@@ -549,7 +570,7 @@ export default function Home() {
               <AlertCircle className="w-12 h-12 text-red-500 mb-6" />
               <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Ops! Erro ao carregar</h3>
               <p className="text-gray-400 text-sm max-w-xs mx-auto mb-8">{error}</p>
-              <Button onClick={() => loadAds(true)} className="rounded-2xl px-10">Tentar Novamente</Button>
+              <Button onClick={() => loadInitialAds()} className="rounded-2xl px-10">Tentar Novamente</Button>
             </div>
           ) : ads.length > 0 ? (
             <div className="space-y-12">
@@ -579,7 +600,7 @@ export default function Home() {
               {hasMore ? (
                 <div className="flex justify-center pt-12 pb-16 relative z-40">
                   <Button 
-                    onClick={() => loadAds(false)} 
+                    onClick={loadMoreAds} 
                     disabled={loadingMore}
                     variant="outline"
                     className={cn(
