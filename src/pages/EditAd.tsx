@@ -59,7 +59,7 @@ export default function EditAd() {
         ad_type: ad.ad_type,
         condition: ad.condition,
         neighborhood: ad.neighborhood,
-        priceNegotiable: ad.ad_type === 'service' && ad.price === 0
+        priceNegotiable: ad.price === 0 || !ad.price
       });
       
       setExistingImages((ad.ad_images || []).sort((a, b) => {
@@ -355,39 +355,36 @@ export default function EditAd() {
               </select>
             </div>
             
-            <div className="space-y-1">
-              <Input
-                label="Preço (R$)"
-                type="number"
-                placeholder="0,00"
-                value={formData.priceNegotiable ? '' : formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                required={!formData.priceNegotiable}
-                disabled={formData.priceNegotiable}
-                className={cn(
-                  "transition-all",
-                  formData.priceNegotiable ? "bg-gray-100 opacity-50 cursor-not-allowed" : ""
-                )}
-              />
-              {formData.ad_type === 'service' && (
-                <div className="flex items-center gap-3 p-2 rounded-lg bg-purple-50/50 border border-purple-100/50 mt-2 animate-in fade-in zoom-in-95 duration-200">
-                  <input 
-                    type="checkbox" 
-                    id="priceNegotiableEdit"
-                    checked={formData.priceNegotiable}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      priceNegotiable: e.target.checked,
-                      price: e.target.checked ? '0' : (formData.price === '0' ? '' : formData.price)
-                    })}
-                    className="w-5 h-5 text-primary rounded-md border-gray-300 focus:ring-primary focus:ring-offset-0 cursor-pointer"
-                  />
-                  <label htmlFor="priceNegotiableEdit" className="text-[11px] font-black uppercase tracking-widest text-purple-700 cursor-pointer select-none">
-                    Preço a combinar
-                  </label>
+              {formData.priceNegotiable ? (
+                <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gray-50 border border-gray-100 mt-0 transition-all duration-300">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Valor a combinar</span>
                 </div>
+              ) : (
+                <Input
+                  label="Preço (R$)"
+                  type="number"
+                  placeholder="0,00"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  required
+                />
               )}
-            </div>
+              <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/5 border border-primary/10 mt-2 animate-in fade-in zoom-in-95 duration-200">
+                <input 
+                  type="checkbox" 
+                  id="priceNegotiableEdit"
+                  checked={formData.priceNegotiable}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    priceNegotiable: e.target.checked,
+                    price: e.target.checked ? '0' : (formData.price === '0' ? '' : formData.price)
+                  })}
+                  className="w-5 h-5 text-primary rounded-md border-gray-300 focus:ring-primary focus:ring-offset-0 cursor-pointer"
+                />
+                <label htmlFor="priceNegotiableEdit" className="text-[11px] font-black uppercase tracking-widest text-primary cursor-pointer select-none">
+                  Preço a combinar
+                </label>
+              </div>
 
             {formData.ad_type === 'sale' && (
               <div className="md:col-span-2">

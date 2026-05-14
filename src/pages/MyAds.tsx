@@ -4,7 +4,7 @@ import { Ad } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import {PlusCircle, AlertCircle, Trash2, Edit2, Heart} from 'lucide-react';
 import Button from '../components/ui/Button';
-import { formatPrice, cn, isNonCriticalSupabaseError, getAdCoverImage, handleImageError } from '../lib/utils';
+import { formatPrice, formatAdPrice, cn, isNonCriticalSupabaseError, getAdCoverImage, handleImageError } from '../lib/utils';
 import { FALLBACK_IMAGE } from '../constants';
 import { Link } from 'react-router-dom';
 
@@ -135,7 +135,7 @@ export default function MyAds() {
                     <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-emerald-50 px-2 py-0.5 rounded">
                       {ad.category}
                     </span>
-                    <span className="text-xs font-black text-primary">{formatPrice(ad.price)}</span>
+                    <span className="text-xs font-black text-primary">{formatAdPrice(ad.price, ad.ad_type)}</span>
                   </div>
                   <h3 className="font-black text-gray-900 line-clamp-1 text-sm sm:text-base">{ad.title}</h3>
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">

@@ -47,18 +47,23 @@ export default function BottomNav() {
           <Link to="/publicar" className="group">
             <motion.div
               animate={{ 
+                scale: [1, 1.05, 1],
                 boxShadow: [
-                  "0 8px 15px -5px rgba(249, 115, 22, 0.4)",
-                  "0 12px 25px -5px rgba(249, 115, 22, 0.6)",
-                  "0 8px 15px -5px rgba(249, 115, 22, 0.4)"
+                  "0 8px 15px -5px rgba(249, 115, 22, 0.5), 0 0 0 0px rgba(249, 115, 22, 0.2)",
+                  "0 12px 25px -5px rgba(249, 115, 22, 0.7), 0 0 0 10px rgba(249, 115, 22, 0)",
+                  "0 8px 15px -5px rgba(249, 115, 22, 0.5), 0 0 0 0px rgba(249, 115, 22, 0.2)"
                 ]
               }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              transition={{ 
+                duration: 3, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
               whileTap={{ scale: 0.9 }}
               className="flex flex-col items-center justify-center bg-gradient-to-tr from-orange-600 to-amber-500 text-white w-12 h-12 rounded-full shadow-xl border-[2px] border-white group-hover:scale-110 transition-transform"
             >
               <Plus className="w-5 h-5 font-black stroke-[3px]" />
-              <span className="text-[5px] font-black uppercase tracking-tighter -mt-0.5">Postar</span>
+              <span className="text-[5px] font-black uppercase tracking-tighter -mt-0.5">Anunciar</span>
             </motion.div>
           </Link>
         </div>

@@ -48,6 +48,14 @@ const SORT_OPTIONS = [
   { label: 'Maior Preço', value: 'price_desc' },
 ];
 
+const SEARCH_EXAMPLES = [
+  'diarista', 'lava jato', 'casa para alugar', 'moto à venda', 'manicure', 
+  'celular', 'terreno', 'internet', 'frete', 'pedreiro', 'carrocinha', 
+  'jardineiro', 'encanador', 'eletricista', 'técnico de ar condicionado', 
+  'cabeleireira', 'moto usada', 'iPhone', 'terreno à venda', 'casa à venda', 
+  'aluguel', 'serviço de limpeza', 'mecânico', 'pintura', 'mudança', 'eletrônicos'
+];
+
 export default function Home() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,6 +67,7 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   
   const [localSearch, setLocalSearch] = useState('');
   const [filters, setFilters] = useState<AdFilter>({
@@ -69,6 +78,49 @@ export default function Home() {
     neighborhood: 'Todos os bairros',
     sortBy: 'recommended'
   });
+
+  // Typewriter placeholder state
+  const [placeholder, setPlaceholder] = useState('Busque por produtos, serviços...');
+  const [charIndex, setCharIndex] = useState(0);
+  const [exampleIndex, setExampleIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Typewriter effect logic
+  useEffect(() => {
+    // Stop animation if user is typing or input is focused
+    if (localSearch || isInputFocused) {
+      setPlaceholder('Busque por produtos, serviços...');
+      return;
+    }
+
+    const typingSpeed = 100;
+    const deletingSpeed = 50;
+    const pauseDuration = 2000;
+    const currentExample = SEARCH_EXAMPLES[exampleIndex];
+    const fullText = `Busque por ${currentExample}`;
+
+    let timer: NodeJS.Timeout;
+
+    if (!isDeleting && charIndex <= fullText.length) {
+      // Typing
+      setPlaceholder(fullText.substring(0, charIndex));
+      timer = setTimeout(() => setCharIndex(prev => prev + 1), typingSpeed);
+    } else if (isDeleting && charIndex >= 0) {
+      // Deleting
+      setPlaceholder(fullText.substring(0, charIndex));
+      timer = setTimeout(() => setCharIndex(prev => prev - 1), deletingSpeed);
+    } else if (!isDeleting && charIndex > fullText.length) {
+      // Finished typing, wait before deleting
+      timer = setTimeout(() => setIsDeleting(true), pauseDuration);
+    } else {
+      // Finished deleting or error state, move to next example
+      setIsDeleting(false);
+      setExampleIndex(prev => (prev + 1) % SEARCH_EXAMPLES.length);
+      setCharIndex(0);
+    }
+
+    return () => clearTimeout(timer);
+  }, [charIndex, isDeleting, exampleIndex, localSearch, isInputFocused]);
 
   const pageRef = useRef(0);
   const initialLoadDoneRef = useRef(false);
@@ -364,10 +416,12 @@ export default function Home() {
               <Search className="absolute left-4 sm:left-5 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
               <input 
                 type="text" 
-                placeholder="Busque por produtos, serviços..." 
+                placeholder={placeholder}
                 className="w-full pl-11 sm:pl-14 pr-4 sm:pr-6 py-2.5 sm:py-4 text-sm sm:text-lg text-gray-900 bg-transparent outline-none placeholder:text-gray-300 font-medium"
                 value={localSearch}
                 onChange={(e) => setLocalSearch(e.target.value)}
+                onFocus={() => setIsInputFocused(true)}
+                onBlur={() => setIsInputFocused(false)}
               />
               <div className="hidden sm:flex items-center gap-2 pr-2">
                 <Button 

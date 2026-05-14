@@ -47,7 +47,7 @@ export function formatPrice(price: number) {
 }
 
 export function formatAdPrice(price: number, adType: string) {
-  if (adType === 'service' && (price === 0 || !price)) {
+  if (price === 0 || !price) {
     return 'Preço a combinar';
   }
   return formatPrice(price);
