@@ -123,6 +123,11 @@ export default function App() {
             <CreateExternalAd />
           </ProtectedRoute>
         } />
+        <Route path="/admin/editar-anuncio/:id" element={
+          <ProtectedRoute adminOnly>
+            <EditAd />
+          </ProtectedRoute>
+        } />
 
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

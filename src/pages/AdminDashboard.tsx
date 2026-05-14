@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { fetchAdminStats, fetchAdminAds, updateAdStatus, toggleAdVerification } from '../services/ads';
 import { formatPrice, formatDate, cn, isNonCriticalSupabaseError, handleImageError } from '../lib/utils';
 import { FALLBACK_IMAGE } from '../constants';
-import { Shield, Users, Package, AlertTriangle, Eye, Trash2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, Tag, LayoutGrid, BadgeCheck } from 'lucide-react';
+import { Shield, Users, Package, AlertTriangle, Eye, Trash2, Edit2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, Tag, LayoutGrid, BadgeCheck } from 'lucide-react';
 import Button from '../components/ui/Button';
 
 export default function AdminDashboard() {
@@ -253,6 +253,14 @@ export default function AdminDashboard() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
+                      <Link 
+                        to={`/admin/editar-anuncio/${ad.id}`} 
+                        className="w-9 h-9 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-blue-100 hover:text-blue-600 rounded-xl transition-all shadow-sm"
+                        title="Editar Anúncio"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Link>
+
                       <Link 
                         to={`/anuncio/${ad.id}`} 
                         className="w-9 h-9 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-primary/10 hover:text-primary rounded-xl transition-all shadow-sm"

@@ -12,7 +12,7 @@ import { Ad } from '../types';
 
 export default function EditAd() {
   const { id } = useParams<{ id: string }>();
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,7 +26,11 @@ export default function EditAd() {
     ad_type: 'sale',
     condition: 'used',
     neighborhood: profile?.neighborhood || NEIGHBORHOODS[0],
-    priceNegotiable: false
+    priceNegotiable: false,
+    status: 'active' as Ad['status'],
+    is_external: false,
+    external_seller_name: '',
+    external_seller_phone: ''
   });
 
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -47,7 +51,8 @@ export default function EditAd() {
       const ad = await fetchAdById(adId, signal);
       if (!ad || signal?.aborted) return;
       
-      if (user && ad.user_id !== user.id) {
+      const isOwner = user && ad.user_id === user.id;
+      if (!isOwner && !isAdmin) {
         navigate('/meus-anuncios');
         return;
       }
@@ -59,7 +64,11 @@ export default function EditAd() {
         ad_type: ad.ad_type,
         condition: ad.condition,
         neighborhood: ad.neighborhood,
-        priceNegotiable: ad.price === 0 || !ad.price
+        priceNegotiable: ad.price === 0 || !ad.price,
+        status: ad.status,
+        is_external: ad.is_external || false,
+        external_seller_name: ad.external_seller_name || '',
+        external_seller_phone: ad.external_seller_phone || ''
       });
       
       setExistingImages((ad.ad_images || []).sort((a, b) => {
@@ -177,6 +186,9 @@ export default function EditAd() {
         ad_type: formData.ad_type as any,
         condition: formData.ad_type === 'service' ? 'new' as any : formData.condition as any,
         neighborhood: formData.neighborhood,
+        status: formData.status,
+        external_seller_name: formData.is_external ? formData.external_seller_name : undefined,
+        external_seller_phone: formData.is_external ? formData.external_seller_phone : undefined,
       };
 
       await updateAd(id, adData);
@@ -185,14 +197,25 @@ export default function EditAd() {
       if (newFiles.length > 0) {
         // Se não houver nenhuma imagem principal atual, a primeira nova será
         const hasPrimary = existingImages.some(img => img.is_primary);
+        // Precisamos saber o dono original do anúncio se formos admin, 
+        // mas o uploadAdImage espera o userId de quem está fazendo ou do dono?
+        // Atualmente uploadAdImage usa ad-images/{userId}/{adId}
+        // É melhor usar o userId do dono do anúncio para manter a estrutura de pastas
+        const ad = await fetchAdById(id);
+        const ownerId = ad?.user_id || user.id;
+
         await Promise.all(
           newFiles.map((file, idx) => 
-            uploadAdImage(id, user.id, file, !hasPrimary && idx === 0)
+            uploadAdImage(id, ownerId, file, !hasPrimary && idx === 0)
           )
         );
       }
 
-      navigate('/meus-anuncios');
+      if (isAdmin && window.location.pathname.startsWith('/admin')) {
+        navigate('/admin');
+      } else {
+        navigate('/meus-anuncios');
+      }
     } catch (err: any) {
       console.error("Erro ao atualizar anúncio:", err);
       setError(err.message || 'Erro ao atualizar anúncio.');
@@ -239,6 +262,63 @@ export default function EditAd() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Administração */}
+          {isAdmin && (
+            <section className="p-6 bg-emerald-50 rounded-2xl border-2 border-dashed border-emerald-200 space-y-6">
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-emerald-600" />
+                <h2 className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Controles de Administrador</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Status do Anúncio</label>
+                  <select
+                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-lg outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 text-sm"
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  >
+                    <option value="active">🟢 Ativo</option>
+                    <option value="sold">🔵 Vendido</option>
+                    <option value="hidden">🟡 Oculto</option>
+                    <option value="removed">🔴 Removido</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-3 pt-6">
+                  <input 
+                    type="checkbox" 
+                    id="isExternalAdmin"
+                    checked={formData.is_external}
+                    onChange={(e) => setFormData({ ...formData, is_external: e.target.checked })}
+                    className="w-5 h-5 text-primary rounded-md border-gray-300 focus:ring-primary focus:ring-offset-0 cursor-pointer"
+                  />
+                  <label htmlFor="isExternalAdmin" className="text-[11px] font-black uppercase tracking-widest text-emerald-700 cursor-pointer select-none">
+                    Anúncio Externo (Manual)
+                  </label>
+                </div>
+
+                {formData.is_external && (
+                  <>
+                    <Input
+                      label="Nome do Anunciante Externo"
+                      value={formData.external_seller_name}
+                      onChange={(e) => setFormData({ ...formData, external_seller_name: e.target.value })}
+                      className="bg-white"
+                    />
+                    <Input
+                      label="WhatsApp Externo (Só números)"
+                      value={formData.external_seller_phone}
+                      onChange={(e) => setFormData({ ...formData, external_seller_phone: e.target.value })}
+                      required={formData.is_external}
+                      className="bg-white"
+                    />
+                  </>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* Gestão de Imagens */}
           <section>
             <div className="flex justify-between items-end mb-4 border-b border-gray-100 pb-2">
