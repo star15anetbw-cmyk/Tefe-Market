@@ -105,7 +105,26 @@ export default function Register() {
           </div>
         )}
 
-        <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <Button 
+            className="w-full h-14 text-base font-black relative overflow-hidden group shadow-lg shadow-emerald-200"
+            onClick={handleGoogleLogin}
+            loading={loading && !formData.email}
+          >
+            <div className="absolute inset-0 bg-white/10 group-hover:bg-transparent transition-colors"></div>
+            <div className="flex items-center justify-center gap-3">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6" />
+              Cadastrar com Google
+            </div>
+          </Button>
+
+          <div className="py-2 flex items-center justify-between gap-4">
+            <div className="h-px flex-grow bg-gray-100"></div>
+            <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest px-2 whitespace-nowrap">Ou preencha manualmente</span>
+            <div className="h-px flex-grow bg-gray-100"></div>
+          </div>
+
+          <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
             <Input
               label="Nome Completo"
@@ -171,27 +190,13 @@ export default function Register() {
           </div>
         </form>
 
-        <div className="mt-6 flex items-center justify-between gap-4">
-          <div className="h-px flex-grow bg-gray-100"></div>
-          <span className="text-xs text-gray-400 uppercase font-bold px-2">ou</span>
-          <div className="h-px flex-grow bg-gray-100"></div>
-        </div>
-
-        <Button 
-          variant="outline" 
-          className="w-full mt-6"
-          onClick={handleGoogleLogin}
-        >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-3" />
-          Cadastrar com Google
-        </Button>
-
-        <p className="mt-8 text-center text-sm text-gray-500">
+        <p className="mt-8 text-center text-sm text-gray-500 font-medium">
           Já tem uma conta?{' '}
-          <Link to="/login" className="text-emerald-600 font-bold hover:underline">
+          <Link to="/login" className="text-emerald-600 font-black hover:underline underline-offset-4 decoration-2">
             Faça login aqui
           </Link>
         </p>
+        </div>
       </div>
     </div>
   );

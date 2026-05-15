@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
@@ -24,6 +25,24 @@ import {
 } from './pages';
 
 export default function App() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Handle post-OAuth redirect
+  useEffect(() => {
+    if (user) {
+      const next = localStorage.getItem('auth_redirect_next');
+      if (next) {
+        localStorage.removeItem('auth_redirect_next');
+        // Only redirect if we are not already on a specific page 
+        // (to avoid interfering with intentional navigation)
+        if (window.location.pathname === '/' || window.location.pathname === '/login') {
+          navigate(next, { replace: true });
+        }
+      }
+    }
+  }, [user, navigate]);
+
   // Stability mechanism for Supabase Auth Lock conflicts
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {

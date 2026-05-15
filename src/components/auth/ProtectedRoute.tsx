@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children, adminOnly = false }: Protecte
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={`/login?next=${encodeURIComponent(window.location.pathname)}`} replace />;
   }
 
   if (adminOnly && !isAdmin) {

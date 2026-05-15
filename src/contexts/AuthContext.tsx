@@ -15,7 +15,7 @@ interface AuthContextType {
   signIn: (credentials: SignInWithPasswordCredentials) => Promise<void>;
   signUp: (credentials: SignUpWithPasswordCredentials) => Promise<void>;
    signOut: () => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (redirectTo?: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -168,20 +168,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signOut();
       if (error) throw new Error(mapAuthError(error));
     },
-    signInWithGoogle: async () => {
-      // Redirecionamos para a origem da aplicação. O Supabase Auth detectará 
-      // automaticamente o código/token na URL ao carregar o app.
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin
-        }
-      });
-
-      if (error) {
-        throw new Error('Erro ao iniciar login com Google: ' + error.message);
+  signInWithGoogle: async (redirectTo?: string) => {
+    if (redirectTo) {
+      localStorage.setItem('auth_redirect_next', redirectTo);
+    }
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin
       }
-    },
+    });
+
+    if (error) {
+      throw new Error('Erro ao iniciar login com Google: ' + error.message);
+    }
+  },
     refreshProfile: async () => {
       if (user) {
         const prof = await fetchProfile(user.id);

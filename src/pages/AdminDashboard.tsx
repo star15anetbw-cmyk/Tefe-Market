@@ -1,178 +1,238 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchAdminStats, fetchAdminAds, updateAdStatus, toggleAdVerification } from '../services/ads';
-import { formatPrice, formatDate, cn, isNonCriticalSupabaseError, handleImageError } from '../lib/utils';
-import { FALLBACK_IMAGE } from '../constants';
-import { Shield, Users, Package, AlertTriangle, Eye, Trash2, Edit2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, Tag, LayoutGrid, BadgeCheck } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../contexts/AuthContext';
+import { fetchAdminStats, fetchAdminAds, updateAdStatus, toggleAdVerification, toggleAdFeature } from '../services/ads';
+import { formatPrice, formatDate, cn, handleImageError } from '../lib/utils';
+import { CATEGORIES, NEIGHBORHOODS } from '../constants';
+import { Shield, Users, Package, AlertTriangle, Eye, Trash2, Edit2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, LayoutGrid, BadgeCheck, Star, XCircle, ShoppingBag, ExternalLink, RefreshCw } from 'lucide-react';
 import Button from '../components/ui/Button';
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<any>(null);
-  const [ads, setAds] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { user, profile, isAdmin } = useAuth();
+  
+  React.useEffect(() => {
+    console.log('ADMIN_DASHBOARD_MOUNTED v1.1', { 
+      userId: user?.id, 
+      userEmail: user?.email,
+      role: profile?.role,
+      isAdmin 
+    });
+  }, [user, profile, isAdmin]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [neighborhoodFilter, setNeighborhoodFilter] = useState('all');
+  const [featuredFilter, setFeaturedFilter] = useState('all');
+  const [externalFilter, setExternalFilter] = useState('all');
 
-  const loadData = async (signal?: AbortSignal) => {
-    // Garantir que estamos lidando com um AbortSignal real
-    const actualSignal = (signal instanceof AbortSignal) ? signal : undefined;
-    
-    setLoading(true);
-    setError(null);
-    try {
-      const [s, a] = await Promise.all([
-        fetchAdminStats(actualSignal), 
-        fetchAdminAds(actualSignal)
-      ]);
-      
-      if (actualSignal?.aborted) return;
-      
-      setStats(s);
-      setAds(a);
-    } catch (err: any) {
-      if (err.name === 'AbortError' || isNonCriticalSupabaseError(err)) return;
-      console.error('Admin Dashboard Load Error:', err);
-      setError(err.message || 'Erro ao carregar dados do painel');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadData(controller.signal);
-    return () => controller.abort();
-  }, []);
-
-  const handleDeactivate = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja remover este anúncio? Ele não aparecerá mais para os usuários.')) return;
-    
-    try {
-      await updateAdStatus(id, 'removed');
-      alert('Anúncio removido com sucesso!');
-      await loadData();
-    } catch (err: any) {
-      console.error('Erro ao remover:', err);
-      alert('Erro ao desativar anúncio: ' + err.message);
-    }
-  };
-
-  const handleActivate = async (id: string) => {
-    try {
-      await updateAdStatus(id, 'active');
-      alert('Anúncio reativado com sucesso!');
-      await loadData();
-    } catch (err: any) {
-      alert('Erro ao ativar anúncio: ' + err.message);
-    }
-  };
-
-  const handleToggleVerify = async (id: string, currentStatus: boolean) => {
-    try {
-      await toggleAdVerification(id, !currentStatus);
-      await loadData();
-    } catch (err: any) {
-      alert('Erro ao atualizar verificação: ' + err.message);
-    }
-  };
-
-  const filteredAds = ads.filter(ad => {
-    const matchesSearch = ad.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          ad.profiles?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          ad.neighborhood.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || ad.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  // Queries
+  const statsQuery = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: () => fetchAdminStats(),
   });
 
-  if (loading && !stats) {
+  const adsQuery = useQuery({
+    queryKey: ['admin-ads'],
+    queryFn: () => fetchAdminAds(),
+  });
+
+  // Mutations
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: any }) => updateAdStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-ads'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    },
+    onError: (err: any) => alert('Erro ao atualizar status: ' + err.message)
+  });
+
+  const toggleFeatureMutation = useMutation({
+    mutationFn: ({ id, current }: { id: string; current: boolean }) => toggleAdFeature(id, !current),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-ads'] }),
+    onError: (err: any) => alert('Erro ao destacar: ' + err.message)
+  });
+
+  const toggleVerifyMutation = useMutation({
+    mutationFn: ({ id, current }: { id: string; current: boolean }) => toggleAdVerification(id, !current),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-ads'] }),
+    onError: (err: any) => alert('Erro ao verificar: ' + err.message)
+  });
+
+  const filteredAds = useMemo(() => {
+    if (!adsQuery.data) return [];
+    
+    return adsQuery.data.filter((ad: any) => {
+      const term = searchTerm.toLowerCase();
+      const matchesSearch = !term || 
+                            ad.title.toLowerCase().includes(term) || 
+                            ad.profiles?.name?.toLowerCase().includes(term) ||
+                            ad.neighborhood?.toLowerCase().includes(term);
+      
+      const matchesStatus = statusFilter === 'all' || ad.status === statusFilter;
+      const matchesCategory = categoryFilter === 'all' || ad.category === categoryFilter;
+      const matchesNeighborhood = neighborhoodFilter === 'all' || ad.neighborhood === neighborhoodFilter;
+      const matchesFeatured = featuredFilter === 'all' || (featuredFilter === 'yes' ? ad.is_featured : !ad.is_featured);
+      const matchesExternal = externalFilter === 'all' || (externalFilter === 'yes' ? ad.is_external : !ad.is_external);
+
+      return matchesSearch && matchesStatus && matchesCategory && matchesNeighborhood && matchesFeatured && matchesExternal;
+    });
+  }, [adsQuery.data, searchTerm, statusFilter, categoryFilter, neighborhoodFilter, featuredFilter, externalFilter]);
+
+  if (adsQuery.isLoading && !statsQuery.data) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs animate-pulse">Carregando central de controle...</p>
+          <p className="text-gray-500 font-black uppercase tracking-widest text-[10px] animate-pulse">Central de Moderação</p>
         </div>
       </div>
     );
   }
 
+  const handleUpdateStatus = (id: string, status: any) => {
+    console.log('ADMIN_ACTION: UPDATE_STATUS', { id, status });
+    if (status === 'removed' && !window.confirm('Tem certeza que deseja remover este anúncio?')) return;
+    updateStatusMutation.mutate({ id, status });
+  };
+
+  const handleToggleFeature = (id: string, current: boolean) => {
+    console.log('ADMIN_ACTION: TOGGLE_FEATURE', { id, current, next: !current });
+    toggleFeatureMutation.mutate({ id, current });
+  };
+
+  const handleToggleVerify = (id: string, current: boolean) => {
+    console.log('ADMIN_ACTION: TOGGLE_VERIFY', { id, current, next: !current });
+    toggleVerifyMutation.mutate({ id, current });
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div className="max-w-7xl mx-auto px-4 py-8 pb-20 bg-gray-50/30 min-h-screen">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Shield className="w-6 h-6 text-primary" />
+          <div className="flex items-center gap-4 mb-2">
+            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center shadow-inner">
+              <Shield className="w-7 h-7 text-primary" />
             </div>
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight">Painel de Moderação</h1>
+            <div>
+              <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase text-primary leading-none mb-1">Tefé Admin</h1>
+              <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest flex items-center gap-2">
+                <span className={cn("w-2 h-2 rounded-full", adsQuery.isFetching ? "bg-amber-500 animate-pulse" : "bg-emerald-500")}></span>
+                {adsQuery.isFetching ? 'Atualizando dados...' : 'Operação Tefé Market Online'}
+              </p>
+            </div>
           </div>
-          <p className="text-gray-400 font-medium italic">Gerencie o mercado e monitore o crescimento.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           <Link to="/admin/novo-anuncio">
-            <Button className="flex items-center gap-2 shadow-lg shadow-primary/20">
-              <Package className="w-4 h-4" /> Anúncio Manual
+            <Button className="flex items-center gap-2 shadow-2xl shadow-primary/30 rounded-2xl px-6 py-4">
+              <Package className="w-5 h-5" /> Anúncio Manual
             </Button>
           </Link>
-          <Button onClick={() => loadData()} variant="outline" className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" /> Atualizar Dados
+          <Button 
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+              queryClient.invalidateQueries({ queryKey: ['admin-ads'] });
+            }} 
+            variant="outline" 
+            className="flex items-center gap-2 bg-white rounded-2xl px-6 py-4 border-gray-100 shadow-sm hover:shadow-md transition-all"
+            disabled={adsQuery.isFetching}
+          >
+            <RefreshCw className={cn("w-5 h-5", adsQuery.isFetching && "animate-spin")} /> Atualizar
           </Button>
         </div>
       </div>
 
-      {error && (
-        <div className="mb-8 p-6 bg-red-50 border-2 border-red-100 rounded-2xl flex items-center gap-4 text-red-700 animate-in fade-in slide-in-from-top-4">
-          <AlertTriangle className="w-8 h-8 shrink-0" />
+      {(adsQuery.error || statsQuery.error) && (
+        <div className="mb-10 p-6 bg-red-50 border-2 border-red-100 rounded-3xl flex items-center gap-5 text-red-700 animate-in fade-in slide-in-from-top-6">
+          <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
           <div>
-            <p className="font-bold uppercase tracking-tight">Ocorreu um erro no sistema</p>
-            <p className="text-sm opacity-80">{error}</p>
+            <p className="font-black uppercase tracking-widest text-xs mb-1">Falha no Carregamento</p>
+            <p className="text-sm font-medium opacity-80">{(adsQuery.error as any)?.message || (statsQuery.error as any)?.message || 'Erro ao sincronizar dados'}</p>
           </div>
         </div>
       )}
 
       {/* Métrica Cards */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-10">
-          <StatCard icon={<CheckCircle />} label="Ativos" value={stats.active} color="emerald" />
-          <StatCard icon={<Tag />} label="Vendas" value={stats.sale} color="indigo" />
-          <StatCard icon={<LayoutGrid />} label="Aluguel" value={stats.rent} color="blue" />
-          <StatCard icon={<MessageSquare />} label="Serviços" value={stats.service} color="purple" />
-          <StatCard icon={<AlertTriangle />} label="Removidos" value={stats.removed} color="red" />
-          <StatCard icon={<Users />} label="Usuários" value={stats.totalUsers} color="amber" />
-          <StatCard icon={<TrendingUp />} label="Cliques" value={stats.totalClicks} color="primary" />
+      {statsQuery.data && (
+        <div className="grid grid-cols-2 lg:grid-cols-7 gap-4 mb-12">
+          <StatCard icon={<CheckCircle />} label="Ativos" value={statsQuery.data.active} color="emerald" />
+          <StatCard icon={<ShoppingBag />} label="Vendas" value={statsQuery.data.sale} color="indigo" />
+          <StatCard icon={<LayoutGrid />} label="Aluguéis" value={statsQuery.data.rent} color="blue" />
+          <StatCard icon={<MessageSquare />} label="Serviços" value={statsQuery.data.service} color="purple" />
+          <StatCard icon={<Trash2 />} label="Removidos" value={statsQuery.data.removed} color="red" />
+          <StatCard icon={<Users />} label="Usuários" value={statsQuery.data.totalUsers} color="amber" />
+          <StatCard icon={<TrendingUp />} label="Cliques" value={statsQuery.data.totalClicks} color="primary" />
         </div>
       )}
 
-      {/* Tabela de Anúncios */}
-      <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Buscar por título, usuário ou bairro..."
-              className="w-full pl-11 pr-4 py-3 bg-gray-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-primary/20 outline-none transition-all text-sm font-medium"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      {/* Gerenciamento */}
+      <div className="bg-white rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+        {/* Filtros Avançados */}
+        <div className="p-8 border-b border-gray-50 space-y-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="relative flex-1 max-w-2xl">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+              <input 
+                type="text" 
+                placeholder="Pesquisar por título, usuário, bairro..."
+                className="w-full pl-14 pr-6 py-4 bg-gray-50 border-2 border-transparent rounded-[1.25rem] focus:bg-white focus:border-primary/20 outline-none transition-all text-sm font-bold placeholder:text-gray-300 shadow-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              {['all', 'active', 'sold', 'hidden', 'removed'].map(status => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={cn(
+                    "px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border-2",
+                    statusFilter === status 
+                      ? "bg-primary border-primary text-white shadow-xl shadow-primary/20 scale-105" 
+                      : "bg-white border-gray-100 text-gray-400 hover:border-primary/30 hover:text-primary"
+                  )}
+                >
+                  {status === 'all' ? 'Todos' : status === 'active' ? 'Ativos' : status === 'sold' ? 'Vendidos' : status === 'hidden' ? 'Ocultos' : 'Removidos'}
+                </button>
+              ))}
+            </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400 mr-2" />
-            {['all', 'active', 'sold', 'hidden', 'removed'].map(status => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                  statusFilter === status 
-                    ? "bg-primary text-white shadow-lg shadow-primary/20" 
-                    : "bg-gray-50 text-gray-400 hover:bg-gray-100"
-                )}
-              >
-                {status === 'all' ? 'Tudo' : status === 'active' ? 'Ativos' : status === 'sold' ? 'Vendidos' : status === 'hidden' ? 'Ocultos' : 'Removidos'}
-              </button>
-            ))}
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <FilterSelect 
+              icon={<LayoutGrid className="w-3 h-3" />}
+              label="Categoria"
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              options={['all', ...CATEGORIES]}
+            />
+            <FilterSelect 
+              icon={<Filter className="w-3 h-3" />}
+              label="Bairro"
+              value={neighborhoodFilter}
+              onChange={setNeighborhoodFilter}
+              options={['all', ...NEIGHBORHOODS]}
+            />
+            <FilterSelect 
+              icon={<Star className="w-3 h-3" />}
+              label="Destaque"
+              value={featuredFilter}
+              onChange={setFeaturedFilter}
+              options={[{v:'all', l:'Todos'}, {v:'yes', l:'Sim'}, {v:'no', l:'Não'}]}
+            />
+            <FilterSelect 
+              icon={<ExternalLink className="w-3 h-3" />}
+              label="Tipo"
+              value={externalFilter}
+              onChange={setExternalFilter}
+              options={[{v:'all', l:'Todos'}, {v:'yes', l:'Externos'}, {v:'no', l:'Internos'}]}
+            />
           </div>
         </div>
 
@@ -180,136 +240,36 @@ export default function AdminDashboard() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50/50">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Anúncio</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Vendedor</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Local / Cat</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Preço</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Ações</th>
+                <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400">Anúncio</th>
+                <th className="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400">Vendedor</th>
+                <th className="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400">Local / Info</th>
+                <th className="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Preço</th>
+                <th className="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400 text-center">Status</th>
+                <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Gerenciar</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredAds.map(ad => (
-                <tr key={ad.id} className="hover:bg-gray-50/30 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm">
-                        {ad.ad_images?.[0]?.image_url ? (
-                          <img 
-                            src={ad.ad_images[0].image_url} 
-                            alt="" 
-                            className="w-full h-full object-cover" 
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                            onError={(e) => handleImageError(e, ad.title)}
-                          />
-                        ) : (
-                          <Package className="w-5 h-5 text-gray-300 m-auto mt-3.5" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <div className="font-bold text-gray-900 text-sm line-clamp-1">{ad.title}</div>
-                          {ad.is_verified && <BadgeCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" title="Verificado" />}
-                        </div>
-                        <div className="text-[10px] text-gray-400 font-medium flex items-center gap-2 mt-0.5">
-                          <Clock className="w-3 h-3" /> {formatDate(ad.created_at)}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-xs font-black text-gray-700 uppercase tracking-tight">
-                      {ad.is_external ? (
-                        <div className="flex flex-col">
-                          <span className="text-emerald-600">Manual: {ad.external_seller_name}</span>
-                          <span className="text-[9px] text-gray-400 normal-case">{ad.external_seller_phone}</span>
-                        </div>
-                      ) : (
-                        ad.profiles?.name || 'Sistema'
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-xs font-bold text-gray-600">{ad.neighborhood}</div>
-                    <div className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">{ad.category}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-black text-primary">
-                      {ad.ad_type === 'service' && ad.price === 0 ? 'A combinar' : formatPrice(ad.price)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={cn(
-                      "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest inline-flex items-center gap-1.5 shadow-sm",
-                      ad.status === 'active' ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100" :
-                      ad.status === 'sold' ? "bg-blue-50 text-blue-600 ring-1 ring-blue-100" :
-                      ad.status === 'hidden' ? "bg-gray-100 text-gray-500" :
-                      "bg-red-50 text-red-600 ring-1 ring-red-100"
-                    )}>
-                      <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", ad.status === 'active' ? "bg-emerald-600" : ad.status === 'removed' ? "bg-red-600" : "bg-gray-400")}></div>
-                      {ad.status === 'active' ? 'Ativo' : ad.status === 'sold' ? 'Vendido' : ad.status === 'hidden' ? 'Oculto' : 'Removido'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <Link 
-                        to={`/admin/editar-anuncio/${ad.id}`} 
-                        className="w-9 h-9 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-blue-100 hover:text-blue-600 rounded-xl transition-all shadow-sm"
-                        title="Editar Anúncio"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Link>
-
-                      <Link 
-                        to={`/anuncio/${ad.id}`} 
-                        className="w-9 h-9 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-primary/10 hover:text-primary rounded-xl transition-all shadow-sm"
-                        title="Visualizar Anúncio"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Link>
-                      
-                      <button 
-                        onClick={() => handleToggleVerify(ad.id, !!ad.is_verified)}
-                        className={cn(
-                          "w-9 h-9 flex items-center justify-center rounded-xl transition-all shadow-md",
-                          ad.is_verified 
-                            ? "bg-emerald-500 text-white hover:bg-emerald-600" 
-                            : "bg-gray-100 text-gray-400 hover:bg-emerald-500 hover:text-white"
-                        )}
-                        title={ad.is_verified ? "Remover Verificação" : "Marcar como Verificado"}
-                      >
-                        <BadgeCheck className="w-4 h-4" />
-                      </button>
-
-                      {ad.status === 'removed' ? (
-                        <button 
-                          onClick={() => handleActivate(ad.id)}
-                          className="w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-500 hover:bg-blue-100 rounded-xl transition-all shadow-sm"
-                          title="Reativar"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => handleDeactivate(ad.id)}
-                          className="w-9 h-9 flex items-center justify-center bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 rounded-xl transition-all shadow-sm"
-                          title="Remover"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+              {filteredAds.map((ad: any) => (
+                <AdTableRow 
+                  key={ad.id} 
+                  ad={ad} 
+                  onUpdateStatus={handleUpdateStatus}
+                  onToggleFeature={handleToggleFeature}
+                  onToggleVerify={handleToggleVerify}
+                  isUpdatingStatus={updateStatusMutation.variables?.id === ad.id && updateStatusMutation.isPending}
+                  isUpdatingFeature={toggleFeatureMutation.variables?.id === ad.id && toggleFeatureMutation.isPending}
+                  isUpdatingVerify={toggleVerifyMutation.variables?.id === ad.id && toggleVerifyMutation.isPending}
+                  activeMutationStatus={updateStatusMutation.variables?.status as any}
+                />
               ))}
               {filteredAds.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-20 text-center">
-                    <div className="w-20 h-20 bg-gray-50 text-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Search className="w-10 h-10" />
+                  <td colSpan={6} className="px-6 py-32 text-center bg-gray-50/20">
+                    <div className="w-24 h-24 bg-white shadow-xl shadow-gray-200/50 text-gray-200 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                      <Search className="w-12 h-12" />
                     </div>
-                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Nenhum anúncio encontrado com esses filtros</p>
+                    <h3 className="text-gray-900 font-black text-xl tracking-tight mb-1 uppercase">Nada Encontrado</h3>
+                    <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">Tente ajustar seus filtros de moderação</p>
                   </td>
                 </tr>
               )}
@@ -321,7 +281,195 @@ export default function AdminDashboard() {
   );
 }
 
-function StatCard({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: number, color: string }) {
+const AdTableRow = React.memo(({ 
+  ad, 
+  onUpdateStatus, 
+  onToggleFeature, 
+  onToggleVerify, 
+  isUpdatingStatus,
+  isUpdatingFeature,
+  isUpdatingVerify,
+  activeMutationStatus
+}: { 
+  ad: any, 
+  onUpdateStatus: (id: string, status: any) => void,
+  onToggleFeature: (id: string, current: boolean) => void,
+  onToggleVerify: (id: string, current: boolean) => void,
+  isUpdatingStatus: boolean,
+  isUpdatingFeature: boolean,
+  isUpdatingVerify: boolean,
+  activeMutationStatus: string | undefined
+}) => {
+  const handleAction = (action: string, fn: () => void) => {
+    console.log(`AD_ACTION_CLICKED: ${action}`, {
+      adId: ad.id,
+      title: ad.title,
+      currentStatus: ad.status,
+      isFeatured: ad.is_featured,
+      isVerified: ad.is_verified
+    });
+    fn();
+  };
+
+  return (
+    <tr className={cn(
+      "hover:bg-gray-50/50 transition-all group",
+      ad.is_featured && "bg-amber-50/30"
+    )}>
+      <td className="px-8 py-6">
+        <div className="flex items-center gap-5">
+          <div className="relative group/img">
+            <div className="w-16 h-16 rounded-[1.25rem] bg-gray-100 overflow-hidden flex-shrink-0 border-2 border-white shadow-md transition-transform group-hover:scale-105">
+              {ad.ad_images?.[0]?.image_url ? (
+                <img 
+                  src={ad.ad_images[0].image_url} 
+                  alt="" 
+                  className="w-full h-full object-cover" 
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => handleImageError(e, ad.title)}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                  <Package className="w-6 h-6" />
+                </div>
+              )}
+            </div>
+            {ad.is_featured && (
+              <div className="absolute -top-2 -right-2 bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-white animate-bounce-slow">
+                <Star className="w-3 h-3 fill-white" />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="font-black text-gray-900 text-base line-clamp-1 tracking-tight group-hover:text-primary transition-colors">{ad.title}</div>
+              {ad.is_verified && <BadgeCheck className="w-4 h-4 text-emerald-500 flex-shrink-0" title="Verificado" />}
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1">
+                <Clock className="w-3 h-3" /> {formatDate(ad.created_at)}
+              </span>
+              {ad.is_external && (
+                <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md">Externo</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-6">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
+             <img 
+                src={ad.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(ad.is_external ? ad.external_seller_name || '?' : ad.profiles?.name || 'S')}&background=random`} 
+                alt="" 
+                className="w-full h-full object-cover"
+              />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-black text-gray-900 uppercase tracking-tight line-clamp-1">
+              {ad.is_external ? ad.external_seller_name : ad.profiles?.name || 'Sistema'}
+            </div>
+            {ad.is_external && <div className="text-[9px] text-gray-400 font-medium">{ad.external_seller_phone}</div>}
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-6">
+        <div className="text-xs font-black text-gray-700 mb-1">{ad.neighborhood}</div>
+        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{ad.category}</div>
+      </td>
+      <td className="px-6 py-6 text-right">
+        <div className="text-base font-black text-primary tracking-tighter">
+          {ad.price === 0 ? 'A combinar' : formatPrice(ad.price)}
+        </div>
+      </td>
+      <td className="px-6 py-6 text-center">
+        <span className={cn(
+          "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest inline-flex items-center gap-2 shadow-sm border",
+          ad.status === 'active' ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+          ad.status === 'sold' ? "bg-blue-50 text-blue-700 border-blue-100" :
+          ad.status === 'hidden' ? "bg-amber-50 text-amber-700 border-amber-100" :
+          "bg-red-50 text-red-700 border-red-100"
+        )}>
+          <span className={cn(
+            "w-2 h-2 rounded-full",
+            ad.status === 'active' ? "bg-emerald-500 animate-pulse" : 
+            ad.status === 'sold' ? "bg-blue-500" :
+            ad.status === 'hidden' ? "bg-amber-500" : "bg-red-500"
+          )}></span>
+          {ad.status === 'active' ? 'Ativo' : ad.status === 'sold' ? 'Vendido' : ad.status === 'hidden' ? 'Oculto' : 'Removido'}
+        </span>
+      </td>
+      <td className="px-8 py-6">
+        <div className="flex items-center justify-end gap-1.5">
+          <QuickAction 
+            icon={<CheckCircle />} 
+            active={ad.status === 'active'}
+            onClick={() => handleAction('APPROVE', () => onUpdateStatus(ad.id, 'active'))}
+            loading={isUpdatingStatus && activeMutationStatus === 'active'}
+            color="emerald"
+            title="Ativar / Aprovar"
+          />
+          <QuickAction 
+            icon={<ShoppingBag />} 
+            active={ad.status === 'sold'}
+            onClick={() => handleAction('MARK_SOLD', () => onUpdateStatus(ad.id, 'sold'))}
+            loading={isUpdatingStatus && activeMutationStatus === 'sold'}
+            color="blue"
+            title="Marcar como Vendido"
+          />
+          <QuickAction 
+            icon={<Eye />} 
+            active={ad.status === 'hidden'}
+            onClick={() => handleAction('HIDE', () => onUpdateStatus(ad.id, 'hidden'))}
+            loading={isUpdatingStatus && activeMutationStatus === 'hidden'}
+            color="amber"
+            title="Ocultar Anúncio"
+          />
+          <QuickAction 
+            icon={<XCircle />} 
+            active={ad.status === 'removed'}
+            onClick={() => handleAction('REMOVE', () => onUpdateStatus(ad.id, 'removed'))}
+            loading={isUpdatingStatus && activeMutationStatus === 'removed'}
+            color="red"
+            title="Banir / Remover"
+          />
+          <div className="w-[1px] h-6 bg-gray-100 mx-1"></div>
+          <QuickAction 
+            icon={<Star />} 
+            active={!!ad.is_featured}
+            onClick={() => handleAction('TOGGLE_FEATURE', () => onToggleFeature(ad.id, !!ad.is_featured))}
+            loading={isUpdatingFeature}
+            color="amber"
+            title="Destacar Anúncio"
+          />
+          <div className="w-[1px] h-6 bg-gray-100 mx-1"></div>
+          <QuickAction 
+            icon={<BadgeCheck />} 
+            active={!!ad.is_verified}
+            onClick={() => handleAction('TOGGLE_VERIFY', () => onToggleVerify(ad.id, !!ad.is_verified))}
+            loading={isUpdatingVerify}
+            color="emerald"
+            title="Verificar"
+          />
+          <div className="w-[1px] h-6 bg-gray-100 mx-1"></div>
+          <Link to={`/anuncio/${ad.id}`} target="_blank">
+            <button className="w-10 h-10 flex items-center justify-center bg-white text-gray-400 hover:text-primary ring-1 ring-gray-100 hover:ring-primary/30 rounded-xl transition-all shadow-md active:scale-95" title="Visualizar Anúncio">
+              <ExternalLink className="w-4 h-4" />
+            </button>
+          </Link>
+          <Link to={`/admin/editar-anuncio/${ad.id}`}>
+            <button className="w-10 h-10 flex items-center justify-center bg-gray-900 text-white hover:bg-black rounded-xl transition-all shadow-lg active:scale-95" title="Editar Anúncio">
+              <Edit2 className="w-4 h-4" />
+            </button>
+          </Link>
+        </div>
+      </td>
+    </tr>
+  );
+});
+
+const StatCard = React.memo(({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: number, color: string }) => {
   const colors: Record<string, string> = {
     emerald: 'bg-emerald-50 text-emerald-500 ring-emerald-100',
     indigo: 'bg-indigo-50 text-indigo-500 ring-indigo-100',
@@ -333,12 +481,85 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode, label:
   };
 
   return (
-    <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/40 hover:shadow-gray-200/60 transition-all group">
-      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110", colors[color])}>
-        {React.cloneElement(icon as React.ReactElement, { className: 'w-5 h-5' })}
+    <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-2xl shadow-gray-200/30 hover:shadow-gray-200/50 transition-all group cursor-default">
+      <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center mb-5 transition-all group-hover:scale-110 shadow-sm", colors[color])}>
+        {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' })}
       </div>
-      <div className="text-2xl font-black text-gray-900 tracking-tighter leading-none mb-1 group-hover:text-primary transition-colors">{value}</div>
+      <div className="text-3xl font-black text-gray-900 tracking-tighter leading-none mb-2 group-hover:text-primary transition-colors">{value}</div>
       <div className="text-[9px] font-black uppercase tracking-widest text-gray-400 truncate">{label}</div>
     </div>
   );
-}
+});
+
+const FilterSelect = React.memo(({ icon, label, value, onChange, options }: { 
+  icon: React.ReactNode, 
+  label: string, 
+  value: string, 
+  onChange: (v: string) => void,
+  options: (string | {v:string, l:string})[] 
+}) => {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 pl-1 flex items-center gap-1.5">
+        {icon} {label}
+      </label>
+      <select 
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-xl outline-none focus:bg-white focus:border-primary/20 transition-all text-xs font-black uppercase tracking-tight shadow-sm"
+      >
+        {options.map(opt => {
+          const v = typeof opt === 'string' ? opt : opt.v;
+          const l = typeof opt === 'string' ? (opt === 'all' ? 'Tudo' : opt) : opt.l;
+          return <option key={v} value={v}>{l}</option>;
+        })}
+      </select>
+    </div>
+  );
+});
+
+const QuickAction = React.memo(({ icon, active, onClick, loading, color, title }: { 
+  icon: React.ReactNode, 
+  active: boolean, 
+  onClick: () => void, 
+  loading: boolean,
+  color: 'emerald' | 'blue' | 'amber' | 'red',
+  title?: string
+}) => {
+  const activeColors = {
+    emerald: 'bg-emerald-500 text-white shadow-emerald-200 ring-emerald-100',
+    blue: 'bg-blue-500 text-white shadow-blue-200 ring-blue-100',
+    amber: 'bg-amber-500 text-white shadow-amber-200 ring-amber-100',
+    red: 'bg-red-500 text-white shadow-red-200 ring-red-100'
+  };
+
+  const hoverColors = {
+    emerald: 'hover:bg-emerald-50 hover:text-emerald-600 hover:ring-emerald-200',
+    blue: 'hover:bg-blue-50 hover:text-blue-600 hover:ring-blue-200',
+    amber: 'hover:bg-amber-50 hover:text-amber-600 hover:ring-amber-200',
+    red: 'hover:bg-red-50 hover:text-red-600 hover:ring-red-200'
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      title={title}
+      className={cn(
+        "w-10 h-10 flex items-center justify-center rounded-xl transition-all shadow-md active:scale-90 border-2 border-transparent",
+        active 
+          ? `${activeColors[color]} scale-105 border-white` 
+          : `bg-white text-gray-300 ring-1 ring-gray-100 ${hoverColors[color]}`,
+        loading && "animate-pulse"
+      )}
+    >
+      {loading ? (
+        <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+      ) : (
+        React.cloneElement(icon as React.ReactElement, { 
+          className: cn("w-4 h-4", active && "fill-white") 
+        })
+      )}
+    </button>
+  );
+});

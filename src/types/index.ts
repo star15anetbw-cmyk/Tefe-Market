@@ -34,6 +34,7 @@ export interface Ad {
   lng?: number;
   is_external?: boolean;
   is_verified?: boolean;
+  is_featured?: boolean;
   external_seller_name?: string;
   external_seller_phone?: string;
   created_at: string;
