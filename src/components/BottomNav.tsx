@@ -19,8 +19,8 @@ export default function BottomNav() {
   const visibleItems = navItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 px-4 py-2 pb-safe-offset-2 z-[100] shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
-      <div className="flex justify-between items-center max-w-lg mx-auto gap-2">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 px-4 py-2 pb-4 sm:pb-2 z-[100] shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
+      <div className="flex justify-between items-center max-w-2xl mx-auto gap-2">
         {visibleItems.slice(0, 2).map((item) => (
           <NavLink
             key={item.path}
