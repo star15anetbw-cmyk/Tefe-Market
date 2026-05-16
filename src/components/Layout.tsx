@@ -7,7 +7,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, profile } = useAuth();
   
   return (
-    <div className="min-h-screen bg-bg flex flex-col font-sans pb-[70px]">
+    <div className="min-h-screen bg-bg flex flex-col font-sans pb-24 sm:pb-32">
       <Navbar />
       <main className="flex-grow">
         {children}

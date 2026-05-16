@@ -38,6 +38,10 @@
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
+
+  .safe-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
 }
 
 @layer base {
