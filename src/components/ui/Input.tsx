@@ -13,10 +13,11 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   autoComplete?: string;
   minLength?: number;
   disabled?: boolean;
+  icon?: React.ReactNode;
 }
 
 export default function Input(props: InputProps) {
-  const { label, error, className, ...rest } = props;
+  const { label, error, className, icon, ...rest } = props;
   return (
     <div className="w-full">
       {label && (
@@ -24,14 +25,22 @@ export default function Input(props: InputProps) {
           {label}
         </label>
       )}
-      <input
-        className={cn(
-          'w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/5 placeholder:text-gray-300 text-sm',
-          error && 'border-red-500 focus:border-red-500 focus:ring-red-500/5',
-          className
+      <div className="relative">
+        {icon && (
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+            {icon}
+          </div>
         )}
-        {...rest}
-      />
+        <input
+          className={cn(
+            'w-full bg-gray-50 border border-gray-200 rounded-xl outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/5 placeholder:text-gray-400 text-sm font-medium',
+            icon ? 'pl-11 pr-4 py-3.5' : 'px-4 py-3.5',
+            error && 'border-red-500 focus:border-red-500 focus:ring-red-500/5',
+            className
+          )}
+          {...rest}
+        />
+      </div>
       {error && <p className="mt-1 text-[10px] uppercase font-black tracking-widest text-red-500">{error}</p>}
     </div>
   );

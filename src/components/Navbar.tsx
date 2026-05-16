@@ -19,73 +19,68 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-primary text-white border-b-4 border-secondary shadow-md">
+    <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-16 sm:h-20">
           <div className="flex items-center">
             <Link 
               to="/" 
               state={{ resetHome: Date.now() }}
-              className="flex items-center gap-2 group"
+              className="flex items-center gap-2 group transition-transform active:scale-95"
             >
-              <span className="text-xl sm:text-2xl font-black tracking-tighter uppercase italic leading-none">
-                Tefé<span className="text-secondary">Market</span>
-              </span>
+              <div className="flex flex-col">
+                <span className="text-xl sm:text-2xl font-black tracking-tighter uppercase leading-none flex items-center">
+                  <span className="text-primary">TEFÉ</span>
+                  <span className="text-secondary ml-1">MARKET</span>
+                </span>
+                <span className="text-[8px] font-bold text-gray-400 tracking-[0.3em] -mt-0.5 leading-none">O MARKETPLACE OFICIAL</span>
+              </div>
             </Link>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-6">
             <Link 
               to="/publicar" 
-              className="hidden lg:flex flex-col items-center group"
+              className="hidden lg:flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl font-black hover:shadow-xl hover:shadow-primary/20 transition-all active:scale-95 text-xs uppercase tracking-widest"
             >
-              <div className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-secondary to-orange-500 text-white rounded-xl font-black hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all shadow-md active:scale-95 text-xs uppercase tracking-widest border-b-4 border-orange-700">
-                <PlusCircle className="h-4 w-4" />
-                <span>Anunciar Grátis</span>
-              </div>
-              <span className="text-[9px] font-bold text-white/50 mt-1 uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
-                Leva menos de 1 minuto
-              </span>
+              <PlusCircle className="h-4 w-4" />
+              <span>Anunciar Grátis</span>
             </Link>
 
             {user ? (
-              <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <Link 
                   to="/favoritos" 
-                  className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                  className="p-2.5 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-2xl transition-all"
                   title="Meus Favoritos"
                 >
                   <Heart className="h-5 w-5" />
                 </Link>
-                {/* Chat interno desativado temporariamente para o MVP
-                <Link 
-                  to="/chats" 
-                  className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-md transition-colors"
-                  title="Minhas Conversas"
-                >
-                  <MessageSquare className="h-5 w-5" />
-                </Link>
-                */}
                 <Link 
                   to="/meus-anuncios" 
-                  className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                  className="hidden sm:flex items-center gap-2 p-2 text-gray-400 hover:text-primary transition-all"
                   title="Meus Anúncios"
                 >
-                  <User className="h-5 w-5" />
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="h-4 w-4" />
+                    )}
+                  </div>
                 </Link>
                 {isAdmin && (
                   <Link 
                     to="/admin" 
-                    className="flex items-center gap-1 px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-black bg-white/20 text-white rounded-lg border border-white/20 uppercase tracking-wider hover:bg-white/30 transition-all shadow-sm active:scale-95"
-                    title="Painel Admin"
+                    className="flex items-center gap-1.5 px-4 py-2 text-[10px] sm:text-xs font-black bg-red-50 text-red-600 rounded-xl border border-red-100 uppercase tracking-wider hover:bg-red-100 transition-all shadow-sm active:scale-95"
                   >
-                    <Shield className="w-3 h-3" />
-                    <span className="hidden sm:inline">Admin</span>
+                    <Shield className="w-3.5 h-3.5" />
+                    <span className="hidden lg:inline">Dashboard Admin</span>
                   </Link>
                 )}
                 <button 
                   onClick={handleLogout}
-                  className="p-2 text-white/60 hover:text-red-400 hover:bg-white/10 rounded-md transition-colors"
+                  className="p-2.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
                   title="Sair"
                 >
                   <LogOut className="h-5 w-5" />
@@ -94,9 +89,9 @@ export default function Navbar() {
             ) : (
               <Link 
                 to="/login"
-                className="px-4 py-2 bg-white/10 text-white border border-white/30 font-bold rounded-md hover:bg-white/20 transition-all text-sm"
+                className="px-6 py-2.5 bg-gray-900 text-white font-black rounded-xl hover:bg-gray-800 transition-all text-xs uppercase tracking-widest shadow-lg shadow-gray-900/10 active:scale-95"
               >
-                Minha Conta
+                Entrar
               </Link>
             )}
           </div>

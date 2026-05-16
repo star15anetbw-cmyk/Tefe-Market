@@ -18,7 +18,12 @@ import {
   ArrowUpDown,
   RefreshCw,
   AlertCircle,
-  User
+  User,
+  Shirt,
+  Sofa,
+  Tv,
+  Trophy,
+  Briefcase
 } from 'lucide-react';
 import { cn, isNonCriticalSupabaseError, smartShuffle } from '../lib/utils';
 import Button from '../components/ui/Button';
@@ -34,10 +39,15 @@ import 'swiper/css/scrollbar';
 import 'swiper/css/free-mode';
 
 const VISUAL_CATEGORIES = [
-  { name: 'Eletrônicos', icon: Smartphone, color: 'bg-blue-500' },
-  { name: 'Veículos', icon: Bike, color: 'bg-orange-500' },
-  { name: 'Imóveis', icon: HomeIcon, color: 'bg-emerald-500' },
-  { name: 'Serviços', icon: Wrench, color: 'bg-purple-500' },
+  { name: 'Veículos', icon: Bike, color: 'bg-emerald-500' },
+  { name: 'Imóveis', icon: HomeIcon, color: 'bg-orange-500' },
+  { name: 'Eletrônicos', icon: Smartphone, color: 'bg-emerald-600' },
+  { name: 'Móveis', icon: Sofa, color: 'bg-amber-600' },
+  { name: 'Vestuário', icon: Shirt, color: 'bg-amber-500' },
+  { name: 'Eletrodomésticos', icon: Tv, color: 'bg-blue-600' },
+  { name: 'Ferramentas', icon: Wrench, color: 'bg-blue-500' },
+  { name: 'Esportes', icon: Trophy, color: 'bg-emerald-700' },
+  { name: 'Serviços', icon: Briefcase, color: 'bg-purple-600' },
   { name: 'Outros', icon: Box, color: 'bg-gray-500' },
 ];
 
@@ -392,155 +402,121 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-bg-main">
       {/* Header Section (Branded) */}
-      <div className="bg-primary pt-6 pb-14 sm:pt-10 sm:pb-24 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-secondary/10 via-transparent to-transparent opacity-40"></div>
-        
-        <div className="max-w-4xl mx-auto relative z-10 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-4 sm:mb-8"
-          >
-            <h1 className="text-2xl sm:text-4xl font-black text-white mb-2 uppercase tracking-tighter leading-tight">
-              O QUE VOCÊ <br className="sm:hidden"/> 
-              <span className="text-secondary">PROCURA</span> HOJE?
-            </h1>
-            <p className="text-white/60 text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.3em]">
-              O marketplace oficial da cidade de Tefé
-            </p>
-          </motion.div>
-          
-          {/* Main Search Bar */}
-          <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
-            <div className="relative flex items-center bg-white rounded-2xl shadow-xl overflow-hidden p-0.5 border border-gray-100">
-              <Search className="absolute left-4 sm:left-5 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+      <div className="bg-white pt-1 pb-2 sm:pt-12 sm:pb-16 px-4">
+        <div className="max-w-4xl mx-auto space-y-3 sm:space-y-8">
+          {/* Main Search Bar - OLX Style */}
+          <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
+            <div className="relative flex items-center bg-gray-50 rounded-2xl shadow-sm border border-gray-100 p-1 group focus-within:shadow-xl focus-within:ring-4 focus-within:ring-primary/5 transition-all">
               <input 
                 type="text" 
                 placeholder={placeholder}
-                className="w-full pl-11 sm:pl-14 pr-4 sm:pr-6 py-2.5 sm:py-4 text-sm sm:text-lg text-gray-900 bg-transparent outline-none placeholder:text-gray-300 font-medium"
+                className="w-full pl-5 pr-10 py-2 sm:py-4 text-sm sm:text-base text-gray-900 bg-transparent outline-none placeholder:text-gray-400 font-bold"
                 value={localSearch}
                 onChange={(e) => setLocalSearch(e.target.value)}
                 onFocus={() => setIsInputFocused(true)}
                 onBlur={() => setIsInputFocused(false)}
               />
-              <div className="hidden sm:flex items-center gap-2 pr-2">
-                <Button 
-                  type="submit"
-                  className="rounded-xl px-8 py-2.5 h-auto text-[10px] uppercase tracking-widest font-black active:scale-95 transition-all shadow-lg shadow-primary/20"
-                >
-                  Buscar
-                </Button>
-              </div>
+              <button 
+                type="submit"
+                className="absolute right-2 px-3 sm:px-6 py-2 sm:py-3 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center min-w-[2.5rem] sm:min-w-[3rem]"
+              >
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
+                <span className="hidden sm:inline font-black uppercase tracking-widest text-[10px]">Buscar</span>
+              </button>
             </div>
           </form>
-
-          {/* Simple Teaser Text */}
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-[9px] sm:text-[11px] font-medium text-white/50 mt-3 sm:mt-4 uppercase tracking-[0.2em]"
-          >
-            🔥 Lançamento em Tefé — Anuncie grátis
-          </motion.p>
         </div>
       </div>
 
-      <div className="max-w-screen-2xl mx-auto w-full -mt-10 sm:-mt-16 px-4 relative z-20 space-y-8 sm:space-y-12 pb-32">
-        {/* Categories Carousel */}
-        <div className="space-y-3 sm:space-y-4 max-w-7xl mx-auto">
-          <div className="bg-white rounded-2xl sm:rounded-[2rem] shadow-sm border border-gray-100 p-1.5 sm:p-3">
-            <Swiper
-              modules={[Navigation, Pagination, Scrollbar, A11y, Mousewheel, FreeMode]}
-              spaceBetween={6}
-              slidesPerView="auto"
-              freeMode={true}
-              mousewheel={{ forceToAxis: true }}
-              className="categories-swiper"
+      <div className="max-w-screen-2xl mx-auto w-full px-3 sm:px-6 space-y-4 sm:space-y-16 pb-32">
+        {/* Categories Circle Icons */}
+        <div className="space-y-1 sm:space-y-8 max-w-7xl mx-auto">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-[11px] sm:text-base font-black uppercase tracking-[0.2em] text-gray-900">Categorias</h2>
+            <Link to="/buscar" className="text-primary text-[8px] sm:text-xs font-black uppercase tracking-widest hover:underline">Ver todas</Link>
+          </div>
+          
+          <div className="flex items-center gap-4 sm:gap-12 overflow-x-auto no-scrollbar py-2 px-1 -mx-3 sm:mx-0">
+            <motion.button
+              whileHover={{ y: -4 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => resetHomeFilters()}
+              className="flex flex-col items-center gap-2 min-w-[55px] sm:min-w-[70px] group transition-all"
             >
-              <SwiperSlide className="!w-auto">
-                <button
-                  onClick={() => {
-                    if (filters.category === 'Todos') {
-                      loadInitialAds();
-                    } else {
-                      setFilters({ ...filters, category: 'Todos' });
-                    }
-                  }}
-                  className={cn(
-                    "flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl transition-all font-black text-[9px] sm:text-[10px] uppercase tracking-widest",
-                    filters.category === 'Todos' ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
-                  )}
-                >
-                  <RefreshCw className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4", loading && "animate-spin")} />
-                  Todos
-                </button>
-              </SwiperSlide>
+              <div className={cn(
+                "w-11 h-11 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[2rem] flex items-center justify-center transition-all shadow-md group-hover:shadow-primary/20",
+                filters.category === 'Todos' ? "bg-primary text-white scale-110" : "bg-white text-gray-400 border border-gray-100 hover:border-primary/20 hover:text-primary"
+              )}>
+                <RefreshCw className={cn("w-5 h-5 sm:w-7 sm:h-7", loading && "animate-spin")} />
+              </div>
+              <span className={cn("text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-colors", filters.category === 'Todos' ? "text-primary" : "text-gray-400")}>
+                Início
+              </span>
+            </motion.button>
 
-              {VISUAL_CATEGORIES.map((cat) => (
-                <SwiperSlide key={cat.name} className="!w-auto">
-                  <button
-                    onClick={() => setFilters({ ...filters, category: cat.name })}
-                    className={cn(
-                      "flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl transition-all font-black text-[9px] sm:text-[10px] uppercase tracking-widest",
-                      filters.category === cat.name ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
-                    )}
-                  >
-                    <cat.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              {VISUAL_CATEGORIES.map((cat, idx) => (
+                <motion.button
+                  key={cat.name}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  whileHover={{ y: -4 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setFilters({ ...filters, category: cat.name })}
+                  className="flex flex-col items-center gap-2 min-w-[55px] sm:min-w-[70px] group transition-all"
+                >
+                  <div className={cn(
+                    "w-11 h-11 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[2rem] flex items-center justify-center transition-all shadow-md group-hover:shadow-xl",
+                    filters.category === cat.name 
+                      ? "bg-primary text-white scale-110" 
+                      : `${cat.color} text-white hover:scale-105`
+                  )}>
+                    <cat.icon className="w-5 h-5 sm:w-7 sm:h-7" />
+                  </div>
+                  <span className={cn("text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-colors", filters.category === cat.name ? "text-primary " : "text-gray-400")}>
                     {cat.name}
-                  </button>
-                </SwiperSlide>
+                  </span>
+                </motion.button>
               ))}
-            </Swiper>
           </div>
         </div>
 
-      {/* Featured Section */}
-      <AnimatePresence>
-        {featuredAds.length > 0 && (
-          <motion.section 
-            initial={{ opacity: 0, scale: 0.98 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="space-y-3 sm:space-y-6 max-w-7xl mx-auto"
-          >
-            <div className="flex items-center justify-between px-2">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-6 bg-secondary rounded-full"></div>
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-gray-900">
-                  Oportunidades em Destaque
+        {/* Featured Section Section */}
+        <AnimatePresence>
+          {featuredAds.length > 0 && (
+            <motion.section 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="space-y-2 sm:space-y-8 max-w-7xl mx-auto"
+            >
+              <div className="flex items-center justify-between px-1">
+                <h2 className="text-[11px] sm:text-base font-black uppercase tracking-[0.2em] text-gray-900">
+                  Em destaque
                 </h2>
               </div>
-            </div>
-            {/* Desktop Grid / Mobile Carousel */}
-            <div className="hidden lg:grid lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {featuredAds.slice(0, 4).map(ad => (
-                <AdCard key={ad.id} ad={ad} featured />
-              ))}
-            </div>
-            <div className="lg:hidden">
+              
               <Swiper
-                modules={[Navigation, A11y, Mousewheel, FreeMode]}
+                modules={[Navigation, FreeMode]}
                 spaceBetween={12}
                 slidesPerView="auto"
                 freeMode={true}
-                mousewheel={{ forceToAxis: true }}
-                className="featured-swiper !px-4 !-mx-4 pb-2"
+                className="featured-swiper !px-1 !-mx-1 sm:!px-2 sm:!mx-0 !overflow-visible"
               >
                 {featuredAds.map(ad => (
-                  <SwiperSlide key={ad.id} className="min-w-[calc(60%-8px)] sm:min-w-[calc(40%-12px)] transition-transform active:scale-95 duration-200">
-                    <AdCard ad={ad} />
+                  <SwiperSlide key={ad.id} className="!w-[160px] sm:!w-[280px]">
+                    <AdCard ad={ad} featured />
                   </SwiperSlide>
                 ))}
               </Swiper>
-            </div>
-          </motion.section>
-        )}
-      </AnimatePresence>
+            </motion.section>
+          )}
+        </AnimatePresence>
 
       {/* Main Feed Section */}
       <main className="space-y-4 sm:space-y-8 relative z-30 max-w-7xl mx-auto">
         {/* Controls Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-4">
           <div 
             className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar lg:scrollbar-thin lg:scrollbar-thumb-gray-200 lg:scrollbar-track-transparent pb-1"
             onWheel={handleWheelScroll}
@@ -550,23 +526,23 @@ export default function Home() {
                 key={t}
                 onClick={() => setFilters({ ...filters, type: t as any })}
                 className={cn(
-                  "px-3.5 sm:px-6 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all border",
+                  "px-2.5 sm:px-6 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[7px] sm:text-[9px] font-black uppercase tracking-widest transition-all border",
                   filters.type === t ? "bg-gray-900 text-white border-gray-900 shadow-md" : "bg-white text-gray-400 border-gray-100 hover:border-gray-200"
                 )}
               >
-                {t === 'all' ? 'Ver Tudo' : t === 'sale' ? 'Venda' : t === 'rent' ? 'Aluguel' : 'Serviços'}
+                {t === 'all' ? 'Tudo' : t === 'sale' ? 'Venda' : t === 'rent' ? 'Aluguel' : 'Serviços'}
               </button>
             ))}
             <div className="h-4 sm:h-6 w-[1px] bg-gray-200 mx-1 flex-shrink-0"></div>
             <span className="text-[7px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">
-              {totalCount} anúncios
+              {totalCount} itens
             </span>
           </div>
 
           <div className="flex items-center gap-2 self-end md:self-auto">
-            <div className="relative flex items-center bg-white rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-100 group">
+            <div className="relative flex items-center bg-white rounded-lg px-2 sm:px-4 py-1 sm:py-2 border border-gray-100 group">
               <select 
-                className="bg-transparent text-[8px] sm:text-[9px] font-black uppercase tracking-widest outline-none appearance-none pr-6 sm:pr-8 text-gray-600 cursor-pointer"
+                className="bg-transparent text-[7px] sm:text-[9px] font-black uppercase tracking-widest outline-none appearance-none pr-5 sm:pr-8 text-gray-600 cursor-pointer"
                 value={filters.sortBy}
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as any })}
               >
@@ -574,7 +550,7 @@ export default function Home() {
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-              <ChevronDown className="w-2.5 sm:w-3 h-2.5 sm:h-3 text-gray-400 absolute right-2.5 sm:right-3 pointer-events-none group-focus-within:rotate-180 transition-transform" />
+              <ChevronDown className="w-2 sm:w-3 h-2 sm:h-3 text-gray-400 absolute right-2 sm:right-3 pointer-events-none group-focus-within:rotate-180 transition-transform" />
             </div>
           </div>
         </div>
@@ -583,7 +559,7 @@ export default function Home() {
         <div className="min-h-[40vh]">
           {loading ? (
             <div className="space-y-6 sm:space-y-8">
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-6">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                   <div key={n} className="bg-white rounded-xl sm:rounded-2xl aspect-[4/6] animate-pulse border border-gray-100 p-2 sm:p-3 overflow-hidden flex flex-col gap-2 sm:gap-3">
                     <div className="w-full aspect-[4/3] bg-gray-50 rounded-lg sm:rounded-xl"></div>
@@ -627,9 +603,9 @@ export default function Home() {
               <Button onClick={() => loadInitialAds()} className="rounded-2xl px-10">Tentar Novamente</Button>
             </div>
           ) : ads.length > 0 ? (
-            <div className="space-y-12">
+            <div className="space-y-8 sm:space-y-12">
               {mainAds.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5 sm:gap-6">
                   {mainAds.map((ad, idx) => (
                     <motion.div
                       key={ad.id}
