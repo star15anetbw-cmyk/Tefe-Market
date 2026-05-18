@@ -132,7 +132,7 @@ export default function Search() {
   }, [filters.category, filters.neighborhood, filters.type, filters.condition, filters.sortBy, filters.search]);
 
   return (
-    <div className="min-h-screen bg-bg pb-20">
+    <div className="min-h-screen bg-bg-main">
       <div className="bg-white sticky top-0 z-30 shadow-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto p-4">
           <div className="flex gap-2">

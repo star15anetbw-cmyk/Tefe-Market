@@ -22,8 +22,11 @@ export default function BottomNav() {
   const rightItems = visibleItems.slice(middleIndex);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-[999] shadow-[0_-8px_30px_rgb(0,0,0,0.08)] safe-bottom-nav">
-      <div className="flex justify-between items-center max-w-2xl mx-auto px-4 h-16 sm:h-20">
+    <nav 
+      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-[9999] shadow-[0_-8px_30px_rgb(0,0,0,0.1)] flex flex-col items-center"
+      style={{ isolation: 'isolate' }}
+    >
+      <div className="flex justify-between items-center w-full max-w-2xl px-4 h-16 sm:h-20 pb-safe">
         {leftItems.map((item) => (
           <NavLink
             key={item.path}
@@ -44,14 +47,15 @@ export default function BottomNav() {
         ))}
 
         {/* Central Plus Button */}
-        <Link to="/publicar" className="relative -top-6">
+        <Link to="/publicar" className="relative -top-6 group">
            <motion.div
-             whileHover={{ scale: 1.1 }}
+             whileHover={{ scale: 1.15, rotate: 90 }}
              whileTap={{ scale: 0.9 }}
-             className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/30 border-4 border-white"
+             className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/40 border-4 border-white relative z-10"
            >
              <Plus className="w-8 h-8 font-black" />
            </motion.div>
+           <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity" />
         </Link>
 
         {rightItems.map((item) => (

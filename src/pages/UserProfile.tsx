@@ -69,7 +69,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 pb-24 min-h-screen relative bg-bg-main overflow-x-hidden">
+    <div className="max-w-4xl mx-auto p-4 min-h-screen relative bg-bg-main overflow-x-hidden">
       
       {/* Bloco Superior: Informações do Usuário */}
       <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 mb-6 text-center">

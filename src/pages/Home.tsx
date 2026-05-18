@@ -80,7 +80,7 @@ export default function Home() {
   const [isInputFocused, setIsInputFocused] = useState(false);
   
   const [localSearch, setLocalSearch] = useState('');
-  const [filters, setFilters] = useState<AdFilter>({
+  const [filtersState, setFiltersState] = useState<AdFilter>({
     search: '',
     category: 'Todos',
     type: 'all',
@@ -88,6 +88,17 @@ export default function Home() {
     neighborhood: 'Todos os bairros',
     sortBy: 'recommended'
   });
+
+  const filters = React.useMemo(() => filtersState, [filtersState]);
+  const isLoadingRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Typewriter placeholder state
   const [placeholder, setPlaceholder] = useState('Busque por produtos, serviços...');
@@ -139,10 +150,17 @@ export default function Home() {
   const requestRef = useRef(0);
 
   const loadAdsData = useCallback(async (isInitial = true) => {
+    if (isLoadingRef.current && isInitial) {
+      console.log("LOAD_ADS_BLOCKED: Already loading");
+      return;
+    }
+
     const requestId = ++requestRef.current;
     
-    // Evita múltiplas chamadas simultâneas para a mesma finalidade
+    // Evita múltiplas chamadas simultâneas
     if (!isInitial && (loading || loadingMore)) return;
+
+    isLoadingRef.current = true;
 
     if (isInitial) {
       if (abortControllerRef.current) {
@@ -151,6 +169,7 @@ export default function Home() {
       console.log("LOAD_INITIAL_START");
       setLoading(true);
       setError(null);
+      setLoadingTimeout(false);
       setPage(0);
       pageRef.current = 0;
     } else {
@@ -158,29 +177,52 @@ export default function Home() {
       setLoadingMore(true);
     }
     
+    console.log("FETCH_ADS_INPUT", { 
+      category: filters.category,
+      type: filters.type,
+      search: filters.search,
+      neighborhood: filters.neighborhood,
+      isInitial
+    });
+
     const controller = new AbortController();
     if (isInitial) {
       abortControllerRef.current = controller;
     }
+
+    // Backup timeout de segurança (8 segundos)
+    const timeoutId = setTimeout(() => {
+      if (isMountedRef.current && requestId === requestRef.current && (loading || loadingMore)) {
+        console.log("LOAD_ADS_TIMEOUT_TRIGGERED");
+        setLoadingTimeout(true);
+        setLoading(false);
+        setLoadingMore(false);
+        isLoadingRef.current = false;
+        if (!error) setError("A busca está demorando muito. Tente novamente.");
+      }
+    }, 8000);
     
     try {
       const targetPage = isInitial ? 0 : pageRef.current + 1;
       const pageSize = 12;
-      const from = targetPage * pageSize;
-      const to = from + pageSize - 1;
-
-      if (!isInitial) {
-        console.log("LOAD_MORE_RANGE", { page: targetPage, from, to });
-      }
       
       const result = await fetchAds({ 
-        ...filters, 
+        category: filters.category,
+        type: filters.type,
+        sortBy: filters.sortBy,
+        condition: filters.condition,
+        search: filters.search,
+        neighborhood: filters.neighborhood,
         page: targetPage, 
         pageSize 
       }, controller.signal);
       
+      clearTimeout(timeoutId);
+
+      if (!isMountedRef.current) return;
+
       if (requestId !== requestRef.current) {
-        console.log(`LOAD_ADS_STALE: Request ${requestId} ignored (current is ${requestRef.current})`);
+        console.log(`LOAD_ADS_STALE: Request ${requestId} ignored`);
         return;
       }
       
@@ -189,43 +231,42 @@ export default function Home() {
         setAds(adsList);
         setPage(0);
         pageRef.current = 0;
+        console.log("FETCH_ADS_SUCCESS: Initial load finished", { count: adsList.length });
       } else {
         const returnedAds = Array.isArray(result.ads) ? result.ads : [];
-        console.log("LOAD_MORE_RETURNED", { count: returnedAds.length, ids: returnedAds.map(a => a.id) });
-        
-        const adsBeforeCount = ads.length;
         setAds(prev => {
-          const before = prev.length;
           const existingIds = new Set(prev.map(a => a.id));
           const deduplicatedNewAds = returnedAds.filter(a => !existingIds.has(a.id));
-          const next = before + deduplicatedNewAds.length;
-          
-          console.log("LOAD_MORE_APPEND", { before, after: next });
           return [...prev, ...deduplicatedNewAds];
         });
-        
         setPage(targetPage);
         pageRef.current = targetPage;
+        console.log("FETCH_ADS_SUCCESS: Load more finished", { count: returnedAds.length });
       }
       
       setTotalCount(result.totalCount || 0);
       setHasMore(result.hasMore || false);
+      setError(null);
     } catch (err: any) {
+      clearTimeout(timeoutId);
       if (requestId !== requestRef.current) return;
       if (err.name === 'AbortError') {
         console.log(`LOAD_ADS_ABORTED: Request ${requestId}`);
         return;
       }
       
-      console.error('Erro ao carregar anúncios:', err);
-      
+      console.error('FETCH_ADS_ERROR:', err);
       if (isInitial) {
-        setError(err.message || 'Não foi possível carregar os anúncios.');
+        setError(err.message || 'Não foi possível carregar os anúncios agora.');
       }
     } finally {
-      if (requestId === requestRef.current) {
+      if (isMountedRef.current && requestId === requestRef.current) {
         setLoading(false);
         setLoadingMore(false);
+        isLoadingRef.current = false;
+        if (isInitial) {
+           console.log("LOAD_INITIAL_FINISHED");
+        }
       }
     }
   }, [
@@ -234,8 +275,7 @@ export default function Home() {
     filters.sortBy, 
     filters.condition, 
     filters.search,
-    filters.neighborhood,
-    ads.length // Added ads.length to correctly log "before" in append log
+    filters.neighborhood
   ]);
 
   // Wrapper functions for clarity as requested
@@ -253,10 +293,11 @@ export default function Home() {
       category: 'Todos',
       type: 'all',
       condition: 'all',
+      neighborhood: 'Todos os bairros',
       sortBy: 'recommended'
     };
 
-    setFilters(defaultFilters);
+    setFiltersState(defaultFilters);
     setLocalSearch('');
     setPage(0);
     // O useEffect já irá disparar o loadAds ao detectar a mudança nos filtros
@@ -329,7 +370,7 @@ export default function Home() {
   // Debounce search input to avoid many re-renders/fetches if search becomes live
   useEffect(() => {
     const timer = setTimeout(() => {
-      setFilters(prev => {
+      setFiltersState(prev => {
         if (prev.search === localSearch) return prev;
         return { ...prev, search: localSearch };
       });
@@ -462,7 +503,7 @@ export default function Home() {
                   transition={{ delay: idx * 0.05 }}
                   whileHover={{ y: -4 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setFilters({ ...filters, category: cat.name })}
+                  onClick={() => setFiltersState({ ...filters, category: cat.name })}
                   className="flex flex-col items-center gap-2 min-w-[55px] sm:min-w-[70px] group transition-all"
                 >
                   <div className={cn(
@@ -515,6 +556,12 @@ export default function Home() {
 
       {/* Main Feed Section */}
       <main className="space-y-4 sm:space-y-8 relative z-30 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-[11px] sm:text-base font-black uppercase tracking-[0.2em] text-gray-900">
+            {filters.category === 'Todos' ? 'Anúncios recentes' : `Anúncios em ${filters.category}`}
+          </h2>
+        </div>
+
         {/* Controls Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-4">
           <div 
@@ -524,7 +571,7 @@ export default function Home() {
             {['all', 'sale', 'rent', 'service'].map((t) => (
               <button
                 key={t}
-                onClick={() => setFilters({ ...filters, type: t as any })}
+                onClick={() => setFiltersState({ ...filters, type: t as any })}
                 className={cn(
                   "px-2.5 sm:px-6 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[7px] sm:text-[9px] font-black uppercase tracking-widest transition-all border",
                   filters.type === t ? "bg-gray-900 text-white border-gray-900 shadow-md" : "bg-white text-gray-400 border-gray-100 hover:border-gray-200"
@@ -544,7 +591,7 @@ export default function Home() {
               <select 
                 className="bg-transparent text-[7px] sm:text-[9px] font-black uppercase tracking-widest outline-none appearance-none pr-5 sm:pr-8 text-gray-600 cursor-pointer"
                 value={filters.sortBy}
-                onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as any })}
+                onChange={(e) => setFiltersState({ ...filters, sortBy: e.target.value as any })}
               >
                 {SORT_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -663,7 +710,7 @@ export default function Home() {
               <p className="text-gray-400 text-sm max-w-xs mx-auto mb-10">Não encontramos anúncios para esta categoria no momento.</p>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => {
-                  setFilters({ ...filters, category: 'Todos' });
+                  setFiltersState({ ...filters, category: 'Todos' });
                   setLocalSearch(''); 
                 }} className="rounded-2xl">Limpar</Button>
                 <Link to="/publicar"><Button className="rounded-2xl">Anunciar</Button></Link>

@@ -194,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   if (!isConfigured) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center p-4 text-center">
+      <div className="min-h-screen bg-bg-main flex items-center justify-center p-4 text-center">
         <div className="max-w-md bg-white p-8 rounded-xl shadow-lg border border-gray-200">
           <div className="w-16 h-16 bg-emerald-50 text-primary rounded-full flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">

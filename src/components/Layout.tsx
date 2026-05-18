@@ -7,12 +7,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, profile } = useAuth();
   
   return (
-    <div className="min-h-screen bg-bg flex flex-col font-sans pb-24 sm:pb-32">
+    <div className="min-h-screen bg-bg-main flex flex-col font-sans">
       <Navbar />
-      <main className="flex-grow">
+      <main className="flex-grow pb-24 sm:pb-32">
         {children}
       </main>
-      <BottomNav />
       <footer className="hidden lg:flex h-10 bg-white border-t border-gray-200 items-center justify-between px-6 text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-auto">
         <div>
           {user ? (
@@ -28,6 +27,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           Tefé, AM
         </div>
       </footer>
+      <BottomNav />
     </div>
   );
 }

@@ -39,12 +39,17 @@
     scrollbar-width: none; /* Firefox */
   }
 
-  .safe-bottom-nav {
+  .safe-bottom-nav, .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 1rem);
   }
 }
 
 @layer base {
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
   body {
     @apply bg-bg-main text-text-main font-sans;
   }

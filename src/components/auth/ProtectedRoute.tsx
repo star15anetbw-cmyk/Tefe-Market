@@ -14,7 +14,7 @@ export default function ProtectedRoute({ children, adminOnly = false }: Protecte
   
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-bg">
+      <div className="flex items-center justify-center h-screen bg-bg-main">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
