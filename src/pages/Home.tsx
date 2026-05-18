@@ -441,7 +441,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-main">
+    <div className="flex flex-col min-h-screen bg-bg-main w-full max-w-full overflow-x-hidden">
       {/* Header Section (Branded) */}
       <div className="bg-white pt-1 pb-2 sm:pt-12 sm:pb-16 px-4">
         <div className="max-w-4xl mx-auto space-y-3 sm:space-y-8">

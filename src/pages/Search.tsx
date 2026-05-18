@@ -268,7 +268,7 @@ export default function Search() {
           </span>
         </div>
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5 sm:gap-6">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
               <div key={n} className="bg-white rounded-2xl aspect-[4/6] animate-pulse border border-gray-100 p-3 overflow-hidden flex flex-col gap-3">
                 <div className="w-full aspect-[4/3] bg-gray-50 rounded-xl"></div>
@@ -284,7 +284,7 @@ export default function Search() {
             ))}
           </div>
         ) : processedAds.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5 sm:gap-6">
             {processedAds.map(ad => (
               <AdCard key={ad.id} ad={ad} />
             ))}

@@ -23,7 +23,7 @@ export default function BottomNav() {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-[9999] shadow-[0_-8px_30px_rgb(0,0,0,0.1)] flex flex-col items-center"
+      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-[9999] shadow-[0_-8px_30px_rgb(0,0,0,0.1)] flex flex-col items-center md:hidden"
       style={{ isolation: 'isolate' }}
     >
       <div className="flex justify-between items-center w-full max-w-2xl px-4 h-16 sm:h-20 pb-safe">
