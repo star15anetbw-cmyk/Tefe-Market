@@ -1,12 +1,13 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { fetchAdById, logAdClick } from '../services/ads';
+import { fetchAdById, logAdClick, fetchAds } from '../services/ads';
 import { Ad } from '../types';
 import { formatPrice, formatAdPrice, formatDate, cn, isNonCriticalSupabaseError, handleImageError } from '../lib/utils';
 import { FALLBACK_IMAGE } from '../constants';
-import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, ChevronRight, User, Heart, MessageSquare, BadgeCheck, AlertCircle } from 'lucide-react';
+import { MapPin, Clock, Tag, MessageCircle, Share2, ChevronLeft, ChevronRight, User, Heart, MessageSquare, BadgeCheck, AlertCircle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Button from '../components/ui/Button';
+import AdCard from '../components/AdCard';
 import { useAuth } from '../contexts/AuthContext';
 import { checkIsFavorited, toggleFavorite } from '../services/favorites';
 import { getOrCreateChat } from '../services/chat';
@@ -21,6 +22,11 @@ export default function AdDetails() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [copied, setCopied] = useState(false);
+  
+  // Anúncios relacionados
+  const [relatedAds, setRelatedAds] = useState<Ad[]>([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
+  const hasLoadedRelatedRef = useRef<string | null>(null);
   
   // Galeria de imagens
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -79,6 +85,56 @@ export default function AdDetails() {
     }
     return () => controller.abort();
   }, [id, user, isAdmin]);
+
+  // Carregar anúncios relacionados quando o anúncio principal estiver pronto
+  useEffect(() => {
+    if (ad && ad.id !== hasLoadedRelatedRef.current) {
+      loadRelatedAds();
+    }
+  }, [ad]);
+
+  const loadRelatedAds = async () => {
+    if (!ad) return;
+    
+    console.log('DETAIL_RELATED_START', { category: ad.category, id: ad.id });
+    setRelatedLoading(true);
+    hasLoadedRelatedRef.current = ad.id;
+
+    try {
+      // 1. Tentar mesma categoria (limitando a 12 para ter gordura de filtro)
+      const result = await fetchAds({ 
+        category: ad.category, 
+        pageSize: 12 
+      });
+      
+      let filtered = (result.ads || []).filter(a => a.id !== ad.id);
+      
+      // 2. Se vier pouco, buscar recentes como fallback
+      if (filtered.length < 4) {
+        console.log('DETAIL_RELATED_FALLBACK: Poucos anúncios na categoria, buscando recentes');
+        const recentResult = await fetchAds({ pageSize: 12 });
+        const recentAds = (recentResult.ads || []).filter(a => a.id !== ad.id && !filtered.find(f => f.id === a.id));
+        filtered = [...filtered, ...recentAds].slice(0, 8);
+        console.log('DETAIL_RELATED_SUCCESS', { count: filtered.length, type: 'fallback' });
+      } else {
+        filtered = filtered.slice(0, 8);
+        console.log('DETAIL_RELATED_SUCCESS', { count: filtered.length, type: 'category' });
+      }
+      
+      setRelatedAds(filtered);
+    } catch (error) {
+      console.error('DETAIL_RELATED_ERROR', error);
+      // Se falhar a busca por categoria, tenta pelo menos os recentes de forma genérica
+      try {
+        const fallbackResult = await fetchAds({ pageSize: 8 });
+        setRelatedAds((fallbackResult.ads || []).filter(a => a.id !== ad.id));
+      } catch (e2) {
+        setRelatedAds([]);
+      }
+    } finally {
+      setRelatedLoading(false);
+    }
+  };
 
   const loadAd = async (adId: string, signal?: AbortSignal) => {
     try {
@@ -440,6 +496,41 @@ Ainda está disponível?`;
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Seção de Anúncios Relacionados */}
+      <div className="mt-16 sm:mt-24 border-t border-gray-100 pt-12">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="p-2 bg-emerald-50 rounded-lg">
+            <Sparkles className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 leading-tight">
+              Anúncios Relacionados
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">
+              Você também pode gostar
+            </p>
+          </div>
+        </div>
+
+        {relatedLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
+            {[1, 2, 3, 4].map(n => (
+              <div key={n} className="aspect-[4/6] bg-gray-50 rounded-2xl animate-pulse"></div>
+            ))}
+          </div>
+        ) : relatedAds.length > 0 ? (
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-6">
+            {relatedAds.map(relatedAd => (
+              <AdCard key={relatedAd.id} ad={relatedAd} />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-3xl p-12 text-center border-2 border-dashed border-gray-100">
+            <p className="text-gray-400 text-sm font-medium">Nenhum anúncio relacionado encontrado.</p>
+          </div>
+        )}
       </div>
     </div>
   );

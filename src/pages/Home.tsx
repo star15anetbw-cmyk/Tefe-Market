@@ -150,39 +150,39 @@ export default function Home() {
   const requestRef = useRef(0);
 
   const loadAdsData = useCallback(async (isInitial = true) => {
-    if (isLoadingRef.current && isInitial) {
-      console.log("LOAD_ADS_BLOCKED: Already loading");
+    const requestId = ++requestRef.current;
+    
+    // Evita múltiplas chamadas simultâneas para paginação
+    if (!isInitial && (loading || loadingMore || isLoadingRef.current)) {
+      console.log("LOAD_MORE_BLOCKED: Already loading");
       return;
     }
 
-    const requestId = ++requestRef.current;
-    
-    // Evita múltiplas chamadas simultâneas
-    if (!isInitial && (loading || loadingMore)) return;
-
-    isLoadingRef.current = true;
-
+    // Se for um novo carregamento inicial, abortamos o anterior se existir
     if (isInitial) {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      console.log("LOAD_INITIAL_START");
+      console.log("LOAD_INITIAL_START", { requestId });
       setLoading(true);
       setError(null);
       setLoadingTimeout(false);
       setPage(0);
       pageRef.current = 0;
     } else {
-      console.log("LOAD_MORE_CLICK");
+      console.log("LOAD_MORE_CLICK", { requestId });
       setLoadingMore(true);
     }
     
+    isLoadingRef.current = true;
+
     console.log("FETCH_ADS_INPUT", { 
       category: filters.category,
       type: filters.type,
       search: filters.search,
       neighborhood: filters.neighborhood,
-      isInitial
+      isInitial,
+      requestId
     });
 
     const controller = new AbortController();
@@ -192,13 +192,13 @@ export default function Home() {
 
     // Backup timeout de segurança (8 segundos)
     const timeoutId = setTimeout(() => {
-      if (isMountedRef.current && requestId === requestRef.current && (loading || loadingMore)) {
-        console.log("LOAD_ADS_TIMEOUT_TRIGGERED");
+      if (isMountedRef.current && requestId === requestRef.current) {
+        console.warn("LOAD_ADS_TIMEOUT_TRIGGERED", { requestId });
         setLoadingTimeout(true);
         setLoading(false);
         setLoadingMore(false);
         isLoadingRef.current = false;
-        if (!error) setError("A busca está demorando muito. Tente novamente.");
+        setError("A busca está demorando muito. Tente novamente.");
       }
     }, 8000);
     
@@ -231,7 +231,7 @@ export default function Home() {
         setAds(adsList);
         setPage(0);
         pageRef.current = 0;
-        console.log("FETCH_ADS_SUCCESS: Initial load finished", { count: adsList.length });
+        console.log("FETCH_ADS_SUCCESS: Initial load finished", { count: adsList.length, requestId });
       } else {
         const returnedAds = Array.isArray(result.ads) ? result.ads : [];
         setAds(prev => {
@@ -241,7 +241,7 @@ export default function Home() {
         });
         setPage(targetPage);
         pageRef.current = targetPage;
-        console.log("FETCH_ADS_SUCCESS: Load more finished", { count: returnedAds.length });
+        console.log("FETCH_ADS_SUCCESS: Load more finished", { count: returnedAds.length, requestId });
       }
       
       setTotalCount(result.totalCount || 0);
@@ -250,6 +250,7 @@ export default function Home() {
     } catch (err: any) {
       clearTimeout(timeoutId);
       if (requestId !== requestRef.current) return;
+      
       if (err.name === 'AbortError') {
         console.log(`LOAD_ADS_ABORTED: Request ${requestId}`);
         return;
@@ -265,7 +266,7 @@ export default function Home() {
         setLoadingMore(false);
         isLoadingRef.current = false;
         if (isInitial) {
-           console.log("LOAD_INITIAL_FINISHED");
+           console.log("LOAD_ADS_FINISHED", { requestId });
         }
       }
     }
@@ -647,7 +648,10 @@ export default function Home() {
               <AlertCircle className="w-12 h-12 text-red-500 mb-6" />
               <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Ops! Erro ao carregar</h3>
               <p className="text-gray-400 text-sm max-w-xs mx-auto mb-8">{error}</p>
-              <Button onClick={() => loadInitialAds()} className="rounded-2xl px-10">Tentar Novamente</Button>
+              <Button onClick={() => {
+                isLoadingRef.current = false;
+                loadInitialAds();
+              }} className="rounded-2xl px-10">Tentar Novamente</Button>
             </div>
           ) : ads.length > 0 ? (
             <div className="space-y-8 sm:space-y-12">
