@@ -190,7 +190,7 @@ export default function Home() {
       abortControllerRef.current = controller;
     }
 
-    // Backup timeout de segurança (8 segundos)
+    // Backup timeout de segurança (15 segundos)
     const timeoutId = setTimeout(() => {
       if (isMountedRef.current && requestId === requestRef.current) {
         console.warn("LOAD_ADS_TIMEOUT_TRIGGERED", { requestId });
@@ -200,7 +200,7 @@ export default function Home() {
         isLoadingRef.current = false;
         setError("A busca está demorando muito. Tente novamente.");
       }
-    }, 8000);
+    }, 15000);
     
     try {
       const targetPage = isInitial ? 0 : pageRef.current + 1;
@@ -251,8 +251,8 @@ export default function Home() {
       clearTimeout(timeoutId);
       if (requestId !== requestRef.current) return;
       
-      if (err.name === 'AbortError') {
-        console.log(`LOAD_ADS_ABORTED: Request ${requestId}`);
+      if (err.name === 'AbortError' || err?.message?.includes('AbortError') || err?.message?.includes('signal is aborted')) {
+        console.warn("FETCH_ADS_ABORTED_IGNORED", err);
         return;
       }
       
@@ -330,8 +330,8 @@ export default function Home() {
       n: filters.neighborhood
     });
 
-    // Skip if filters haven't changed (StrictMode double trigger or unrelated re-renders)
-    if (initialLoadDoneRef.current && lastFilterSnapshotRef.current === filterSnapshot) {
+    // Skip if filters haven't changed and the active request hasn't been aborted (supports StrictMode and rapid rendering safely)
+    if (initialLoadDoneRef.current && lastFilterSnapshotRef.current === filterSnapshot && abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
       return;
     }
 
@@ -649,6 +649,7 @@ export default function Home() {
               <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Ops! Erro ao carregar</h3>
               <p className="text-gray-400 text-sm max-w-xs mx-auto mb-8">{error}</p>
               <Button onClick={() => {
+                setError(null);
                 isLoadingRef.current = false;
                 loadInitialAds();
               }} className="rounded-2xl px-10">Tentar Novamente</Button>

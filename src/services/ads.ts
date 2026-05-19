@@ -85,6 +85,10 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     });
 
     if (error) {
+      if (signal?.aborted || error?.name === 'AbortError' || error?.message?.includes('AbortError') || error?.message?.includes('signal is aborted')) {
+        console.warn("FETCH_ADS_ABORTED_IGNORED", error);
+        return { ads: [], totalCount: 0, hasMore: false };
+      }
       if (isNonCriticalSupabaseError(error) && retryCount < 1) {
         console.warn('Retrying fetchAds due to non-critical error:', error);
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -108,7 +112,13 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       hasMore: count ? (from + (data?.length || 0)) < count : false
     };
   } catch (err: any) {
-    if (isNonCriticalSupabaseError(err) && retryCount < 1 && !(err.name === 'AbortError')) {
+    if (signal?.aborted || err?.name === 'AbortError' || err?.message?.includes('AbortError') || err?.message?.includes('signal is aborted')) {
+      console.warn("FETCH_ADS_ABORTED_IGNORED", err);
+      return { ads: [], totalCount: 0, hasMore: false };
+    }
+
+    if (isNonCriticalSupabaseError(err) && retryCount < 1) {
+      console.warn('Retrying fetchAds due to non-critical error in catch:', err);
       await new Promise(resolve => setTimeout(resolve, 500));
       return fetchAds(filter, signal, retryCount + 1);
     }
