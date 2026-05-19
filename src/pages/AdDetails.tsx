@@ -19,6 +19,8 @@ export default function AdDetails() {
   
   const [ad, setAd] = useState<Ad | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const loadedAdIdRef = useRef<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -72,6 +74,11 @@ export default function AdDetails() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [images.length, nextImage, prevImage]);
+
+  // Rolar para o topo ao trocar de anúncio
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [id]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -137,9 +144,22 @@ export default function AdDetails() {
   };
 
   const loadAd = async (adId: string, signal?: AbortSignal) => {
+    console.log("DETAIL_LOAD_START", { adId });
     try {
       setLoading(true);
+      setNotFound(false);
+      
+      // Resetar ad apenas se trocou de ID, mantendo estado caso role re-render de auth/favoritos
+      if (loadedAdIdRef.current !== adId) {
+        setAd(null);
+      }
+
       const data = await fetchAdById(adId, signal);
+      
+      if (signal?.aborted) {
+        console.log("DETAIL_LOAD_ABORTED_SIGNAL", { adId });
+        return;
+      }
       
       // Se não encontrou o anúncio, mas o auth ainda está carregando, 
       // esperamos o auth terminar antes de dar o veredito (pode ser admin vendo removed)
@@ -147,14 +167,30 @@ export default function AdDetails() {
         return;
       }
       
-      setAd(data);
+      if (data) {
+        setAd(data);
+        setNotFound(false);
+        loadedAdIdRef.current = adId;
+        console.log("DETAIL_LOAD_SUCCESS", { adId });
+      } else {
+        setAd(null);
+        setNotFound(true);
+        loadedAdIdRef.current = adId;
+        console.log("DETAIL_LOAD_NOT_FOUND", { adId });
+      }
     } catch (err: any) {
-      if (err.name === 'AbortError' || isNonCriticalSupabaseError(err)) return;
-      console.error('Error fetching ad:', err);
+      if (err.name === 'AbortError' || signal?.aborted) {
+        console.log("DETAIL_LOAD_ABORTED_CATCH", { adId });
+        return;
+      }
+      if (isNonCriticalSupabaseError(err)) return;
+      console.error('DETAIL_LOAD_ERROR', err);
       setAd(null);
+      setNotFound(true);
     } finally {
-      if (!authLoading || !signal?.aborted) {
+      if (!signal?.aborted && (!authLoading || !signal)) {
         setLoading(false);
+        console.log("DETAIL_LOAD_FINISHED", { adId });
       }
     }
   };
@@ -211,12 +247,14 @@ export default function AdDetails() {
     </div>
   );
 
-  if (!ad) return (
+  if (notFound) return (
     <div className="max-w-7xl mx-auto px-4 py-20 text-center">
       <h2 className="text-2xl font-bold text-gray-900 mb-4">Anúncio não encontrado</h2>
       <Link to="/" className="text-emerald-600 font-bold hover:underline">Voltar para o início</Link>
     </div>
   );
+
+  if (!ad) return null;
 
   // Guards defensivos para evitar crash de renderização
   const profileData = Array.isArray(ad.profiles) ? ad.profiles[0] : ad.profiles;
