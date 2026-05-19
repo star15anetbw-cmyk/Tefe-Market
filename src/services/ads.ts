@@ -152,9 +152,33 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
 
     if (!data) return null;
 
+    // Tenta carregar as colunas de prova social se existirem no banco
+    let views_count = data.views || 0;
+    let whatsapp_clicks_count = data.interests || 0;
+    let shares_count = 0;
+
+    try {
+      const { data: socialProof, error: spError } = await supabase
+        .from('ads')
+        .select('views_count, whatsapp_clicks_count, shares_count')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (!spError && socialProof) {
+        views_count = socialProof.views_count ?? (data.views || 0);
+        whatsapp_clicks_count = socialProof.whatsapp_clicks_count ?? (data.interests || 0);
+        shares_count = socialProof.shares_count ?? 0;
+      }
+    } catch (spErr) {
+      console.debug("Colunas opcionais de prova social nao encontradas, usando fallbacks (views/interests).", spErr);
+    }
+
     // Flatten profiles if it's an array
     const ad = {
       ...data,
+      views_count,
+      whatsapp_clicks_count,
+      shares_count,
       profiles: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles
     };
 
@@ -164,6 +188,69 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
     console.error('Unexpected error in fetchAdById:', err);
     throw err;
   }
+}
+
+export async function incrementAdViewsCount(adId: string, currentViews: number = 0) {
+  try {
+    // 1. Tenta atualizar views_count
+    const { error: err1 } = await supabase
+      .from('ads')
+      .update({ views_count: currentViews + 1 })
+      .eq('id', adId);
+    
+    if (!err1) return currentViews + 1;
+
+    // 2. Se falhar (ex: coluna nao existe), atualiza a coluna views existente
+    const { error: err2 } = await supabase
+      .from('ads')
+      .update({ views: currentViews + 1 })
+      .eq('id', adId);
+    
+    if (!err2) return currentViews + 1;
+  } catch (e) {
+    console.debug('Failed to increment views in DB, falling back to local only', e);
+  }
+  return currentViews + 1;
+}
+
+export async function incrementAdWhatsAppClicks(adId: string, currentClicks: number = 0) {
+  try {
+    // 1. Tenta log_ad_click padrão (se as tabelas e RPC estiverem prontas)
+    logAdClick(adId, 'whatsapp');
+
+    // 2. Tenta atualizar whatsapp_clicks_count
+    const { error: err1 } = await supabase
+      .from('ads')
+      .update({ whatsapp_clicks_count: currentClicks + 1 })
+      .eq('id', adId);
+    
+    if (!err1) return currentClicks + 1;
+
+    // 3. Se falhar, atualiza a coluna interests existente
+    const { error: err2 } = await supabase
+      .from('ads')
+      .update({ interests: currentClicks + 1 })
+      .eq('id', adId);
+    
+    if (!err2) return currentClicks + 1;
+  } catch (e) {
+    console.debug('Failed to increment WhatsApp clicks in DB', e);
+  }
+  return currentClicks + 1;
+}
+
+export async function incrementAdShares(adId: string, currentShares: number = 0) {
+  try {
+    const { error } = await supabase
+      .from('ads')
+      .update({ shares_count: currentShares + 1 })
+      .eq('id', adId);
+    
+    if (!error) return currentShares + 1;
+  } catch (e) {
+    console.debug('Failed to increment shares in DB', e);
+  }
+  return currentShares + 1;
 }
 
 export async function fetchUserAds(userId: string, signal?: AbortSignal) {

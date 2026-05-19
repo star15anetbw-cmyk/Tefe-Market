@@ -30,6 +30,9 @@ export interface Ad {
   status: AdStatus;
   views?: number;
   interests?: number;
+  views_count?: number;
+  whatsapp_clicks_count?: number;
+  shares_count?: number;
   lat?: number;
   lng?: number;
   is_external?: boolean;

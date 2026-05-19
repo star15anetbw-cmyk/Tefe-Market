@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { fetchAdById, logAdClick, fetchAds } from '../services/ads';
+import { fetchAdById, logAdClick, fetchAds, incrementAdViewsCount, incrementAdWhatsAppClicks, incrementAdShares } from '../services/ads';
 import { Ad } from '../types';
 import { formatPrice, formatAdPrice, formatDate, cn, isNonCriticalSupabaseError, handleImageError } from '../lib/utils';
 import { FALLBACK_IMAGE } from '../constants';
@@ -172,6 +172,27 @@ export default function AdDetails() {
         setNotFound(false);
         loadedAdIdRef.current = adId;
         console.log("DETAIL_LOAD_SUCCESS", { adId });
+
+        // Record view if not already counted in this session
+        const sessionKey = `viewed_ad_${adId}`;
+        const alreadyViewed = sessionStorage.getItem(sessionKey);
+        
+        if (!alreadyViewed) {
+          sessionStorage.setItem(sessionKey, 'true');
+          const viewsToUse = data.views_count ?? data.views ?? 0;
+          incrementAdViewsCount(adId, viewsToUse).then(newViews => {
+            setAd(prev => {
+              if (prev && prev.id === adId) {
+                return {
+                  ...prev,
+                  views_count: newViews,
+                  views: newViews
+                };
+              }
+              return prev;
+            });
+          }).catch(e => console.debug('View counting error ignored', e));
+        }
       } else {
         setAd(null);
         setNotFound(true);
@@ -258,6 +279,19 @@ export default function AdDetails() {
 
   // Guards defensivos para evitar crash de renderização
   const profileData = Array.isArray(ad.profiles) ? ad.profiles[0] : ad.profiles;
+
+  const views_count = ad.views_count ?? ad.views ?? 0;
+  const whatsapp_clicks_count = ad.whatsapp_clicks_count ?? ad.interests ?? 0;
+  const shares_count = ad.shares_count ?? 0;
+
+  const isCreatedRecently = () => {
+    if (!ad?.created_at) return false;
+    const createdAtDate = new Date(ad.created_at);
+    const currentDate = new Date();
+    const diffTime = Math.abs(currentDate.getTime() - createdAtDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 3;
+  };
   
   // Lógica para decidir nome e telefone do vendedor (preferência para dados externos)
   const sellerName = ad.is_external ? (ad.external_seller_name || 'Anunciante Externo') : (profileData?.name || 'Vendedor Anônimo');
@@ -275,6 +309,20 @@ export default function AdDetails() {
 
   const shareAd = async () => {
     try {
+      if (ad) {
+        incrementAdShares(ad.id, ad.shares_count || 0).then(newShares => {
+          setAd(prev => {
+            if (prev && prev.id === ad.id) {
+              return {
+                ...prev,
+                shares_count: newShares
+              };
+            }
+            return prev;
+          });
+        }).catch(e => console.debug('Shares count error ignored', e));
+      }
+
       if (navigator.share) {
         await navigator.share({
           title: ad.title || 'Anúncio no Tefé Market',
@@ -289,7 +337,6 @@ export default function AdDetails() {
     } catch (err) {
       // Silently catch or log only meaningful error
       console.error('Falha ao compartilhar:', err);
-      // Fallback: alert or simple toast if necessary, but try/catch prevents crash
     }
   };
 
@@ -456,6 +503,27 @@ Ainda está disponível?`;
               )}
             </div>
 
+            {/* Badges de Prova Social baseados em movimentação */}
+            {(views_count > 30 || whatsapp_clicks_count > 5 || isCreatedRecently()) && (
+              <div className="flex flex-wrap gap-1.5 mb-4 select-none">
+                {views_count > 30 && (
+                  <span className="flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200/60 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm">
+                    🔥 Anúncio em alta
+                  </span>
+                )}
+                {whatsapp_clicks_count > 5 && (
+                  <span className="flex items-center gap-1 bg-green-50 text-green-800 border border-green-200/60 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm">
+                    💬 Muito Interessado
+                  </span>
+                )}
+                {isCreatedRecently() && (
+                  <span className="flex items-center gap-1 bg-purple-50 text-purple-800 border border-purple-200/60 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm">
+                    ⚡ Novo
+                  </span>
+                )}
+              </div>
+            )}
+
             <h1 className="text-2xl font-black text-gray-900 mb-2 leading-tight">
               {ad.title}
             </h1>
@@ -471,8 +539,30 @@ Ainda está disponível?`;
               </div>
             </div>
 
-            <div className="text-3xl font-black text-primary mb-8">
+            <div className="text-3xl font-black text-primary mb-5">
               {formatAdPrice(ad.price || 0, ad.ad_type)}
+            </div>
+
+            {/* Prova Social de Contagem Real com design moderno e discreto */}
+            <div className="bg-emerald-50/55 border border-emerald-100/70 rounded-xl p-3.5 mb-6 space-y-2 select-none">
+              <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold leading-none">
+                <span className="text-sm">👀</span>
+                <span>
+                  <strong className="font-extrabold text-emerald-950">{views_count}</strong> {views_count === 1 ? 'pessoa visualizou' : 'pessoas visualizaram'} este anúncio
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold leading-none">
+                <span className="text-sm">💬</span>
+                <span>
+                  <strong className="font-extrabold text-emerald-950">{whatsapp_clicks_count}</strong> {whatsapp_clicks_count === 1 ? 'pessoa chamou' : 'pessoas chamaram'} o vendedor
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold leading-none">
+                <span className="text-sm">🔗</span>
+                <span>
+                  Compartilhado <strong className="font-extrabold text-emerald-950">{shares_count}</strong> {shares_count === 1 ? 'vez' : 'vezes'}
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3">
@@ -490,7 +580,18 @@ Ainda está disponível?`;
                 <button 
                   onClick={() => {
                     if (ad) {
-                      logAdClick(ad.id, 'whatsapp');
+                      incrementAdWhatsAppClicks(ad.id, ad.whatsapp_clicks_count || ad.interests || 0).then(newClicks => {
+                        setAd(prev => {
+                          if (prev && prev.id === ad.id) {
+                            return {
+                              ...prev,
+                              whatsapp_clicks_count: newClicks,
+                              interests: newClicks
+                            };
+                          }
+                          return prev;
+                        });
+                      }).catch(e => console.debug('WhatsApp click count error ignored', e));
                       window.location.href = whatsappUrl;
                     }
                   }}
