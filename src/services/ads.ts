@@ -192,6 +192,11 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
 
 export async function incrementAdViewsCount(adId: string, currentViews: number = 0) {
   try {
+    // Tenta primeiro via RPC
+    const { error: rpcError } = await supabase.rpc('increment_ad_views', { ad_id: adId });
+    if (!rpcError) return currentViews + 1;
+    console.debug('increment_ad_views RPC failed, falling back', rpcError);
+
     // 1. Tenta atualizar views_count
     const { error: err1 } = await supabase
       .from('ads')
@@ -215,8 +220,13 @@ export async function incrementAdViewsCount(adId: string, currentViews: number =
 
 export async function incrementAdWhatsAppClicks(adId: string, currentClicks: number = 0) {
   try {
-    // 1. Tenta log_ad_click padrão (se as tabelas e RPC estiverem prontas)
+    // Registrar clique na tabela ad_clicks de forma assíncrona
     logAdClick(adId, 'whatsapp');
+
+    // Tenta primeiro via RPC
+    const { error: rpcError } = await supabase.rpc('increment_ad_whatsapp_clicks', { ad_id: adId });
+    if (!rpcError) return currentClicks + 1;
+    console.debug('increment_ad_whatsapp_clicks RPC failed, falling back', rpcError);
 
     // 2. Tenta atualizar whatsapp_clicks_count
     const { error: err1 } = await supabase
@@ -241,6 +251,11 @@ export async function incrementAdWhatsAppClicks(adId: string, currentClicks: num
 
 export async function incrementAdShares(adId: string, currentShares: number = 0) {
   try {
+    // Tenta primeiro via RPC
+    const { error: rpcError } = await supabase.rpc('increment_ad_shares', { ad_id: adId });
+    if (!rpcError) return currentShares + 1;
+    console.debug('increment_ad_shares RPC failed, falling back', rpcError);
+
     const { error } = await supabase
       .from('ads')
       .update({ shares_count: currentShares + 1 })
