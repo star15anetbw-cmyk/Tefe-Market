@@ -37,6 +37,7 @@ const createResilientSupabaseClient = (): SupabaseClient => {
       persistSession: true,
       autoRefreshToken: true, // Permite que o SDK gerencie a renovação do token
       detectSessionInUrl: true,
+      flowType: "pkce",
       storageKey: "tefe-market-auth"
     }
   });

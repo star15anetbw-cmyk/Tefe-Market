@@ -70,58 +70,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     let mounted = true;
-    let authInitialized = false;
 
-    // Safety timeout: libera o loading em no máximo 10 segundos
-    const safetyTimer = setTimeout(() => {
-      if (mounted && !authInitialized) {
-        console.warn('Inicialização demorando demais, forçando renderização');
-        setLoading(false);
+    async function initAuth() {
+      console.log("AUTH_INIT_START");
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        if (!mounted) return;
+        
+        const currentSession = data?.session || null;
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        console.log("AUTH_INIT_SUCCESS");
+
+        if (currentSession?.user) {
+          try {
+            const prof = await fetchProfile(currentSession.user.id);
+            if (mounted) setProfile(prof);
+          } catch (profileErr) {
+            console.warn('Could not fetch profile during init:', profileErr);
+          }
+        }
+      } catch (err: any) {
+        if (isNonCriticalSupabaseError(err)) {
+          console.warn('Silent non-critical error in auth init:', err);
+        } else {
+          console.error('Auth initialization error:', err);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+          console.log("AUTH_INIT_FINISHED");
+        }
       }
-    }, 10000);
+    }
 
-    // supabase.auth.onAuthStateChange already provides INITIAL_SESSION in V2
-    // which effectively acts as our initialization.
+    initAuth();
+
+    // supabase.auth.onAuthStateChange subscription
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("AUTH_STATE_CHANGED", event);
       if (!mounted) return;
       
       const userId = session?.user?.id ?? null;
-      
-      // Ignore redundant SIGNED_IN or other events for the same user if already initialized
-      if (authInitialized && userId === lastLoadedUserIdRef.current && event !== 'USER_UPDATED') {
+      if (userId === lastLoadedUserIdRef.current && event !== 'USER_UPDATED' && event !== 'SIGNED_IN' && event !== 'SIGNED_OUT') {
         return;
       }
       
       lastLoadedUserIdRef.current = userId;
 
       try {
-        if (mounted) {
-          // Compare before setting to avoid redundant renders if session identity changes but content doesn't
-          setSession(prev => {
-            if (prev?.access_token === session?.access_token && prev?.expires_at === session?.expires_at) return prev;
-            return session;
-          });
-          
-          setUser(prev => {
-            if (prev?.id === session?.user?.id && prev?.email === session?.user?.email && prev?.updated_at === session?.user?.updated_at) return prev;
-            return session?.user ?? null;
-          });
-        }
-        
-        // Mark as initialized immediately so the app can start (public pages like Home)
-        // Profile will load in the background
-        if (mounted && !authInitialized) {
-          authInitialized = true;
-          setLoading(false);
-          clearTimeout(safetyTimer);
-        }
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
         
         if (session?.user) {
           try {
             const prof = await fetchProfile(session.user.id);
             if (mounted) setProfile(prof);
           } catch (profileErr) {
-            console.warn('Could not fetch profile, continuing with session only:', profileErr);
+            console.warn('Could not fetch profile on transition, continuing with session only:', profileErr);
             if (mounted) setProfile(null);
           }
         } else {
@@ -129,22 +138,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err: any) {
         if (isNonCriticalSupabaseError(err)) {
-          console.warn('Silent non-critical error in auth change:', err);
+          console.warn('Silent non-critical error in auth change state:', err);
         } else {
-          console.error('Auth update error:', err);
+          console.error('Auth change transition error:', err);
         }
-        
-        if (mounted && !authInitialized) {
-          authInitialized = true;
-          setLoading(false);
-          clearTimeout(safetyTimer);
-        }
+        if (mounted) setLoading(false);
       }
     });
 
     return () => {
       mounted = false;
-      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, []);

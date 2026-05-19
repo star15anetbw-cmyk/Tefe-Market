@@ -164,6 +164,7 @@ export default function Home() {
         abortControllerRef.current.abort();
       }
       console.debug("LOAD_INITIAL_START", { requestId });
+      console.log("HOME_LOAD_ADS_START", { requestId });
       setLoading(true);
       setError(null);
       setLoadingTimeout(false);
@@ -190,17 +191,13 @@ export default function Home() {
       abortControllerRef.current = controller;
     }
 
-    // Backup timeout de segurança (15 segundos)
+    // Backup timeout de segurança (20 segundos)
     const timeoutId = setTimeout(() => {
       if (isMountedRef.current && requestId === requestRef.current) {
-        console.warn("LOAD_ADS_TIMEOUT_TRIGGERED", { requestId });
+        console.warn("LOAD_ADS_TIMEOUT_SLOW", { requestId });
         setLoadingTimeout(true);
-        setLoading(false);
-        setLoadingMore(false);
-        isLoadingRef.current = false;
-        setError("A busca está demorando muito. Tente novamente.");
       }
-    }, 15000);
+    }, 20000);
     
     try {
       const targetPage = isInitial ? 0 : pageRef.current + 1;
@@ -231,6 +228,8 @@ export default function Home() {
         setAds(adsList);
         setPage(0);
         pageRef.current = 0;
+        setLoadingTimeout(false);
+        console.log("HOME_LOAD_ADS_SUCCESS", { count: adsList.length, requestId });
         console.debug("FETCH_ADS_SUCCESS: Initial load finished", { count: adsList.length, requestId });
       } else {
         const returnedAds = Array.isArray(result.ads) ? result.ads : [];
@@ -259,6 +258,7 @@ export default function Home() {
       console.error('FETCH_ADS_ERROR:', err);
       if (isInitial) {
         setError(err.message || 'Não foi possível carregar os anúncios agora.');
+        setLoadingTimeout(false);
       }
     } finally {
       if (isMountedRef.current && requestId === requestRef.current) {
@@ -266,6 +266,7 @@ export default function Home() {
         setLoadingMore(false);
         isLoadingRef.current = false;
         if (isInitial) {
+           console.log("HOME_LOAD_ADS_FINISHED", { requestId });
            console.debug("LOAD_ADS_FINISHED", { requestId });
         }
       }
