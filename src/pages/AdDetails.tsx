@@ -24,6 +24,8 @@ export default function AdDetails() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [copied, setCopied] = useState(false);
+  const loadingDetailRef = useRef(false);
+  const currentAdIdRef = useRef<string | null>(null);
   
   // Anúncios relacionados
   const [relatedAds, setRelatedAds] = useState<Ad[]>([]);
@@ -103,7 +105,7 @@ export default function AdDetails() {
   const loadRelatedAds = async () => {
     if (!ad) return;
     
-    console.log('DETAIL_RELATED_START', { category: ad.category, id: ad.id });
+    console.debug('DETAIL_RELATED_START', { category: ad.category, id: ad.id });
     setRelatedLoading(true);
     hasLoadedRelatedRef.current = ad.id;
 
@@ -118,14 +120,14 @@ export default function AdDetails() {
       
       // 2. Se vier pouco, buscar recentes como fallback
       if (filtered.length < 4) {
-        console.log('DETAIL_RELATED_FALLBACK: Poucos anúncios na categoria, buscando recentes');
+        console.debug('DETAIL_RELATED_FALLBACK: Poucos anúncios na categoria, buscando recentes');
         const recentResult = await fetchAds({ pageSize: 12 });
         const recentAds = (recentResult.ads || []).filter(a => a.id !== ad.id && !filtered.find(f => f.id === a.id));
         filtered = [...filtered, ...recentAds].slice(0, 8);
-        console.log('DETAIL_RELATED_SUCCESS', { count: filtered.length, type: 'fallback' });
+        console.debug('DETAIL_RELATED_SUCCESS', { count: filtered.length, type: 'fallback' });
       } else {
         filtered = filtered.slice(0, 8);
-        console.log('DETAIL_RELATED_SUCCESS', { count: filtered.length, type: 'category' });
+        console.debug('DETAIL_RELATED_SUCCESS', { count: filtered.length, type: 'category' });
       }
       
       setRelatedAds(filtered);
@@ -144,6 +146,14 @@ export default function AdDetails() {
   };
 
   const loadAd = async (adId: string, signal?: AbortSignal) => {
+    if (loadingDetailRef.current && currentAdIdRef.current === adId) {
+      console.debug("DETAIL_LOAD_SKIPPED_ALREADY_LOADING", { adId });
+      return;
+    }
+
+    loadingDetailRef.current = true;
+    currentAdIdRef.current = adId;
+
     console.log("DETAIL_LOAD_START", { adId });
     try {
       setLoading(true);
@@ -157,7 +167,7 @@ export default function AdDetails() {
       const data = await fetchAdById(adId, signal);
       
       if (signal?.aborted) {
-        console.log("DETAIL_LOAD_ABORTED_SIGNAL", { adId });
+        console.debug("DETAIL_LOAD_ABORTED_SIGNAL", { adId });
         return;
       }
       
@@ -200,8 +210,13 @@ export default function AdDetails() {
         console.log("DETAIL_LOAD_NOT_FOUND", { adId });
       }
     } catch (err: any) {
-      if (err.name === 'AbortError' || signal?.aborted) {
-        console.log("DETAIL_LOAD_ABORTED_CATCH", { adId });
+      if (
+        err?.name === 'AbortError' || 
+        signal?.aborted || 
+        err?.message?.includes('AbortError') || 
+        err?.message?.includes('signal is aborted')
+      ) {
+        console.debug("DETAIL_LOAD_ABORTED_IGNORED", { adId });
         return;
       }
       if (isNonCriticalSupabaseError(err)) return;
@@ -209,6 +224,7 @@ export default function AdDetails() {
       setAd(null);
       setNotFound(true);
     } finally {
+      loadingDetailRef.current = false;
       if (!signal?.aborted && (!authLoading || !signal)) {
         setLoading(false);
         console.log("DETAIL_LOAD_FINISHED", { adId });
