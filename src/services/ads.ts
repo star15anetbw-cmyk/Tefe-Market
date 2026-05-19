@@ -18,13 +18,13 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     }
 
     // Filtros
-    console.log('FETCH_ADS_INPUT', { filter });
+    console.debug('FETCH_ADS_INPUT', { filter });
 
     if (filter.search) {
       const s = filter.search.trim();
       if (s) {
         const term = `%${s}%`;
-        console.log('QUERY_STEP: filter by search=' + s);
+        console.debug('QUERY_STEP: filter by search=' + s);
         query = query.or(`title.ilike.${term},description.ilike.${term},neighborhood.ilike.${term}`);
       }
     }
@@ -37,23 +37,23 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
         'servicos', 'servico', 'service'
       ].includes(normalizedCat);
       
-      console.log('CATEGORY_FILTER_NORMALIZATION', {
+      console.debug('CATEGORY_FILTER_NORMALIZATION', {
         original: filter.category,
         normalized: normalizedCat,
         isServiceSearch
       });
 
       if (isServiceSearch) {
-        console.log('QUERY_STEP: filter by ad_type=service');
+        console.debug('QUERY_STEP: filter by ad_type=service');
         query = query.eq('ad_type', 'service');
       } else {
-        console.log('QUERY_STEP: filter by category=' + filter.category);
+        console.debug('QUERY_STEP: filter by category=' + filter.category);
         query = query.eq('category', filter.category);
       }
     }
 
     if (filter.type && filter.type !== 'all') {
-      console.log('QUERY_STEP: filter by ad_type=' + filter.type);
+      console.debug('QUERY_STEP: filter by ad_type=' + filter.type);
       query = query.eq('ad_type', filter.type);
     }
 
@@ -77,7 +77,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
 
     const { data, error, count } = await query;
 
-    console.log('FETCH_ADS_RESULT', {
+    console.debug('FETCH_ADS_RESULT', {
       countReturned: data?.length || 0,
       totalCount: count,
       firstAdCategory: data?.[0]?.category,
@@ -86,7 +86,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
 
     if (error) {
       if (signal?.aborted || error?.name === 'AbortError' || error?.message?.includes('AbortError') || error?.message?.includes('signal is aborted')) {
-        console.warn("FETCH_ADS_ABORTED_IGNORED", error);
+        console.debug("FETCH_ADS_ABORTED_IGNORED", error);
         return { ads: [], totalCount: 0, hasMore: false };
       }
       if (isNonCriticalSupabaseError(error) && retryCount < 1) {
@@ -113,7 +113,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     };
   } catch (err: any) {
     if (signal?.aborted || err?.name === 'AbortError' || err?.message?.includes('AbortError') || err?.message?.includes('signal is aborted')) {
-      console.warn("FETCH_ADS_ABORTED_IGNORED", err);
+      console.debug("FETCH_ADS_ABORTED_IGNORED", err);
       return { ads: [], totalCount: 0, hasMore: false };
     }
 

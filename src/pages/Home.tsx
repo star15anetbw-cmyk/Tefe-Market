@@ -163,20 +163,20 @@ export default function Home() {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      console.log("LOAD_INITIAL_START", { requestId });
+      console.debug("LOAD_INITIAL_START", { requestId });
       setLoading(true);
       setError(null);
       setLoadingTimeout(false);
       setPage(0);
       pageRef.current = 0;
     } else {
-      console.log("LOAD_MORE_CLICK", { requestId });
+      console.debug("LOAD_MORE_CLICK", { requestId });
       setLoadingMore(true);
     }
     
     isLoadingRef.current = true;
 
-    console.log("FETCH_ADS_INPUT", { 
+    console.debug("FETCH_ADS_INPUT", { 
       category: filters.category,
       type: filters.type,
       search: filters.search,
@@ -222,7 +222,7 @@ export default function Home() {
       if (!isMountedRef.current) return;
 
       if (requestId !== requestRef.current) {
-        console.log(`LOAD_ADS_STALE: Request ${requestId} ignored`);
+        console.debug(`LOAD_ADS_STALE: Request ${requestId} ignored`);
         return;
       }
       
@@ -231,7 +231,7 @@ export default function Home() {
         setAds(adsList);
         setPage(0);
         pageRef.current = 0;
-        console.log("FETCH_ADS_SUCCESS: Initial load finished", { count: adsList.length, requestId });
+        console.debug("FETCH_ADS_SUCCESS: Initial load finished", { count: adsList.length, requestId });
       } else {
         const returnedAds = Array.isArray(result.ads) ? result.ads : [];
         setAds(prev => {
@@ -241,7 +241,7 @@ export default function Home() {
         });
         setPage(targetPage);
         pageRef.current = targetPage;
-        console.log("FETCH_ADS_SUCCESS: Load more finished", { count: returnedAds.length, requestId });
+        console.debug("FETCH_ADS_SUCCESS: Load more finished", { count: returnedAds.length, requestId });
       }
       
       setTotalCount(result.totalCount || 0);
@@ -252,7 +252,7 @@ export default function Home() {
       if (requestId !== requestRef.current) return;
       
       if (err.name === 'AbortError' || err?.message?.includes('AbortError') || err?.message?.includes('signal is aborted')) {
-        console.warn("FETCH_ADS_ABORTED_IGNORED", err);
+        console.debug("FETCH_ADS_ABORTED_IGNORED", err);
         return;
       }
       
@@ -266,7 +266,7 @@ export default function Home() {
         setLoadingMore(false);
         isLoadingRef.current = false;
         if (isInitial) {
-           console.log("LOAD_ADS_FINISHED", { requestId });
+           console.debug("LOAD_ADS_FINISHED", { requestId });
         }
       }
     }
@@ -319,7 +319,7 @@ export default function Home() {
   }, [location.state, location.pathname, resetHomeFilters, navigate]);
 
   useEffect(() => {
-    console.log("HOME_EFFECT_TRIGGERED");
+    console.debug("HOME_EFFECT_TRIGGERED");
     
     const filterSnapshot = JSON.stringify({
       c: filters.category,
