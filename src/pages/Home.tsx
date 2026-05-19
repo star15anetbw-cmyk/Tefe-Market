@@ -89,7 +89,21 @@ export default function Home() {
     sortBy: 'recommended'
   });
 
-  const filters = React.useMemo(() => filtersState, [filtersState]);
+  const filters = React.useMemo(() => ({
+    category: filtersState.category,
+    type: filtersState.type,
+    sortBy: filtersState.sortBy,
+    condition: filtersState.condition,
+    search: filtersState.search,
+    neighborhood: filtersState.neighborhood
+  }), [
+    filtersState.category,
+    filtersState.type,
+    filtersState.sortBy,
+    filtersState.condition,
+    filtersState.search,
+    filtersState.neighborhood
+  ]);
   const isLoadingRef = useRef(false);
   const isMountedRef = useRef(true);
 
@@ -148,21 +162,29 @@ export default function Home() {
   const lastFilterSnapshotRef = useRef("");
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestRef = useRef(0);
+  const loadingAdsRef = useRef(false);
+  const lastRequestIdRef = useRef(0);
 
   const loadAdsData = useCallback(async (isInitial = true) => {
-    const requestId = ++requestRef.current;
-    
-    // Evita múltiplas chamadas simultâneas para paginação
-    if (!isInitial && (loading || loadingMore || isLoadingRef.current)) {
-      console.log("LOAD_MORE_BLOCKED: Already loading");
+    if (loadingAdsRef.current && !isInitial) {
+      console.warn("HOME_LOAD_ADS_SKIPPED_ALREADY_LOADING");
       return;
     }
 
-    // Se for um novo carregamento inicial, abortamos o anterior se existir
-    if (isInitial) {
+    if (isInitial && loadingAdsRef.current) {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      loadingAdsRef.current = false;
+    }
+
+    const requestId = ++lastRequestIdRef.current;
+    requestRef.current = requestId;
+    loadingAdsRef.current = true;
+    isLoadingRef.current = true;
+
+    // Se for um novo carregamento inicial, resetamos a página
+    if (isInitial) {
       console.debug("LOAD_INITIAL_START", { requestId });
       console.log("HOME_LOAD_ADS_START", { requestId });
       setLoading(true);
@@ -174,8 +196,6 @@ export default function Home() {
       console.debug("LOAD_MORE_CLICK", { requestId });
       setLoadingMore(true);
     }
-    
-    isLoadingRef.current = true;
 
     console.debug("FETCH_ADS_INPUT", { 
       category: filters.category,
@@ -193,7 +213,7 @@ export default function Home() {
 
     // Backup timeout de segurança (20 segundos)
     const timeoutId = setTimeout(() => {
-      if (isMountedRef.current && requestId === requestRef.current) {
+      if (isMountedRef.current && requestId === lastRequestIdRef.current) {
         console.warn("LOAD_ADS_TIMEOUT_SLOW", { requestId });
         setLoadingTimeout(true);
       }
@@ -218,8 +238,8 @@ export default function Home() {
 
       if (!isMountedRef.current) return;
 
-      if (requestId !== requestRef.current) {
-        console.debug(`LOAD_ADS_STALE: Request ${requestId} ignored`);
+      if (requestId !== lastRequestIdRef.current) {
+        console.warn("HOME_LOAD_ADS_IGNORED_OLD_REQUEST", { requestId });
         return;
       }
       
@@ -248,23 +268,24 @@ export default function Home() {
       setError(null);
     } catch (err: any) {
       clearTimeout(timeoutId);
-      if (requestId !== requestRef.current) return;
+      if (requestId !== lastRequestIdRef.current) return;
       
       if (err.name === 'AbortError' || err?.message?.includes('AbortError') || err?.message?.includes('signal is aborted')) {
         console.debug("FETCH_ADS_ABORTED_IGNORED", err);
         return;
       }
       
-      console.error('FETCH_ADS_ERROR:', err);
+      console.error('HOME_LOAD_ADS_ERROR:', err);
       if (isInitial) {
         setError(err.message || 'Não foi possível carregar os anúncios agora.');
         setLoadingTimeout(false);
       }
     } finally {
-      if (isMountedRef.current && requestId === requestRef.current) {
+      if (isMountedRef.current && requestId === lastRequestIdRef.current) {
         setLoading(false);
         setLoadingMore(false);
         isLoadingRef.current = false;
+        loadingAdsRef.current = false;
         if (isInitial) {
            console.log("HOME_LOAD_ADS_FINISHED", { requestId });
            console.debug("LOAD_ADS_FINISHED", { requestId });
@@ -362,7 +383,7 @@ export default function Home() {
     if (loading) {
       timer = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 5000);
+      }, 20000);
     } else {
       setLoadingTimeout(false);
     }
