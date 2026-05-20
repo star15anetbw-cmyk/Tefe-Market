@@ -160,6 +160,7 @@ export default function Home() {
   const pageRef = useRef(0);
   const initialLoadDoneRef = useRef(false);
   const lastFilterSnapshotRef = useRef("");
+  const lastLoadedFilterKeyRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestRef = useRef(0);
   const loadingAdsRef = useRef(false);
@@ -340,24 +341,15 @@ export default function Home() {
     }
   }, [location.state, location.pathname, resetHomeFilters, navigate]);
 
-  useEffect(() => {
-    console.debug("HOME_EFFECT_TRIGGERED");
-    
-    const filterSnapshot = JSON.stringify({
-      c: filters.category,
-      t: filters.type,
-      s: filters.sortBy,
-      cd: filters.condition,
-      sr: filters.search,
-      n: filters.neighborhood
-    });
+  const filterKey = React.useMemo(() => JSON.stringify(filters), [filters]);
 
-    // Skip if filters haven't changed and the active request hasn't been aborted (supports StrictMode and rapid rendering safely)
-    if (initialLoadDoneRef.current && lastFilterSnapshotRef.current === filterSnapshot && abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+  useEffect(() => {
+    if (lastLoadedFilterKeyRef.current === filterKey && initialLoadDoneRef.current) {
+      console.debug("HOME_LOAD_ADS_SKIPPED_SAME_FILTER", { filterKey });
       return;
     }
 
-    lastFilterSnapshotRef.current = filterSnapshot;
+    lastLoadedFilterKeyRef.current = filterKey;
     initialLoadDoneRef.current = true;
     
     loadInitialAds();
@@ -367,15 +359,7 @@ export default function Home() {
         abortControllerRef.current.abort();
       }
     };
-  }, [
-    filters.category, 
-    filters.type, 
-    filters.sortBy, 
-    filters.condition, 
-    filters.search, 
-    filters.neighborhood, 
-    loadInitialAds
-  ]);
+  }, [filterKey, loadInitialAds]);
 
   // Watch for long loading states
   useEffect(() => {
@@ -673,6 +657,7 @@ export default function Home() {
               <Button onClick={() => {
                 setError(null);
                 isLoadingRef.current = false;
+                lastLoadedFilterKeyRef.current = null;
                 loadInitialAds();
               }} className="rounded-2xl px-10">Tentar Novamente</Button>
             </div>
