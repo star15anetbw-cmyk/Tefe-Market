@@ -25,9 +25,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isConfigured, setIsConfigured] = useState(true);
-  const lastLoadedUserIdRef = React.useRef<string | null>(null);
 
   const fetchProfile = async (userId: string, retries = 3) => {
     for (let i = 0; i < retries; i++) {
@@ -65,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     if (!isActuallyConfigured) {
       setIsConfigured(false);
-      setLoading(false);
+      setAuthLoading(false);
       return;
     }
 
@@ -83,15 +84,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         console.log("AUTH_INIT_SUCCESS");
-
-        if (currentSession?.user) {
-          try {
-            const prof = await fetchProfile(currentSession.user.id);
-            if (mounted) setProfile(prof);
-          } catch (profileErr) {
-            console.warn('Could not fetch profile during init:', profileErr);
-          }
-        }
       } catch (err: any) {
         if (isNonCriticalSupabaseError(err)) {
           console.warn('Silent non-critical error in auth init:', err);
@@ -100,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         if (mounted) {
-          setLoading(false);
+          setAuthLoading(false);
           console.log("AUTH_INIT_FINISHED");
         }
       }
@@ -109,41 +101,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth();
 
     // supabase.auth.onAuthStateChange subscription
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("AUTH_STATE_CHANGED", event);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.debug("AUTH_STATE_CHANGED", event);
       if (!mounted) return;
-      
-      const userId = session?.user?.id ?? null;
-      if (userId === lastLoadedUserIdRef.current && event !== 'USER_UPDATED' && event !== 'SIGNED_IN' && event !== 'SIGNED_OUT') {
-        return;
-      }
-      
-      lastLoadedUserIdRef.current = userId;
 
-      try {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-        
-        if (session?.user) {
-          try {
-            const prof = await fetchProfile(session.user.id);
-            if (mounted) setProfile(prof);
-          } catch (profileErr) {
-            console.warn('Could not fetch profile on transition, continuing with session only:', profileErr);
-            if (mounted) setProfile(null);
-          }
-        } else {
-          if (mounted) setProfile(null);
-        }
-      } catch (err: any) {
-        if (isNonCriticalSupabaseError(err)) {
-          console.warn('Silent non-critical error in auth change state:', err);
-        } else {
-          console.error('Auth change transition error:', err);
-        }
-        if (mounted) setLoading(false);
-      }
+      setSession(session);
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
     });
 
     return () => {
@@ -152,13 +116,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProfile() {
+      if (!user?.id) {
+        setProfile(null);
+        setIsAdmin(false);
+        setProfileLoading(false);
+        return;
+      }
+
+      setProfileLoading(true);
+
+      try {
+        console.debug("PROFILE_LOAD_START", { userId: user.id });
+        const prof = await fetchProfile(user.id);
+
+        if (cancelled) return;
+
+        setProfile(prof);
+        setIsAdmin(prof?.role === 'admin');
+        console.debug("PROFILE_LOAD_SUCCESS", {
+          userId: user.id,
+          role: prof?.role
+        });
+      } catch (error) {
+        if (cancelled) return;
+
+        console.warn("PROFILE_LOAD_ERROR", error);
+        setProfile(null);
+        setIsAdmin(false);
+      } finally {
+        if (!cancelled) {
+          setProfileLoading(false);
+          console.debug("PROFILE_LOAD_FINISHED", { userId: user.id });
+        }
+      }
+    }
+
+    loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const loading = authLoading || (!!user && profileLoading);
+
   const value = {
     user,
     profile,
     session,
     loading,
     isConfigured,
-    isAdmin: profile?.role === 'admin',
+    isAdmin,
     signIn: async (credentials: SignInWithPasswordCredentials) => {
       const { error } = await supabase.auth.signInWithPassword(credentials);
       if (error) throw new Error(mapAuthError(error));
@@ -191,6 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (user) {
         const prof = await fetchProfile(user.id);
         setProfile(prof);
+        setIsAdmin(prof?.role === 'admin');
       }
     }
   };
