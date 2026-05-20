@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchAdminStats, fetchAdminAds, updateAdStatus, toggleAdVerification, toggleAdFeature } from '../services/ads';
 import { formatPrice, formatDate, cn, handleImageError } from '../lib/utils';
 import { CATEGORIES, NEIGHBORHOODS } from '../constants';
-import { Shield, Package, AlertTriangle, Eye, Trash2, Edit2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, LayoutGrid, BadgeCheck, Star, XCircle, ShoppingBag, ExternalLink, RefreshCw, Share2, QrCode } from 'lucide-react';
+import { Shield, Package, AlertTriangle, Eye, Trash2, Edit2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, LayoutGrid, BadgeCheck, Star, XCircle, ShoppingBag, ExternalLink, RefreshCw, Share2, QrCode, Copy } from 'lucide-react';
 import Button from '../components/ui/Button';
 
 export default function AdminDashboard() {
@@ -724,6 +724,7 @@ const AdTableRow = React.memo(({
 });
 
 const AdReportModal = React.memo(({ ad, onClose }: { ad: any, onClose: () => void }) => {
+  const [copied, setCopied] = React.useState(false);
   const views = Number(ad.views_count ?? ad.views ?? 0) || 0;
   const whatsapp = Number(ad.whatsapp_clicks_count ?? ad.interests ?? 0) || 0;
   const shares = Number(ad.shares_count ?? 0) || 0;
@@ -734,6 +735,38 @@ const AdReportModal = React.memo(({ ad, onClose }: { ad: any, onClose: () => voi
     : isStrongCandidate
       ? 'Bom candidato para destaque: ja recebeu atencao e pode gerar mais contatos com prioridade.'
       : 'Ainda precisa ganhar tracao. Melhorar foto, titulo ou divulgar por QR antes de vender destaque.';
+  const adUrl = `${window.location.origin}/anuncio/${ad.id}`;
+  const reportText = [
+    `Relatorio do seu anuncio no Tefe Market: ${ad.title || 'Sem titulo'}`,
+    '',
+    `${views} visualizacoes`,
+    `${whatsapp} cliques no WhatsApp`,
+    `${shares} compartilhamentos`,
+    `${interestRate}% taxa de interesse`,
+    '',
+    `Sugestao: ${suggestion}`,
+    '',
+    `Veja o anuncio: ${adUrl}`
+  ].join('\n');
+
+  const handleCopyReport = async () => {
+    try {
+      await navigator.clipboard.writeText(reportText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      const textArea = document.createElement('textarea');
+      textArea.value = reportText;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/50 p-4 backdrop-blur-sm md:items-center">
@@ -785,6 +818,13 @@ const AdReportModal = React.memo(({ ad, onClose }: { ad: any, onClose: () => voi
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
+          <Button
+            onClick={handleCopyReport}
+            variant="outline"
+            className="flex items-center gap-2 rounded-2xl bg-white"
+          >
+            <Copy className="h-4 w-4" /> {copied ? 'Copiado' : 'Copiar resumo'}
+          </Button>
           <Link to={`/anuncio/${ad.id}`} target="_blank">
             <Button variant="outline" className="flex items-center gap-2 rounded-2xl bg-white">
               <ExternalLink className="h-4 w-4" /> Ver anuncio
