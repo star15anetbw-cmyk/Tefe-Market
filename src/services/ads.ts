@@ -7,6 +7,8 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
   const pageSize = filter.pageSize || 12;
   const page = filter.page || 0;
   
+  console.debug("FETCH_ADS_INPUT", { filter });
+  
   try {
     let query = supabase
       .from('ads')
@@ -16,9 +18,6 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     if (signal) {
       query = query.abortSignal(signal);
     }
-
-    // Filtros
-    console.log("FETCH_ADS_INPUT", { filter });
 
     if (filter.search) {
       const s = filter.search.trim();
@@ -78,16 +77,29 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     const to = from + pageSize - 1;
     query = query.range(from, to);
 
-    const { data, error, count } = await query;
+    // Timeout seguro de 15 segundos para a consulta do Supabase
+    const timeoutPromise = new Promise<{ data: any[] | null, error: any, count: number | null }>((resolve) => {
+      setTimeout(() => {
+        console.warn("FETCH_ADS_TIMEOUT");
+        resolve({ data: [], error: { message: "FETCH_ADS_TIMEOUT" }, count: 0 });
+      }, 15000);
+    });
+
+    const { data, error, count } = await Promise.race([
+      query,
+      timeoutPromise
+    ]);
 
     console.debug('FETCH_ADS_RESULT', {
       countReturned: data?.length || 0,
       totalCount: count,
-      firstAdCategory: data?.[0]?.category,
-      allCategories: Array.from(new Set(data?.map(a => a.category) || []))
+      error
     });
 
     if (error) {
+      if (error?.message === "FETCH_ADS_TIMEOUT") {
+        return { ads: [], totalCount: 0, hasMore: false };
+      }
       if (signal?.aborted || error?.name === 'AbortError' || error?.message?.includes('AbortError') || error?.message?.includes('signal is aborted')) {
         console.debug("FETCH_ADS_ABORTED_IGNORED", error);
         return { ads: [], totalCount: 0, hasMore: false };
@@ -126,11 +138,10 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       return fetchAds(filter, signal, retryCount + 1);
     }
 
-    if (isNonCriticalSupabaseError(err)) {
-      throw err;
-    }
     console.error('Unexpected error in fetchAds:', err);
-    throw err;
+    return { ads: [], totalCount: 0, hasMore: false };
+  } finally {
+    console.debug("FETCH_ADS_FINISHED");
   }
 }
 
