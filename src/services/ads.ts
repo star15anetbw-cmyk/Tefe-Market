@@ -19,7 +19,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
   };
   
   console.debug("FETCH_ADS_INPUT", { filter });
-  console.debug("FETCH_ADS_CLEAN_FILTER", cleanFilter);
+  console.log("FETCH_ADS_CLEAN_FILTER", cleanFilter);
   
   try {
     let query = supabase
@@ -84,6 +84,15 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     // Paginação
     const from = page * pageSize;
     const to = from + pageSize - 1;
+    console.log("FETCH_ADS_QUERY_CONFIG", {
+      page,
+      pageSize,
+      sortBy: cleanFilter.sortBy,
+      isDefaultHome: !cleanFilter.category && !cleanFilter.type && !cleanFilter.condition && !cleanFilter.neighborhood && !cleanFilter.search,
+      statusApplied: true,
+      from,
+      to
+    });
     query = query.range(from, to);
 
     // Timeout seguro de 15 segundos para a consulta do Supabase
@@ -103,6 +112,14 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       countReturned: data?.length || 0,
       totalCount: count,
       error
+    });
+    if (error) {
+      console.error("FETCH_ADS_SUPABASE_ERROR", error);
+    }
+    console.log("FETCH_ADS_RAW_DATA", {
+      returned: data?.length,
+      count,
+      first: data?.[0]
     });
     console.log("FETCH_ADS_RESULT_COUNT", {
       countReturned: data?.length || 0,
