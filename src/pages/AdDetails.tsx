@@ -14,7 +14,7 @@ import { getOrCreateChat } from '../services/chat';
 
 export default function AdDetails() {
   const { id } = useParams<{ id: string }>();
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   
   const [ad, setAd] = useState<Ad | null>(null);
@@ -83,17 +83,33 @@ export default function AdDetails() {
   }, [id]);
 
   useEffect(() => {
-    const controller = new AbortController();
     if (id) {
-      loadAd(id, controller.signal);
-      if (user) {
-        checkIsFavorited(user.id, id).then(setIsFavorited);
-      }
+      loadAd(id);
     } else {
+      currentAdIdRef.current = null;
+      loadingDetailRef.current = false;
       setLoading(false);
     }
-    return () => controller.abort();
-  }, [id, user, isAdmin]);
+  }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!id || !user?.id) {
+      setIsFavorited(false);
+      return;
+    }
+
+    checkIsFavorited(user.id, id)
+      .then((favorited) => {
+        if (!cancelled) setIsFavorited(favorited);
+      })
+      .catch((error) => console.debug('Favorite status error ignored', error));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, user?.id]);
 
   // Carregar anúncios relacionados quando o anúncio principal estiver pronto
   useEffect(() => {
@@ -145,7 +161,7 @@ export default function AdDetails() {
     }
   };
 
-  const loadAd = async (adId: string, signal?: AbortSignal) => {
+  const loadAd = async (adId: string) => {
     if (loadingDetailRef.current && currentAdIdRef.current === adId) {
       console.debug("DETAIL_LOAD_SKIPPED_ALREADY_LOADING", { adId });
       return;
@@ -164,16 +180,10 @@ export default function AdDetails() {
         setAd(null);
       }
 
-      const data = await fetchAdById(adId, signal);
+      const data = await fetchAdById(adId);
       
-      if (signal?.aborted) {
-        console.debug("DETAIL_LOAD_ABORTED_SIGNAL", { adId });
-        return;
-      }
-      
-      // Se não encontrou o anúncio, mas o auth ainda está carregando, 
-      // esperamos o auth terminar antes de dar o veredito (pode ser admin vendo removed)
-      if (!data && authLoading) {
+      if (currentAdIdRef.current !== adId) {
+        console.debug("DETAIL_LOAD_STALE_IGNORED", { adId, currentAdId: currentAdIdRef.current });
         return;
       }
       
@@ -184,24 +194,28 @@ export default function AdDetails() {
         console.log("DETAIL_LOAD_SUCCESS", { adId });
 
         // Record view if not already counted in this session
-        const sessionKey = `viewed_ad_${adId}`;
-        const alreadyViewed = sessionStorage.getItem(sessionKey);
-        
-        if (!alreadyViewed) {
-          sessionStorage.setItem(sessionKey, 'true');
-          const viewsToUse = data.views_count ?? data.views ?? 0;
-          incrementAdViewsCount(adId, viewsToUse).then(newViews => {
-            setAd(prev => {
-              if (prev && prev.id === adId) {
-                return {
-                  ...prev,
-                  views_count: newViews,
-                  views: newViews
-                };
-              }
-              return prev;
-            });
-          }).catch(e => console.debug('View counting error ignored', e));
+        try {
+          const sessionKey = `viewed_ad_${adId}`;
+          const alreadyViewed = sessionStorage.getItem(sessionKey);
+
+          if (!alreadyViewed) {
+            sessionStorage.setItem(sessionKey, 'true');
+            const viewsToUse = data.views_count ?? data.views ?? 0;
+            incrementAdViewsCount(adId, viewsToUse).then(newViews => {
+              setAd(prev => {
+                if (prev && prev.id === adId) {
+                  return {
+                    ...prev,
+                    views_count: newViews,
+                    views: newViews
+                  };
+                }
+                return prev;
+              });
+            }).catch(e => console.debug('View counting error ignored', e));
+          }
+        } catch (viewError) {
+          console.debug('View counting setup error ignored', viewError);
         }
       } else {
         setAd(null);
@@ -212,7 +226,6 @@ export default function AdDetails() {
     } catch (err: any) {
       if (
         err?.name === 'AbortError' || 
-        signal?.aborted || 
         err?.message?.includes('AbortError') || 
         err?.message?.includes('signal is aborted')
       ) {
@@ -224,10 +237,12 @@ export default function AdDetails() {
       setAd(null);
       setNotFound(true);
     } finally {
-      loadingDetailRef.current = false;
-      if (!signal?.aborted && (!authLoading || !signal)) {
+      if (currentAdIdRef.current === adId) {
+        loadingDetailRef.current = false;
         setLoading(false);
         console.log("DETAIL_LOAD_FINISHED", { adId });
+      } else {
+        console.debug("DETAIL_LOAD_FINISHED_STALE", { adId, currentAdId: currentAdIdRef.current });
       }
     }
   };
@@ -253,7 +268,7 @@ export default function AdDetails() {
     }
   };
 
-  if (loading || authLoading) return (
+  if (loading) return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
       <div className="flex items-center justify-between mb-6">
         <div className="h-6 bg-gray-100 rounded w-20"></div>

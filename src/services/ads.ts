@@ -155,6 +155,8 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
 }
 
 export async function fetchAdById(id: string, signal?: AbortSignal) {
+  console.log("DETAIL_FETCH_INPUT", { adId: id });
+
   try {
     let query = supabase
       .from('ads')
@@ -168,10 +170,17 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
     const { data, error } = await query.maybeSingle();
 
     if (error) {
+      console.error("DETAIL_FETCH_ERROR", error);
       if (isNonCriticalSupabaseError(error)) throw error;
       console.error('Supabase error fetching ad by id:', error);
       throw error;
     }
+
+    console.log("DETAIL_FETCH_SUCCESS", {
+      adId: id,
+      found: Boolean(data),
+      status: data?.status
+    });
 
     if (!data) return null;
 
@@ -181,11 +190,27 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
     let shares_count = 0;
 
     try {
-      const { data: socialProof, error: spError } = await supabase
-        .from('ads')
-        .select('views_count, whatsapp_clicks_count, shares_count')
-        .eq('id', id)
-        .maybeSingle();
+      const socialProofResult = await Promise.race([
+        supabase
+          .from('ads')
+          .select('views_count, whatsapp_clicks_count, shares_count')
+          .eq('id', id)
+          .maybeSingle()
+          .then(result => ({ ...result, timedOut: false })),
+        new Promise<{ data: null; error: null; timedOut: true }>((resolve) => {
+          setTimeout(() => resolve({ data: null, error: null, timedOut: true }), 1500);
+        })
+      ]) as {
+        data: { views_count?: number; whatsapp_clicks_count?: number; shares_count?: number } | null;
+        error: unknown;
+        timedOut: boolean;
+      };
+
+      if (socialProofResult.timedOut) {
+        console.debug("DETAIL_SOCIAL_PROOF_TIMEOUT", { adId: id });
+      }
+
+      const { data: socialProof, error: spError } = socialProofResult;
 
       if (!spError && socialProof) {
         views_count = socialProof.views_count ?? (data.views || 0);
@@ -207,9 +232,12 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
 
     return ad as Ad;
   } catch (err: any) {
+    console.error("DETAIL_FETCH_ERROR", err);
     if (isNonCriticalSupabaseError(err)) throw err;
     console.error('Unexpected error in fetchAdById:', err);
     throw err;
+  } finally {
+    console.log("DETAIL_FETCH_FINISHED", { adId: id });
   }
 }
 
