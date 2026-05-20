@@ -595,6 +595,15 @@ function isMissingMetricColumnError(error: any) {
   );
 }
 
+function logSupabaseQueryError(context: string, error: any) {
+  console.error(context, {
+    message: error?.message,
+    details: error?.details,
+    hint: error?.hint,
+    code: error?.code
+  });
+}
+
 export async function fetchTrafficStats(signal?: AbortSignal): Promise<{ qrCartao: number; qrUnicos: number }> {
   try {
     let query = supabase
@@ -628,35 +637,53 @@ export async function fetchAdminStats(signal?: AbortSignal) {
   try {
     let query = supabase
       .from('ads')
-      .select('status, ad_type, is_external, views, interests, views_count, whatsapp_clicks_count, shares_count');
+      .select('id, status, ad_type, views, interests');
     
     if (signal instanceof AbortSignal) query = query.abortSignal(signal);
 
-    const { data: adsWithMetrics, error: adsError } = await query;
-    let ads = (adsWithMetrics || []) as any[];
+    const { data: baseAds, error: adsError } = await query;
 
     if (adsError) {
-      if (!isMissingMetricColumnError(adsError)) {
-        if (isNonCriticalSupabaseError(adsError)) return null;
-        throw adsError;
-      }
-
-      console.debug('Admin stats metric columns unavailable, falling back to legacy fields.', adsError);
-
-      let fallbackQuery = supabase
-        .from('ads')
-        .select('status, ad_type, is_external, views, interests');
-
-      if (signal instanceof AbortSignal) fallbackQuery = fallbackQuery.abortSignal(signal);
-
-      const fallbackResult = await fallbackQuery;
-      if (fallbackResult.error) {
-        if (isNonCriticalSupabaseError(fallbackResult.error)) return null;
-        throw fallbackResult.error;
-      }
-
-      ads = (fallbackResult.data || []) as any[];
+      logSupabaseQueryError('Supabase base error in fetchAdminStats', adsError);
+      if (isNonCriticalSupabaseError(adsError)) return null;
+      throw adsError;
     }
+
+    const ads = (baseAds || []) as any[];
+    const mergeStatsById = (rows: any[] | null | undefined) => {
+      const byId = new Map<string, any>();
+      (rows || []).forEach(row => {
+        if (row?.id) byId.set(row.id, row);
+      });
+
+      ads.forEach(ad => {
+        const extra = byId.get(ad.id);
+        if (extra) Object.assign(ad, extra);
+      });
+    };
+
+    const fetchOptionalStatsFields = async (label: string, select: string) => {
+      let optionalQuery = supabase
+        .from('ads')
+        .select(select);
+
+      if (signal instanceof AbortSignal) optionalQuery = optionalQuery.abortSignal(signal);
+
+      const { data, error } = await optionalQuery;
+      if (error) {
+        logSupabaseQueryError(`Optional admin stats query failed: ${label}`, error);
+        return;
+      }
+
+      mergeStatsById(data as any[]);
+    };
+
+    await fetchOptionalStatsFields(
+      'metricas novas',
+      'id, views_count, whatsapp_clicks_count, shares_count'
+    );
+
+    await fetchOptionalStatsFields('flags externas', 'id, is_external');
 
     let usersQuery = supabase
       .from('profiles')
@@ -665,9 +692,10 @@ export async function fetchAdminStats(signal?: AbortSignal) {
     if (signal instanceof AbortSignal) usersQuery = usersQuery.abortSignal(signal);
 
     const { count: usersCount, error: usersError } = await usersQuery;
+    let safeUsersCount = usersCount || 0;
     if (usersError) {
-      if (isNonCriticalSupabaseError(usersError)) return null;
-      throw usersError;
+      logSupabaseQueryError('Optional admin users count failed', usersError);
+      safeUsersCount = 0;
     }
 
     let clicksQuery = supabase
@@ -677,9 +705,10 @@ export async function fetchAdminStats(signal?: AbortSignal) {
     if (signal instanceof AbortSignal) clicksQuery = clicksQuery.abortSignal(signal);
 
     const { data: clicks, error: clicksError } = await clicksQuery;
+    let safeClicks = clicks || [];
     if (clicksError) {
-      if (isNonCriticalSupabaseError(clicksError)) return null;
-      throw clicksError;
+      logSupabaseQueryError('Optional admin clicks count failed', clicksError);
+      safeClicks = [];
     }
 
     const trafficStats = await fetchTrafficStats(signal);
@@ -698,8 +727,8 @@ export async function fetchAdminStats(signal?: AbortSignal) {
       totalViews: ads.reduce((sum, ad) => sum + getMetric(ad.views_count, ad.views), 0),
       totalWhatsAppClicks: ads.reduce((sum, ad) => sum + getMetric(ad.whatsapp_clicks_count, ad.interests), 0),
       totalShares: ads.reduce((sum, ad) => sum + getMetric(ad.shares_count), 0),
-      totalUsers: usersCount || 0,
-      totalClicks: clicks?.length || 0,
+      totalUsers: safeUsersCount,
+      totalClicks: safeClicks.length,
       qrCartao: trafficStats.qrCartao,
       qrUnicos: trafficStats.qrUnicos
     };
@@ -715,45 +744,71 @@ export async function fetchAdminStats(signal?: AbortSignal) {
 export async function fetchAdminAds(signal?: AbortSignal) {
   try {
     console.log('FETCHING_ADMIN_ADS...');
-    const selectWithMetrics = 'id, title, description, price, category, neighborhood, ad_type, status, views, interests, views_count, whatsapp_clicks_count, shares_count, is_external, is_verified, is_featured, external_seller_name, external_seller_phone, created_at, ad_images(image_url), profiles(name, phone, whatsapp, avatar_url, role)';
-    const selectLegacy = 'id, title, description, price, category, neighborhood, ad_type, status, views, interests, is_external, is_verified, is_featured, external_seller_name, external_seller_phone, created_at, ad_images(image_url), profiles(name, phone, whatsapp, avatar_url, role)';
+    const baseSelect = 'id, title, description, price, category, neighborhood, ad_type, status, views, interests, created_at';
 
-    let query = supabase
+    let baseQuery = supabase
       .from('ads')
-      .select(selectWithMetrics)
+      .select(baseSelect)
       .order('created_at', { ascending: false });
 
-    if (signal instanceof AbortSignal) query = query.abortSignal(signal);
+    if (signal instanceof AbortSignal) baseQuery = baseQuery.abortSignal(signal);
 
-    const { data, error } = await query;
-    let adminAds = (data || []) as any[];
+    const { data: baseAds, error: baseError } = await baseQuery;
 
-    if (error) {
-      if (!isMissingMetricColumnError(error)) {
-        console.error('Supabase error in fetchAdminAds:', error);
-        if (isNonCriticalSupabaseError(error)) return [];
-        throw error;
-      }
-
-      console.debug('Admin ads metric columns unavailable, falling back to legacy fields.', error);
-
-      let fallbackQuery = supabase
-        .from('ads')
-        .select(selectLegacy)
-        .order('created_at', { ascending: false });
-
-      if (signal instanceof AbortSignal) fallbackQuery = fallbackQuery.abortSignal(signal);
-
-      const fallbackResult = await fallbackQuery;
-
-      if (fallbackResult.error) {
-        console.error('Supabase fallback error in fetchAdminAds:', fallbackResult.error);
-        if (isNonCriticalSupabaseError(fallbackResult.error)) return [];
-        throw fallbackResult.error;
-      }
-
-      adminAds = (fallbackResult.data || []) as any[];
+    if (baseError) {
+      logSupabaseQueryError('Supabase base error in fetchAdminAds', baseError);
+      if (isNonCriticalSupabaseError(baseError)) return [];
+      throw baseError;
     }
+
+    const adminAds = ((baseAds || []) as any[]).map(ad => ({ ...ad }));
+    const mergeById = (rows: any[] | null | undefined) => {
+      const byId = new Map<string, any>();
+      (rows || []).forEach(row => {
+        if (row?.id) byId.set(row.id, row);
+      });
+
+      adminAds.forEach(ad => {
+        const extra = byId.get(ad.id);
+        if (extra) Object.assign(ad, extra);
+      });
+    };
+
+    const fetchOptionalAdminFields = async (label: string, select: string) => {
+      let optionalQuery = supabase
+        .from('ads')
+        .select(select);
+
+      if (signal instanceof AbortSignal) optionalQuery = optionalQuery.abortSignal(signal);
+
+      const { data, error } = await optionalQuery;
+      if (error) {
+        logSupabaseQueryError(`Optional admin ads query failed: ${label}`, error);
+        return;
+      }
+
+      mergeById(data as any[]);
+    };
+
+    await fetchOptionalAdminFields(
+      'metricas novas',
+      'id, views_count, whatsapp_clicks_count, shares_count'
+    );
+
+    await fetchOptionalAdminFields(
+      'flags externas',
+      'id, is_external, is_verified, is_featured, external_seller_name, external_seller_phone'
+    );
+
+    await fetchOptionalAdminFields(
+      'imagens',
+      'id, ad_images(image_url)'
+    );
+
+    await fetchOptionalAdminFields(
+      'perfis',
+      'id, profiles(name, phone, whatsapp, avatar_url, role)'
+    );
 
     console.log('ADMIN_ADS_LOADED', { count: adminAds.length });
     return adminAds.map(ad => ({
