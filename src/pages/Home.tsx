@@ -187,6 +187,10 @@ export default function Home() {
 
     if (isInitial && loadingAdsRef.current) {
       if (abortControllerRef.current) {
+        console.warn("HOME_ABORT_CONTROLLER_ABORT", {
+          reason: "new_initial_request",
+          nextRequestId: lastRequestIdRef.current + 1
+        });
         abortControllerRef.current.abort();
       }
       loadingAdsRef.current = false;
@@ -366,6 +370,9 @@ export default function Home() {
         setLoadingMore(false);
         isLoadingRef.current = false;
         loadingAdsRef.current = false;
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
         if (isInitial) {
            console.log("HOME_LOAD_ADS_FINISHED", { requestId });
            console.debug("LOAD_ADS_FINISHED", { requestId });
@@ -436,7 +443,10 @@ export default function Home() {
     
     return () => {
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+        console.debug("HOME_ABORT_CONTROLLER_CLEANUP_SKIPPED", {
+          filterKey,
+          reason: "allow_initial_request_to_finish"
+        });
       }
     };
   }, [filterKey, loadInitialAds]);

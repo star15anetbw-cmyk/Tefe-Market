@@ -95,18 +95,19 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     });
     query = query.range(from, to);
 
-    // Timeout seguro de 15 segundos para a consulta do Supabase
-    const timeoutPromise = new Promise<{ data: any[] | null, error: any, count: number | null }>((resolve) => {
-      setTimeout(() => {
-        console.warn("FETCH_ADS_TIMEOUT");
-        resolve({ data: [], error: { message: "FETCH_ADS_TIMEOUT" }, count: 0 });
-      }, 15000);
-    });
+    const timeoutId = setTimeout(() => {
+      console.warn("FETCH_ADS_TIMEOUT", {
+        page,
+        pageSize,
+        sortBy: cleanFilter.sortBy,
+        from,
+        to
+      });
+    }, 15000);
 
-    const { data, error, count } = await Promise.race([
-      query,
-      timeoutPromise
-    ]);
+    const { data, error, count } = await Promise.resolve(query).finally(() => {
+      clearTimeout(timeoutId);
+    });
 
     console.debug('FETCH_ADS_RESULT', {
       countReturned: data?.length || 0,
@@ -127,12 +128,9 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     });
 
     if (error) {
-      if (error?.message === "FETCH_ADS_TIMEOUT") {
-        return { ads: [], totalCount: 0, hasMore: false };
-      }
       if (signal?.aborted || error?.name === 'AbortError' || error?.message?.includes('AbortError') || error?.message?.includes('signal is aborted')) {
-        console.debug("FETCH_ADS_ABORTED_IGNORED", error);
-        return { ads: [], totalCount: 0, hasMore: false };
+        console.debug("FETCH_ABORT_IGNORED", error);
+        throw error;
       }
       if (isNonCriticalSupabaseError(error) && retryCount < 1) {
         console.warn('Retrying fetchAds due to non-critical error:', error);
@@ -158,8 +156,8 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     };
   } catch (err: any) {
     if (signal?.aborted || err?.name === 'AbortError' || err?.message?.includes('AbortError') || err?.message?.includes('signal is aborted')) {
-      console.debug("FETCH_ADS_ABORTED_IGNORED", err);
-      return { ads: [], totalCount: 0, hasMore: false };
+      console.debug("FETCH_ABORT_IGNORED", err);
+      throw err;
     }
 
     if (isNonCriticalSupabaseError(err) && retryCount < 1) {
