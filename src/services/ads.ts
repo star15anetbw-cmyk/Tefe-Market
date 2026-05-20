@@ -583,6 +583,18 @@ export async function logAdClick(adId: string, type: 'whatsapp') {
   })();
 }
 
+function isMissingMetricColumnError(error: any) {
+  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+  const code = String(error?.code || '');
+
+  return (
+    code === '42703' ||
+    message.includes('views_count') ||
+    message.includes('whatsapp_clicks_count') ||
+    message.includes('shares_count')
+  );
+}
+
 export async function fetchTrafficStats(signal?: AbortSignal): Promise<{ qrCartao: number; qrUnicos: number }> {
   try {
     let query = supabase
@@ -620,10 +632,30 @@ export async function fetchAdminStats(signal?: AbortSignal) {
     
     if (signal instanceof AbortSignal) query = query.abortSignal(signal);
 
-    const { data: ads, error: adsError } = await query;
+    const { data: adsWithMetrics, error: adsError } = await query;
+    let ads = (adsWithMetrics || []) as any[];
+
     if (adsError) {
-      if (isNonCriticalSupabaseError(adsError)) return null;
-      throw adsError;
+      if (!isMissingMetricColumnError(adsError)) {
+        if (isNonCriticalSupabaseError(adsError)) return null;
+        throw adsError;
+      }
+
+      console.debug('Admin stats metric columns unavailable, falling back to legacy fields.', adsError);
+
+      let fallbackQuery = supabase
+        .from('ads')
+        .select('status, ad_type, is_external, views, interests');
+
+      if (signal instanceof AbortSignal) fallbackQuery = fallbackQuery.abortSignal(signal);
+
+      const fallbackResult = await fallbackQuery;
+      if (fallbackResult.error) {
+        if (isNonCriticalSupabaseError(fallbackResult.error)) return null;
+        throw fallbackResult.error;
+      }
+
+      ads = (fallbackResult.data || []) as any[];
     }
 
     let usersQuery = supabase
@@ -683,22 +715,48 @@ export async function fetchAdminStats(signal?: AbortSignal) {
 export async function fetchAdminAds(signal?: AbortSignal) {
   try {
     console.log('FETCHING_ADMIN_ADS...');
+    const selectWithMetrics = 'id, title, description, price, category, neighborhood, ad_type, status, views, interests, views_count, whatsapp_clicks_count, shares_count, is_external, is_verified, is_featured, external_seller_name, external_seller_phone, created_at, ad_images(image_url), profiles(name, phone, whatsapp, avatar_url, role)';
+    const selectLegacy = 'id, title, description, price, category, neighborhood, ad_type, status, views, interests, is_external, is_verified, is_featured, external_seller_name, external_seller_phone, created_at, ad_images(image_url), profiles(name, phone, whatsapp, avatar_url, role)';
+
     let query = supabase
       .from('ads')
-      .select('id, title, description, price, category, neighborhood, ad_type, status, views, interests, views_count, whatsapp_clicks_count, shares_count, is_external, is_verified, is_featured, external_seller_name, external_seller_phone, created_at, ad_images(image_url), profiles(name, phone, whatsapp, avatar_url, role)')
+      .select(selectWithMetrics)
       .order('created_at', { ascending: false });
 
     if (signal instanceof AbortSignal) query = query.abortSignal(signal);
 
     const { data, error } = await query;
+    let adminAds = (data || []) as any[];
+
     if (error) {
-      console.error('Supabase error in fetchAdminAds:', error);
-      if (isNonCriticalSupabaseError(error)) return [];
-      throw error;
+      if (!isMissingMetricColumnError(error)) {
+        console.error('Supabase error in fetchAdminAds:', error);
+        if (isNonCriticalSupabaseError(error)) return [];
+        throw error;
+      }
+
+      console.debug('Admin ads metric columns unavailable, falling back to legacy fields.', error);
+
+      let fallbackQuery = supabase
+        .from('ads')
+        .select(selectLegacy)
+        .order('created_at', { ascending: false });
+
+      if (signal instanceof AbortSignal) fallbackQuery = fallbackQuery.abortSignal(signal);
+
+      const fallbackResult = await fallbackQuery;
+
+      if (fallbackResult.error) {
+        console.error('Supabase fallback error in fetchAdminAds:', fallbackResult.error);
+        if (isNonCriticalSupabaseError(fallbackResult.error)) return [];
+        throw fallbackResult.error;
+      }
+
+      adminAds = (fallbackResult.data || []) as any[];
     }
 
-    console.log('ADMIN_ADS_LOADED', { count: data?.length });
-    return (data || []).map(ad => ({
+    console.log('ADMIN_ADS_LOADED', { count: adminAds.length });
+    return adminAds.map(ad => ({
       ...ad,
       views_count: ad.views_count ?? ad.views ?? 0,
       whatsapp_clicks_count: ad.whatsapp_clicks_count ?? ad.interests ?? 0,
