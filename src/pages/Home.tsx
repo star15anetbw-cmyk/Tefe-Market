@@ -310,20 +310,6 @@ export default function Home() {
       
       if (isInitial) {
         const adsList = Array.isArray(result.ads) ? result.ads : [];
-        console.log("HOME_SET_ADS", {
-          incoming: adsList.length,
-          requestId,
-          totalCount: result.totalCount,
-          hasMore: result.hasMore,
-          firstAd: adsList[0]
-            ? {
-                id: adsList[0].id,
-                title: adsList[0].title,
-                status: adsList[0].status,
-                category: adsList[0].category
-              }
-            : null
-        });
         setAds(adsList);
         setPage(0);
         pageRef.current = 0;
@@ -536,24 +522,6 @@ export default function Home() {
       e.currentTarget.scrollLeft += e.deltaY;
     }
   };
-
-  const initialLoading = loading;
-  const selectedCategory = filters.category;
-  const selectedType = filters.type;
-
-  console.log("HOME_RENDER_ADS", {
-    adsLength: ads.length,
-    processedAdsLength: processedAds.length,
-    featuredAdsLength: featuredAds.length,
-    mainAdsLength: mainAds.length,
-    loading,
-    initialLoading,
-    isDefaultHomeMode,
-    selectedCategory,
-    selectedType,
-    search: filters?.search,
-    sortBy: filters?.sortBy
-  });
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-main w-full max-w-full overflow-x-hidden">
