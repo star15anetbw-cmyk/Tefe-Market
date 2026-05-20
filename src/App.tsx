@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
+import { registerTraffic } from './services/traffic';
 
 import {
   Home,
@@ -27,6 +28,14 @@ import {
 export default function App() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const didRegisterTraffic = useRef(false);
+
+  useEffect(() => {
+    if (didRegisterTraffic.current) return;
+
+    didRegisterTraffic.current = true;
+    registerTraffic();
+  }, []);
 
   // Handle post-OAuth redirect
   useEffect(() => {

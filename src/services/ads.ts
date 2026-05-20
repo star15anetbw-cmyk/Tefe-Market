@@ -155,8 +155,6 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
 }
 
 export async function fetchAdById(id: string, signal?: AbortSignal) {
-  console.log("DETAIL_FETCH_INPUT", { adId: id });
-
   try {
     let query = supabase
       .from('ads')
@@ -175,12 +173,6 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
       console.error('Supabase error fetching ad by id:', error);
       throw error;
     }
-
-    console.log("DETAIL_FETCH_SUCCESS", {
-      adId: id,
-      found: Boolean(data),
-      status: data?.status
-    });
 
     if (!data) return null;
 
@@ -236,8 +228,6 @@ export async function fetchAdById(id: string, signal?: AbortSignal) {
     if (isNonCriticalSupabaseError(err)) throw err;
     console.error('Unexpected error in fetchAdById:', err);
     throw err;
-  } finally {
-    console.log("DETAIL_FETCH_FINISHED", { adId: id });
   }
 }
 
@@ -593,11 +583,40 @@ export async function logAdClick(adId: string, type: 'whatsapp') {
   })();
 }
 
+export async function fetchTrafficStats(signal?: AbortSignal): Promise<{ qrCartao: number; qrUnicos: number }> {
+  try {
+    let query = supabase
+      .from('traffic_events')
+      .select('session_id', { count: 'exact' })
+      .eq('origem', 'cartaoA4');
+
+    if (signal instanceof AbortSignal) query = query.abortSignal(signal);
+
+    const { data, count, error } = await query;
+
+    if (error) {
+      if (isNonCriticalSupabaseError(error)) return { qrCartao: 0, qrUnicos: 0 };
+      throw error;
+    }
+
+    return {
+      qrCartao: count || 0,
+      qrUnicos: new Set((data || []).map(event => event.session_id).filter(Boolean)).size
+    };
+  } catch (err) {
+    if (!isNonCriticalSupabaseError(err)) {
+      console.debug('Traffic stats unavailable, skipping optional metrics.', err);
+    }
+
+    return { qrCartao: 0, qrUnicos: 0 };
+  }
+}
+
 export async function fetchAdminStats(signal?: AbortSignal) {
   try {
     let query = supabase
       .from('ads')
-      .select('status, ad_type');
+      .select('status, ad_type, is_external, views, interests, views_count, whatsapp_clicks_count, shares_count');
     
     if (signal instanceof AbortSignal) query = query.abortSignal(signal);
 
@@ -631,14 +650,26 @@ export async function fetchAdminStats(signal?: AbortSignal) {
       throw clicksError;
     }
 
+    const trafficStats = await fetchTrafficStats(signal);
+    const getMetric = (primary?: number | null, fallback?: number | null) => Number(primary ?? fallback ?? 0) || 0;
+
     const stats = {
+      total: ads.length,
       active: ads.filter(a => a.status === 'active').length,
+      sold: ads.filter(a => a.status === 'sold').length,
+      hidden: ads.filter(a => a.status === 'hidden').length,
       sale: ads.filter(a => a.status === 'active' && a.ad_type === 'sale').length,
       rent: ads.filter(a => a.status === 'active' && a.ad_type === 'rent').length,
       service: ads.filter(a => a.status === 'active' && a.ad_type === 'service').length,
       removed: ads.filter(a => a.status === 'removed').length,
+      external: ads.filter(a => a.is_external).length,
+      totalViews: ads.reduce((sum, ad) => sum + getMetric(ad.views_count, ad.views), 0),
+      totalWhatsAppClicks: ads.reduce((sum, ad) => sum + getMetric(ad.whatsapp_clicks_count, ad.interests), 0),
+      totalShares: ads.reduce((sum, ad) => sum + getMetric(ad.shares_count), 0),
       totalUsers: usersCount || 0,
-      totalClicks: clicks?.length || 0
+      totalClicks: clicks?.length || 0,
+      qrCartao: trafficStats.qrCartao,
+      qrUnicos: trafficStats.qrUnicos
     };
 
     return stats;
@@ -654,7 +685,7 @@ export async function fetchAdminAds(signal?: AbortSignal) {
     console.log('FETCHING_ADMIN_ADS...');
     let query = supabase
       .from('ads')
-      .select('id, title, price, category, neighborhood, ad_type, status, is_external, is_verified, is_featured, external_seller_name, external_seller_phone, created_at, ad_images(image_url), profiles(name, avatar_url, role)')
+      .select('id, title, description, price, category, neighborhood, ad_type, status, views, interests, views_count, whatsapp_clicks_count, shares_count, is_external, is_verified, is_featured, external_seller_name, external_seller_phone, created_at, ad_images(image_url), profiles(name, phone, whatsapp, avatar_url, role)')
       .order('created_at', { ascending: false });
 
     if (signal instanceof AbortSignal) query = query.abortSignal(signal);
@@ -669,6 +700,9 @@ export async function fetchAdminAds(signal?: AbortSignal) {
     console.log('ADMIN_ADS_LOADED', { count: data?.length });
     return (data || []).map(ad => ({
       ...ad,
+      views_count: ad.views_count ?? ad.views ?? 0,
+      whatsapp_clicks_count: ad.whatsapp_clicks_count ?? ad.interests ?? 0,
+      shares_count: ad.shares_count ?? 0,
       profiles: Array.isArray(ad.profiles) ? ad.profiles[0] : ad.profiles
     })) as any[];
   } catch (err: any) {

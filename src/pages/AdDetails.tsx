@@ -170,7 +170,6 @@ export default function AdDetails() {
     loadingDetailRef.current = true;
     currentAdIdRef.current = adId;
 
-    console.log("DETAIL_LOAD_START", { adId });
     try {
       setLoading(true);
       setNotFound(false);
@@ -191,7 +190,6 @@ export default function AdDetails() {
         setAd(data);
         setNotFound(false);
         loadedAdIdRef.current = adId;
-        console.log("DETAIL_LOAD_SUCCESS", { adId });
 
         // Record view if not already counted in this session
         try {
@@ -240,7 +238,6 @@ export default function AdDetails() {
       if (currentAdIdRef.current === adId) {
         loadingDetailRef.current = false;
         setLoading(false);
-        console.log("DETAIL_LOAD_FINISHED", { adId });
       } else {
         console.debug("DETAIL_LOAD_FINISHED_STALE", { adId, currentAdId: currentAdIdRef.current });
       }

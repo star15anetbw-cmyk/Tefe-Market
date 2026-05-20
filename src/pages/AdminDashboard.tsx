@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchAdminStats, fetchAdminAds, updateAdStatus, toggleAdVerification, toggleAdFeature } from '../services/ads';
 import { formatPrice, formatDate, cn, handleImageError } from '../lib/utils';
 import { CATEGORIES, NEIGHBORHOODS } from '../constants';
-import { Shield, Users, Package, AlertTriangle, Eye, Trash2, Edit2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, LayoutGrid, BadgeCheck, Star, XCircle, ShoppingBag, ExternalLink, RefreshCw } from 'lucide-react';
+import { Shield, Package, AlertTriangle, Eye, Trash2, Edit2, CheckCircle, Clock, TrendingUp, Search, Filter, MessageSquare, LayoutGrid, BadgeCheck, Star, XCircle, ShoppingBag, ExternalLink, RefreshCw, Share2, QrCode } from 'lucide-react';
 import Button from '../components/ui/Button';
 
 export default function AdminDashboard() {
@@ -27,6 +27,7 @@ export default function AdminDashboard() {
   const [neighborhoodFilter, setNeighborhoodFilter] = useState('all');
   const [featuredFilter, setFeaturedFilter] = useState('all');
   const [externalFilter, setExternalFilter] = useState('all');
+  const [quickFilter, setQuickFilter] = useState('all');
 
   // Queries
   const statsQuery = useQuery({
@@ -65,21 +66,42 @@ export default function AdminDashboard() {
     if (!adsQuery.data) return [];
     
     return adsQuery.data.filter((ad: any) => {
-      const term = searchTerm.toLowerCase();
-      const matchesSearch = !term || 
-                            ad.title.toLowerCase().includes(term) || 
-                            ad.profiles?.name?.toLowerCase().includes(term) ||
-                            ad.neighborhood?.toLowerCase().includes(term);
+      const normalizeText = (value: unknown) => String(value ?? '').toLowerCase();
+      const normalizeDigits = (value: unknown) => String(value ?? '').replace(/\D/g, '');
+      const term = normalizeText(searchTerm.trim());
+      const digitTerm = normalizeDigits(searchTerm);
+      const searchableValues = [
+        ad.title,
+        ad.description,
+        ad.category,
+        ad.neighborhood,
+        ad.external_seller_name,
+        ad.external_seller_phone,
+        ad.profiles?.name,
+        ad.profiles?.full_name,
+        ad.profiles?.phone,
+        ad.profiles?.whatsapp
+      ];
+      const searchablePhones = [
+        ad.external_seller_phone,
+        ad.profiles?.phone,
+        ad.profiles?.whatsapp
+      ];
+      const hasImage = Array.isArray(ad.ad_images) && ad.ad_images.some((image: any) => image?.image_url);
+      const matchesSearch = !term ||
+                            searchableValues.some(value => normalizeText(value).includes(term)) ||
+                            (!!digitTerm && searchablePhones.some(value => normalizeDigits(value).includes(digitTerm)));
       
       const matchesStatus = statusFilter === 'all' || ad.status === statusFilter;
       const matchesCategory = categoryFilter === 'all' || ad.category === categoryFilter;
       const matchesNeighborhood = neighborhoodFilter === 'all' || ad.neighborhood === neighborhoodFilter;
       const matchesFeatured = featuredFilter === 'all' || (featuredFilter === 'yes' ? ad.is_featured : !ad.is_featured);
       const matchesExternal = externalFilter === 'all' || (externalFilter === 'yes' ? ad.is_external : !ad.is_external);
+      const matchesQuick = quickFilter !== 'no_image' || !hasImage;
 
-      return matchesSearch && matchesStatus && matchesCategory && matchesNeighborhood && matchesFeatured && matchesExternal;
+      return matchesSearch && matchesStatus && matchesCategory && matchesNeighborhood && matchesFeatured && matchesExternal && matchesQuick;
     });
-  }, [adsQuery.data, searchTerm, statusFilter, categoryFilter, neighborhoodFilter, featuredFilter, externalFilter]);
+  }, [adsQuery.data, searchTerm, statusFilter, categoryFilter, neighborhoodFilter, featuredFilter, externalFilter, quickFilter]);
 
   if (adsQuery.isLoading && !statsQuery.data) {
     return (
@@ -94,8 +116,35 @@ export default function AdminDashboard() {
 
   const handleUpdateStatus = (id: string, status: any) => {
     console.log('ADMIN_ACTION: UPDATE_STATUS', { id, status });
-    if (status === 'removed' && !window.confirm('Tem certeza que deseja remover este anúncio?')) return;
+    const confirmations: Record<string, string> = {
+      sold: 'Tem certeza que deseja marcar este anuncio como vendido?',
+      hidden: 'Tem certeza que deseja ocultar este anuncio?',
+      removed: 'Tem certeza que deseja remover este anuncio?'
+    };
+
+    if (confirmations[status] && !window.confirm(confirmations[status])) return;
     updateStatusMutation.mutate({ id, status });
+  };
+
+  const applyQuickFilter = (filter: string) => {
+    setQuickFilter(filter);
+
+    if (['all', 'active', 'sold', 'hidden', 'removed'].includes(filter)) {
+      setStatusFilter(filter);
+      setExternalFilter('all');
+      return;
+    }
+
+    if (filter === 'manual') {
+      setStatusFilter('all');
+      setExternalFilter('yes');
+      return;
+    }
+
+    if (filter === 'no_image') {
+      setStatusFilter('all');
+      setExternalFilter('all');
+    }
   };
 
   const handleToggleFeature = (id: string, current: boolean) => {
@@ -159,14 +208,18 @@ export default function AdminDashboard() {
 
       {/* Métrica Cards */}
       {statsQuery.data && (
-        <div className="grid grid-cols-2 lg:grid-cols-7 gap-4 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-11 gap-4 mb-12">
+          <StatCard icon={<Package />} label="Total" value={statsQuery.data.total ?? 0} color="primary" />
           <StatCard icon={<CheckCircle />} label="Ativos" value={statsQuery.data.active} color="emerald" />
-          <StatCard icon={<ShoppingBag />} label="Vendas" value={statsQuery.data.sale} color="indigo" />
-          <StatCard icon={<LayoutGrid />} label="Aluguéis" value={statsQuery.data.rent} color="blue" />
-          <StatCard icon={<MessageSquare />} label="Serviços" value={statsQuery.data.service} color="purple" />
+          <StatCard icon={<ShoppingBag />} label="Vendidos" value={statsQuery.data.sold ?? 0} color="indigo" />
+          <StatCard icon={<Eye />} label="Ocultos" value={statsQuery.data.hidden ?? 0} color="amber" />
           <StatCard icon={<Trash2 />} label="Removidos" value={statsQuery.data.removed} color="red" />
-          <StatCard icon={<Users />} label="Usuários" value={statsQuery.data.totalUsers} color="amber" />
-          <StatCard icon={<TrendingUp />} label="Cliques" value={statsQuery.data.totalClicks} color="primary" />
+          <StatCard icon={<ExternalLink />} label="Manuais" value={statsQuery.data.external ?? 0} color="blue" />
+          <StatCard icon={<TrendingUp />} label="Visualizacoes" value={statsQuery.data.totalViews ?? 0} color="purple" />
+          <StatCard icon={<MessageSquare />} label="WhatsApp" value={statsQuery.data.totalWhatsAppClicks ?? statsQuery.data.totalClicks ?? 0} color="emerald" />
+          <StatCard icon={<Share2 />} label="Compart." value={statsQuery.data.totalShares ?? 0} color="indigo" />
+          <StatCard icon={<QrCode />} label="QR Cartao" value={statsQuery.data.qrCartao ?? 0} color="blue" />
+          <StatCard icon={<QrCode />} label="QR Unicos" value={statsQuery.data.qrUnicos ?? 0} color="emerald" />
         </div>
       )}
 
@@ -179,7 +232,7 @@ export default function AdminDashboard() {
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
               <input 
                 type="text" 
-                placeholder="Pesquisar por título, usuário, bairro..."
+                placeholder="Pesquisar por titulo, descricao, categoria, bairro, vendedor ou telefone..."
                 className="w-full pl-14 pr-6 py-4 bg-gray-50 border-2 border-transparent rounded-[1.25rem] focus:bg-white focus:border-primary/20 outline-none transition-all text-sm font-bold placeholder:text-gray-300 shadow-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -187,18 +240,26 @@ export default function AdminDashboard() {
             </div>
             
             <div className="flex flex-wrap items-center gap-2">
-              {['all', 'active', 'sold', 'hidden', 'removed'].map(status => (
+              {[
+                { value: 'all', label: 'Todos' },
+                { value: 'active', label: 'Ativos' },
+                { value: 'sold', label: 'Vendidos' },
+                { value: 'hidden', label: 'Ocultos' },
+                { value: 'removed', label: 'Removidos' },
+                { value: 'manual', label: 'Manuais' },
+                { value: 'no_image', label: 'Sem imagem' }
+              ].map(filter => (
                 <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
+                  key={filter.value}
+                  onClick={() => applyQuickFilter(filter.value)}
                   className={cn(
                     "px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border-2",
-                    statusFilter === status 
+                    quickFilter === filter.value
                       ? "bg-primary border-primary text-white shadow-xl shadow-primary/20 scale-105" 
                       : "bg-white border-gray-100 text-gray-400 hover:border-primary/30 hover:text-primary"
                   )}
                 >
-                  {status === 'all' ? 'Todos' : status === 'active' ? 'Ativos' : status === 'sold' ? 'Vendidos' : status === 'hidden' ? 'Ocultos' : 'Removidos'}
+                  {filter.label}
                 </button>
               ))}
             </div>
@@ -230,7 +291,10 @@ export default function AdminDashboard() {
               icon={<ExternalLink className="w-3 h-3" />}
               label="Tipo"
               value={externalFilter}
-              onChange={setExternalFilter}
+              onChange={(value) => {
+                setExternalFilter(value);
+                if (quickFilter === 'manual') setQuickFilter('all');
+              }}
               options={[{v:'all', l:'Todos'}, {v:'yes', l:'Externos'}, {v:'no', l:'Internos'}]}
             />
           </div>
@@ -242,7 +306,7 @@ export default function AdminDashboard() {
               <tr className="bg-gray-50/50">
                 <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400">Anúncio</th>
                 <th className="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400">Vendedor</th>
-                <th className="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400">Local / Info</th>
+                <th className="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400">Local / Metricas</th>
                 <th className="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Preço</th>
                 <th className="px-6 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400 text-center">Status</th>
                 <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Gerenciar</th>
@@ -311,6 +375,19 @@ const AdTableRow = React.memo(({
     fn();
   };
 
+  const profileData = Array.isArray(ad.profiles) ? ad.profiles[0] : ad.profiles;
+  const primaryImage = Array.isArray(ad.ad_images) ? ad.ad_images.find((image: any) => image?.image_url) : null;
+  const sellerName = ad.is_external
+    ? ad.external_seller_name || 'Anunciante manual'
+    : profileData?.name || profileData?.full_name || 'Sistema';
+  const sellerPhone = ad.is_external
+    ? ad.external_seller_phone
+    : profileData?.whatsapp || profileData?.phone;
+  const viewsCount = ad.views_count ?? ad.views ?? 0;
+  const whatsappClicksCount = ad.whatsapp_clicks_count ?? ad.interests ?? 0;
+  const sharesCount = ad.shares_count ?? 0;
+  const price = Number(ad.price ?? 0);
+
   return (
     <tr className={cn(
       "hover:bg-gray-50/50 transition-all group",
@@ -320,9 +397,9 @@ const AdTableRow = React.memo(({
         <div className="flex items-center gap-5">
           <div className="relative group/img">
             <div className="w-16 h-16 rounded-[1.25rem] bg-gray-100 overflow-hidden flex-shrink-0 border-2 border-white shadow-md transition-transform group-hover:scale-105">
-              {ad.ad_images?.[0]?.image_url ? (
+              {primaryImage?.image_url ? (
                 <img 
-                  src={ad.ad_images[0].image_url} 
+                  src={primaryImage.image_url} 
                   alt="" 
                   className="w-full h-full object-cover" 
                   loading="lazy"
@@ -343,7 +420,7 @@ const AdTableRow = React.memo(({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <div className="font-black text-gray-900 text-base line-clamp-1 tracking-tight group-hover:text-primary transition-colors">{ad.title}</div>
+              <div className="font-black text-gray-900 text-base line-clamp-1 tracking-tight group-hover:text-primary transition-colors">{ad.title || 'Sem titulo'}</div>
               {ad.is_verified && <BadgeCheck className="w-4 h-4 text-emerald-500 flex-shrink-0" title="Verificado" />}
             </div>
             <div className="flex items-center gap-3">
@@ -351,7 +428,7 @@ const AdTableRow = React.memo(({
                 <Clock className="w-3 h-3" /> {formatDate(ad.created_at)}
               </span>
               {ad.is_external && (
-                <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md">Externo</span>
+                <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md">Manual</span>
               )}
             </div>
           </div>
@@ -361,26 +438,37 @@ const AdTableRow = React.memo(({
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
              <img 
-                src={ad.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(ad.is_external ? ad.external_seller_name || '?' : ad.profiles?.name || 'S')}&background=random`} 
+                src={profileData?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(sellerName || 'S')}&background=random`} 
                 alt="" 
                 className="w-full h-full object-cover"
               />
           </div>
           <div className="min-w-0">
             <div className="text-[10px] font-black text-gray-900 uppercase tracking-tight line-clamp-1">
-              {ad.is_external ? ad.external_seller_name : ad.profiles?.name || 'Sistema'}
+              {sellerName}
             </div>
-            {ad.is_external && <div className="text-[9px] text-gray-400 font-medium">{ad.external_seller_phone}</div>}
+            <div className="text-[9px] text-gray-400 font-medium">{sellerPhone || 'Sem telefone'}</div>
           </div>
         </div>
       </td>
       <td className="px-6 py-6">
-        <div className="text-xs font-black text-gray-700 mb-1">{ad.neighborhood}</div>
-        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{ad.category}</div>
+        <div className="text-xs font-black text-gray-700 mb-1">{ad.neighborhood || 'Bairro nao informado'}</div>
+        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">{ad.category || 'Sem categoria'}</div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 rounded-lg bg-gray-50 px-2 py-1 text-[9px] font-black text-gray-500" title="Visualizacoes">
+            <Eye className="w-3 h-3" /> {viewsCount}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1 text-[9px] font-black text-emerald-700" title="Cliques WhatsApp">
+            <MessageSquare className="w-3 h-3" /> {whatsappClicksCount}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2 py-1 text-[9px] font-black text-indigo-700" title="Compartilhamentos">
+            <Share2 className="w-3 h-3" /> {sharesCount}
+          </span>
+        </div>
       </td>
       <td className="px-6 py-6 text-right">
         <div className="text-base font-black text-primary tracking-tighter">
-          {ad.price === 0 ? 'A combinar' : formatPrice(ad.price)}
+          {price === 0 ? 'A combinar' : formatPrice(price)}
         </div>
       </td>
       <td className="px-6 py-6 text-center">
