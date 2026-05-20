@@ -104,6 +104,33 @@ export default function AdminDashboard() {
     });
   }, [adsQuery.data, searchTerm, statusFilter, categoryFilter, neighborhoodFilter, featuredFilter, externalFilter, quickFilter]);
 
+  const dashboardInsights = useMemo(() => {
+    const ads = (adsQuery.data || []) as any[];
+    const getViews = (ad: any) => Number(ad.views_count ?? ad.views ?? 0) || 0;
+    const getWhatsApp = (ad: any) => Number(ad.whatsapp_clicks_count ?? ad.interests ?? 0) || 0;
+    const getShares = (ad: any) => Number(ad.shares_count ?? 0) || 0;
+    const activeAds = ads.filter(ad => ad.status === 'active');
+    const featuredAds = ads.filter(ad => ad.is_featured);
+    const totalViews = ads.reduce((sum, ad) => sum + getViews(ad), 0);
+    const totalWhatsApp = ads.reduce((sum, ad) => sum + getWhatsApp(ad), 0);
+    const totalShares = ads.reduce((sum, ad) => sum + getShares(ad), 0);
+
+    return {
+      activeAds: activeAds.length,
+      featuredAds: featuredAds.length,
+      interestRate: totalViews > 0 ? Math.round((totalWhatsApp / totalViews) * 100) : 0,
+      totalViews,
+      totalWhatsApp,
+      totalShares,
+      topViewed: [...ads].sort((a, b) => getViews(b) - getViews(a)).slice(0, 5),
+      topWhatsApp: [...ads].sort((a, b) => getWhatsApp(b) - getWhatsApp(a)).slice(0, 5),
+      paidCandidates: activeAds
+        .filter(ad => !ad.is_featured)
+        .sort((a, b) => (getViews(b) + getWhatsApp(b) * 3) - (getViews(a) + getWhatsApp(a) * 3))
+        .slice(0, 4)
+    };
+  }, [adsQuery.data]);
+
   if (adsQuery.isLoading && !statsQuery.data) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
@@ -241,18 +268,71 @@ export default function AdminDashboard() {
       </div>
 
       {activeTab === 'overview' && statsQuery.data && (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-11 gap-4 mb-12">
-          <StatCard icon={<Package />} label="Total" value={statsQuery.data.total ?? 0} color="primary" />
-          <StatCard icon={<CheckCircle />} label="Ativos" value={statsQuery.data.active} color="emerald" />
-          <StatCard icon={<ShoppingBag />} label="Vendidos" value={statsQuery.data.sold ?? 0} color="indigo" />
-          <StatCard icon={<Eye />} label="Ocultos" value={statsQuery.data.hidden ?? 0} color="amber" />
-          <StatCard icon={<Trash2 />} label="Removidos" value={statsQuery.data.removed} color="red" />
-          <StatCard icon={<ExternalLink />} label="Manuais" value={statsQuery.data.external ?? 0} color="blue" />
-          <StatCard icon={<TrendingUp />} label="Visualizacoes" value={statsQuery.data.totalViews ?? 0} color="purple" />
-          <StatCard icon={<MessageSquare />} label="WhatsApp" value={statsQuery.data.totalWhatsAppClicks ?? statsQuery.data.totalClicks ?? 0} color="emerald" />
-          <StatCard icon={<Share2 />} label="Compart." value={statsQuery.data.totalShares ?? 0} color="indigo" />
-          <StatCard icon={<QrCode />} label="QR Cartao" value={statsQuery.data.qrCartao ?? 0} color="blue" />
-          <StatCard icon={<QrCode />} label="QR Unicos" value={statsQuery.data.qrUnicos ?? 0} color="emerald" />
+        <div className="space-y-8">
+          <div className="grid gap-4 lg:grid-cols-4">
+            <CommercialMetric
+              icon={<QrCode />}
+              label="QR Cartao"
+              value={statsQuery.data.qrCartao ?? 0}
+              detail={`${statsQuery.data.qrUnicos ?? 0} visitantes unicos`}
+              color="blue"
+            />
+            <CommercialMetric
+              icon={<TrendingUp />}
+              label="Alcance"
+              value={statsQuery.data.totalViews ?? dashboardInsights.totalViews}
+              detail={`${dashboardInsights.activeAds} anuncios ativos`}
+              color="purple"
+            />
+            <CommercialMetric
+              icon={<MessageSquare />}
+              label="Contatos"
+              value={statsQuery.data.totalWhatsAppClicks ?? statsQuery.data.totalClicks ?? dashboardInsights.totalWhatsApp}
+              detail={`${dashboardInsights.interestRate}% taxa de interesse`}
+              color="emerald"
+            />
+            <CommercialMetric
+              icon={<Star />}
+              label="Destaques"
+              value={dashboardInsights.featuredAds}
+              detail={`${dashboardInsights.paidCandidates.length} candidatos a plano pago`}
+              color="amber"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-4">
+            <StatCard icon={<Package />} label="Total" value={statsQuery.data.total ?? 0} color="primary" />
+            <StatCard icon={<CheckCircle />} label="Ativos" value={statsQuery.data.active} color="emerald" />
+            <StatCard icon={<ShoppingBag />} label="Vendidos" value={statsQuery.data.sold ?? 0} color="indigo" />
+            <StatCard icon={<Eye />} label="Ocultos" value={statsQuery.data.hidden ?? 0} color="amber" />
+            <StatCard icon={<Trash2 />} label="Removidos" value={statsQuery.data.removed} color="red" />
+            <StatCard icon={<ExternalLink />} label="Manuais" value={statsQuery.data.external ?? 0} color="blue" />
+            <StatCard icon={<Share2 />} label="Compart." value={statsQuery.data.totalShares ?? dashboardInsights.totalShares} color="indigo" />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            <RankingPanel
+              title="Mais vistos"
+              icon={<Eye />}
+              ads={dashboardInsights.topViewed}
+              metric={(ad) => ad.views_count ?? ad.views ?? 0}
+              suffix="views"
+            />
+            <RankingPanel
+              title="Mais contatos"
+              icon={<MessageSquare />}
+              ads={dashboardInsights.topWhatsApp}
+              metric={(ad) => ad.whatsapp_clicks_count ?? ad.interests ?? 0}
+              suffix="cliques"
+            />
+            <RankingPanel
+              title="Potencial pago"
+              icon={<Star />}
+              ads={dashboardInsights.paidCandidates}
+              metric={(ad) => (ad.views_count ?? ad.views ?? 0) + (ad.whatsapp_clicks_count ?? ad.interests ?? 0) * 3}
+              suffix="pontos"
+            />
+          </div>
         </div>
       )}
 
@@ -589,6 +669,80 @@ const AdTableRow = React.memo(({
         </div>
       </td>
     </tr>
+  );
+});
+
+const CommercialMetric = React.memo(({ icon, label, value, detail, color }: {
+  icon: React.ReactNode,
+  label: string,
+  value: number,
+  detail: string,
+  color: string
+}) => {
+  const colors: Record<string, string> = {
+    emerald: 'bg-emerald-500 text-white shadow-emerald-200',
+    blue: 'bg-blue-500 text-white shadow-blue-200',
+    purple: 'bg-purple-500 text-white shadow-purple-200',
+    amber: 'bg-amber-500 text-white shadow-amber-200',
+  };
+
+  return (
+    <div className="bg-white border border-gray-100 rounded-[2rem] p-6 shadow-2xl shadow-gray-200/30">
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{label}</p>
+          <div className="text-4xl font-black tracking-tighter text-gray-950 leading-none">{value}</div>
+        </div>
+        <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg", colors[color])}>
+          {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' })}
+        </div>
+      </div>
+      <p className="text-xs font-bold text-gray-500">{detail}</p>
+    </div>
+  );
+});
+
+const RankingPanel = React.memo(({ title, icon, ads, metric, suffix }: {
+  title: string,
+  icon: React.ReactNode,
+  ads: any[],
+  metric: (ad: any) => number,
+  suffix: string
+}) => {
+  return (
+    <div className="bg-white border border-gray-100 rounded-[2rem] shadow-2xl shadow-gray-200/30 overflow-hidden">
+      <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary/5 text-primary flex items-center justify-center">
+            {React.cloneElement(icon as React.ReactElement, { className: 'w-5 h-5' })}
+          </div>
+          <h2 className="text-sm font-black text-gray-900 uppercase tracking-tight">{title}</h2>
+        </div>
+      </div>
+      <div className="divide-y divide-gray-50">
+        {ads.length > 0 ? ads.map((ad, index) => (
+          <Link
+            key={ad.id || index}
+            to={`/anuncio/${ad.id}`}
+            target="_blank"
+            className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-gray-50/70 transition-colors"
+          >
+            <div className="min-w-0">
+              <div className="text-xs font-black text-gray-900 truncate">{index + 1}. {ad.title || 'Sem titulo'}</div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">{ad.category || 'Sem categoria'}</div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-sm font-black text-primary leading-none">{Number(metric(ad) || 0)}</div>
+              <div className="text-[9px] font-black uppercase tracking-widest text-gray-300">{suffix}</div>
+            </div>
+          </Link>
+        )) : (
+          <div className="px-6 py-12 text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-300">Sem dados ainda</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 });
 
