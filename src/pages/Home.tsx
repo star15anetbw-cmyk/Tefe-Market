@@ -187,6 +187,7 @@ export default function Home() {
     // Se for um novo carregamento inicial, resetamos a página
     if (isInitial) {
       console.debug("LOAD_INITIAL_START", { requestId });
+      console.log("HOME_FILTERS_ACTIVE", filters);
       console.log("HOME_LOAD_ADS_START", { requestId });
       setLoading(true);
       setError(null);
@@ -224,7 +225,7 @@ export default function Home() {
       const targetPage = isInitial ? 0 : pageRef.current + 1;
       const pageSize = 12;
       
-      const result = await fetchAds({ 
+      let result = await fetchAds({ 
         category: filters.category,
         type: filters.type,
         sortBy: filters.sortBy,
@@ -234,6 +235,29 @@ export default function Home() {
         page: targetPage, 
         pageSize 
       }, controller.signal);
+
+      // Se der zero na carga inicial, fizermos segunda busca sem filtros como fallback
+      if (isInitial && (!result.ads || result.ads.length === 0)) {
+        const hasActiveFilters = 
+          (filters.category && !['todos', 'todas', 'todos os anúncios', 'todos os anuncios', ''].includes(filters.category.trim().toLowerCase())) ||
+          (filters.type && !['all', 'todos', ''].includes(filters.type.trim().toLowerCase())) ||
+          (filters.neighborhood && !['todos os bairros', 'todos', ''].includes(filters.neighborhood.trim().toLowerCase())) ||
+          (filters.search && filters.search.trim().length > 0);
+
+        if (hasActiveFilters) {
+          console.warn("HOME_EMPTY_RESULT_FALLBACK_RECENT");
+          const fallbackResult = await fetchAds({
+            page: 0,
+            pageSize
+          }, controller.signal);
+          
+          if (fallbackResult && fallbackResult.ads && fallbackResult.ads.length > 0) {
+            result = fallbackResult;
+            // Limpa o lastLoadedFilterKeyRef para permitir que o usuário mude filtros novamente sem ficar travado
+            lastLoadedFilterKeyRef.current = null;
+          }
+        }
+      }
       
       clearTimeout(timeoutId);
 

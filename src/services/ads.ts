@@ -18,7 +18,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
     }
 
     // Filtros
-    console.debug('FETCH_ADS_INPUT', { filter });
+    console.log("FETCH_ADS_INPUT", { filter });
 
     if (filter.search) {
       const s = filter.search.trim();
@@ -29,7 +29,8 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       }
     }
 
-    if (filter.category && filter.category !== 'Todos') {
+    const invalidCategories = ['Todos', 'Todas', 'Todos os anúncios', 'Todos os Anúncios', ''];
+    if (filter.category && !invalidCategories.map(c => c.toLowerCase()).includes(filter.category.trim().toLowerCase())) {
       const cat = filter.category.trim();
       const normalizedCat = cat.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ç/g, "c");
       
@@ -52,12 +53,14 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       }
     }
 
-    if (filter.type && filter.type !== 'all') {
+    const invalidTypes = ['all', 'Todos', ''];
+    if (filter.type && !invalidTypes.map(t => t.toLowerCase()).includes(filter.type.trim().toLowerCase())) {
       console.debug('QUERY_STEP: filter by ad_type=' + filter.type);
       query = query.eq('ad_type', filter.type);
     }
 
-    if (filter.neighborhood && filter.neighborhood !== 'Todos os bairros') {
+    const invalidNeighborhoods = ['Todos os bairros', 'Todos os Bairros', 'Todos', ''];
+    if (filter.neighborhood && !invalidNeighborhoods.map(n => n.toLowerCase()).includes(filter.neighborhood.trim().toLowerCase())) {
       query = query.eq('neighborhood', filter.neighborhood);
     }
 
