@@ -29,6 +29,7 @@ export default function AdminDashboard() {
   const [externalFilter, setExternalFilter] = useState('all');
   const [quickFilter, setQuickFilter] = useState('all');
   const [activeTab, setActiveTab] = useState<'overview' | 'ads'>('overview');
+  const [reportAd, setReportAd] = useState<any | null>(null);
 
   // Queries
   const statsQuery = useQuery({
@@ -111,14 +112,32 @@ export default function AdminDashboard() {
     const getShares = (ad: any) => Number(ad.shares_count ?? 0) || 0;
     const activeAds = ads.filter(ad => ad.status === 'active');
     const featuredAds = ads.filter(ad => ad.is_featured);
+    const normalAds = activeAds.filter(ad => !ad.is_featured);
     const totalViews = ads.reduce((sum, ad) => sum + getViews(ad), 0);
     const totalWhatsApp = ads.reduce((sum, ad) => sum + getWhatsApp(ad), 0);
     const totalShares = ads.reduce((sum, ad) => sum + getShares(ad), 0);
+    const average = (items: any[], getter: (ad: any) => number) => {
+      if (items.length === 0) return 0;
+      return Math.round(items.reduce((sum, ad) => sum + getter(ad), 0) / items.length);
+    };
+    const featuredAvgViews = average(featuredAds, getViews);
+    const normalAvgViews = average(normalAds, getViews);
+    const featuredAvgWhatsApp = average(featuredAds, getWhatsApp);
+    const normalAvgWhatsApp = average(normalAds, getWhatsApp);
+    const viewLift = normalAvgViews > 0 ? Math.round(((featuredAvgViews - normalAvgViews) / normalAvgViews) * 100) : 0;
+    const contactLift = normalAvgWhatsApp > 0 ? Math.round(((featuredAvgWhatsApp - normalAvgWhatsApp) / normalAvgWhatsApp) * 100) : 0;
 
     return {
       activeAds: activeAds.length,
       featuredAds: featuredAds.length,
+      normalAds: normalAds.length,
       interestRate: totalViews > 0 ? Math.round((totalWhatsApp / totalViews) * 100) : 0,
+      featuredAvgViews,
+      normalAvgViews,
+      featuredAvgWhatsApp,
+      normalAvgWhatsApp,
+      viewLift,
+      contactLift,
       totalViews,
       totalWhatsApp,
       totalShares,
@@ -310,6 +329,25 @@ export default function AdminDashboard() {
             <StatCard icon={<Share2 />} label="Compart." value={statsQuery.data.totalShares ?? dashboardInsights.totalShares} color="indigo" />
           </div>
 
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PaidComparisonPanel
+              icon={<Eye />}
+              title="Media de visualizacoes"
+              featuredValue={dashboardInsights.featuredAvgViews}
+              normalValue={dashboardInsights.normalAvgViews}
+              lift={dashboardInsights.viewLift}
+              suffix="views por anuncio"
+            />
+            <PaidComparisonPanel
+              icon={<MessageSquare />}
+              title="Media de contatos"
+              featuredValue={dashboardInsights.featuredAvgWhatsApp}
+              normalValue={dashboardInsights.normalAvgWhatsApp}
+              lift={dashboardInsights.contactLift}
+              suffix="cliques por anuncio"
+            />
+          </div>
+
           <div className="grid gap-6 lg:grid-cols-3">
             <RankingPanel
               title="Mais vistos"
@@ -434,6 +472,7 @@ export default function AdminDashboard() {
                   onUpdateStatus={handleUpdateStatus}
                   onToggleFeature={handleToggleFeature}
                   onToggleVerify={handleToggleVerify}
+                  onOpenReport={setReportAd}
                   isUpdatingStatus={updateStatusMutation.variables?.id === ad.id && updateStatusMutation.isPending}
                   isUpdatingFeature={toggleFeatureMutation.variables?.id === ad.id && toggleFeatureMutation.isPending}
                   isUpdatingVerify={toggleVerifyMutation.variables?.id === ad.id && toggleVerifyMutation.isPending}
@@ -456,6 +495,9 @@ export default function AdminDashboard() {
         </div>
       </div>
       )}
+      {reportAd && (
+        <AdReportModal ad={reportAd} onClose={() => setReportAd(null)} />
+      )}
     </div>
   );
 }
@@ -465,6 +507,7 @@ const AdTableRow = React.memo(({
   onUpdateStatus, 
   onToggleFeature, 
   onToggleVerify, 
+  onOpenReport,
   isUpdatingStatus,
   isUpdatingFeature,
   isUpdatingVerify,
@@ -474,6 +517,7 @@ const AdTableRow = React.memo(({
   onUpdateStatus: (id: string, status: any) => void,
   onToggleFeature: (id: string, current: boolean) => void,
   onToggleVerify: (id: string, current: boolean) => void,
+  onOpenReport: (ad: any) => void,
   isUpdatingStatus: boolean,
   isUpdatingFeature: boolean,
   isUpdatingVerify: boolean,
@@ -656,6 +700,13 @@ const AdTableRow = React.memo(({
             title="Verificar"
           />
           <div className="w-[1px] h-6 bg-gray-100 mx-1"></div>
+          <button
+            onClick={() => onOpenReport(ad)}
+            className="w-10 h-10 flex items-center justify-center bg-white text-gray-400 hover:text-purple-600 ring-1 ring-gray-100 hover:ring-purple-200 rounded-xl transition-all shadow-md active:scale-95"
+            title="Relatorio do Anuncio"
+          >
+            <TrendingUp className="w-4 h-4" />
+          </button>
           <Link to={`/anuncio/${ad.id}`} target="_blank">
             <button className="w-10 h-10 flex items-center justify-center bg-white text-gray-400 hover:text-primary ring-1 ring-gray-100 hover:ring-primary/30 rounded-xl transition-all shadow-md active:scale-95" title="Visualizar Anúncio">
               <ExternalLink className="w-4 h-4" />
@@ -669,6 +720,110 @@ const AdTableRow = React.memo(({
         </div>
       </td>
     </tr>
+  );
+});
+
+const AdReportModal = React.memo(({ ad, onClose }: { ad: any, onClose: () => void }) => {
+  const views = Number(ad.views_count ?? ad.views ?? 0) || 0;
+  const whatsapp = Number(ad.whatsapp_clicks_count ?? ad.interests ?? 0) || 0;
+  const shares = Number(ad.shares_count ?? 0) || 0;
+  const interestRate = views > 0 ? Math.round((whatsapp / views) * 100) : 0;
+  const isStrongCandidate = !ad.is_featured && ad.status === 'active' && (views >= 10 || whatsapp >= 1);
+  const suggestion = ad.is_featured
+    ? 'Este anuncio ja esta destacado. Use estes numeros para renovar ou vender um pacote maior.'
+    : isStrongCandidate
+      ? 'Bom candidato para destaque: ja recebeu atencao e pode gerar mais contatos com prioridade.'
+      : 'Ainda precisa ganhar tracao. Melhorar foto, titulo ou divulgar por QR antes de vender destaque.';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/50 p-4 backdrop-blur-sm md:items-center">
+      <div className="w-full max-w-3xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-6">
+          <div className="min-w-0">
+            <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-gray-400">Relatorio do anuncio</p>
+            <h2 className="truncate text-2xl font-black tracking-tight text-gray-950">{ad.title || 'Sem titulo'}</h2>
+            <p className="mt-1 text-xs font-bold text-gray-400">{ad.category || 'Sem categoria'} · {ad.neighborhood || 'Bairro nao informado'}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+            title="Fechar"
+          >
+            <XCircle className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="grid gap-4 p-6 md:grid-cols-4">
+          <ReportMetric icon={<Eye />} label="Visualizacoes" value={views} color="gray" />
+          <ReportMetric icon={<MessageSquare />} label="WhatsApp" value={whatsapp} color="emerald" />
+          <ReportMetric icon={<Share2 />} label="Compart." value={shares} color="indigo" />
+          <ReportMetric icon={<TrendingUp />} label="Interesse" value={interestRate} suffix="%" color="purple" />
+        </div>
+
+        <div className="grid gap-4 px-6 pb-6 md:grid-cols-2">
+          <div className="rounded-2xl bg-gray-50 p-5">
+            <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-gray-400">Status comercial</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={cn(
+                "rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-widest",
+                ad.status === 'active' ? "bg-emerald-100 text-emerald-700" :
+                ad.status === 'sold' ? "bg-blue-100 text-blue-700" :
+                ad.status === 'hidden' ? "bg-amber-100 text-amber-700" :
+                "bg-red-100 text-red-700"
+              )}>
+                {ad.status === 'active' ? 'Ativo' : ad.status === 'sold' ? 'Vendido' : ad.status === 'hidden' ? 'Oculto' : 'Removido'}
+              </span>
+              {ad.is_featured && <span className="rounded-xl bg-amber-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-amber-700">Destacado</span>}
+              {ad.is_external && <span className="rounded-xl bg-blue-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-blue-700">Manual</span>}
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-amber-50 p-5 text-amber-900">
+            <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-amber-700">Sugestao</p>
+            <p className="text-sm font-bold leading-relaxed">{suggestion}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
+          <Link to={`/anuncio/${ad.id}`} target="_blank">
+            <Button variant="outline" className="flex items-center gap-2 rounded-2xl bg-white">
+              <ExternalLink className="h-4 w-4" /> Ver anuncio
+            </Button>
+          </Link>
+          <button
+            onClick={onClose}
+            className="rounded-2xl bg-gray-900 px-5 py-3 text-xs font-black uppercase tracking-widest text-white shadow-lg transition-colors hover:bg-black"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const ReportMetric = React.memo(({ icon, label, value, suffix = '', color }: {
+  icon: React.ReactNode,
+  label: string,
+  value: number,
+  suffix?: string,
+  color: string
+}) => {
+  const colors: Record<string, string> = {
+    gray: 'bg-gray-100 text-gray-500',
+    emerald: 'bg-emerald-50 text-emerald-600',
+    indigo: 'bg-indigo-50 text-indigo-600',
+    purple: 'bg-purple-50 text-purple-600',
+  };
+
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+      <div className={cn("mb-4 flex h-10 w-10 items-center justify-center rounded-xl", colors[color])}>
+        {React.cloneElement(icon as React.ReactElement, { className: 'h-5 w-5' })}
+      </div>
+      <div className="text-2xl font-black tracking-tighter text-gray-950">{value}{suffix}</div>
+      <div className="text-[9px] font-black uppercase tracking-widest text-gray-400">{label}</div>
+    </div>
   );
 });
 
@@ -701,6 +856,65 @@ const CommercialMetric = React.memo(({ icon, label, value, detail, color }: {
     </div>
   );
 });
+
+const PaidComparisonPanel = React.memo(({ icon, title, featuredValue, normalValue, lift, suffix }: {
+  icon: React.ReactNode,
+  title: string,
+  featuredValue: number,
+  normalValue: number,
+  lift: number,
+  suffix: string
+}) => {
+  const maxValue = Math.max(featuredValue, normalValue, 1);
+  const featuredWidth = Math.max(8, Math.round((featuredValue / maxValue) * 100));
+  const normalWidth = Math.max(8, Math.round((normalValue / maxValue) * 100));
+  const liftText = lift > 0 ? `+${lift}%` : `${lift}%`;
+
+  return (
+    <div className="bg-white border border-gray-100 rounded-[2rem] p-6 shadow-2xl shadow-gray-200/30">
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Comparativo de destaque</p>
+          <h2 className="text-lg font-black text-gray-950 tracking-tight">{title}</h2>
+        </div>
+        <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm">
+          {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' })}
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        <ComparisonRow label="Destacados" value={featuredValue} width={featuredWidth} suffix={suffix} active />
+        <ComparisonRow label="Comuns" value={normalValue} width={normalWidth} suffix={suffix} />
+      </div>
+
+      <div className="mt-6 rounded-2xl bg-amber-50 px-4 py-3 text-amber-800">
+        <div className="text-xl font-black tracking-tighter">{liftText}</div>
+        <p className="text-[10px] font-black uppercase tracking-widest">vantagem media dos destacados</p>
+      </div>
+    </div>
+  );
+});
+
+const ComparisonRow = React.memo(({ label, value, width, suffix, active = false }: {
+  label: string,
+  value: number,
+  width: number,
+  suffix: string,
+  active?: boolean
+}) => (
+  <div>
+    <div className="mb-2 flex items-center justify-between gap-3">
+      <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</span>
+      <span className={cn("text-xs font-black", active ? "text-amber-600" : "text-gray-500")}>{value} {suffix}</span>
+    </div>
+    <div className="h-3 rounded-full bg-gray-100 overflow-hidden">
+      <div
+        className={cn("h-full rounded-full", active ? "bg-amber-500" : "bg-gray-300")}
+        style={{ width: `${width}%` }}
+      />
+    </div>
+  </div>
+));
 
 const RankingPanel = React.memo(({ title, icon, ads, metric, suffix }: {
   title: string,
