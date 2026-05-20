@@ -28,6 +28,7 @@ export default function AdminDashboard() {
   const [featuredFilter, setFeaturedFilter] = useState('all');
   const [externalFilter, setExternalFilter] = useState('all');
   const [quickFilter, setQuickFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState<'overview' | 'ads'>('overview');
 
   // Queries
   const statsQuery = useQuery({
@@ -207,7 +208,39 @@ export default function AdminDashboard() {
       )}
 
       {/* Métrica Cards */}
-      {statsQuery.data && (
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="inline-flex w-full rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-gray-100 md:w-auto">
+          <button
+            type="button"
+            onClick={() => setActiveTab('overview')}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all md:flex-none",
+              activeTab === 'overview'
+                ? "bg-primary text-white shadow-lg shadow-primary/20"
+                : "text-gray-400 hover:bg-gray-50 hover:text-primary"
+            )}
+          >
+            <TrendingUp className="w-4 h-4" /> Visao Geral
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('ads')}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all md:flex-none",
+              activeTab === 'ads'
+                ? "bg-primary text-white shadow-lg shadow-primary/20"
+                : "text-gray-400 hover:bg-gray-50 hover:text-primary"
+            )}
+          >
+            <Package className="w-4 h-4" /> Anuncios
+          </button>
+        </div>
+        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+          {activeTab === 'overview' ? 'Indicadores comerciais' : `${filteredAds.length} anuncios encontrados`}
+        </div>
+      </div>
+
+      {activeTab === 'overview' && statsQuery.data && (
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-11 gap-4 mb-12">
           <StatCard icon={<Package />} label="Total" value={statsQuery.data.total ?? 0} color="primary" />
           <StatCard icon={<CheckCircle />} label="Ativos" value={statsQuery.data.active} color="emerald" />
@@ -224,6 +257,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Gerenciamento */}
+      {activeTab === 'ads' && (
       <div className="bg-white rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
         {/* Filtros Avançados */}
         <div className="p-8 border-b border-gray-50 space-y-6">
@@ -341,6 +375,7 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }
