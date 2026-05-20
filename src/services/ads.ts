@@ -6,8 +6,20 @@ import { isNonCriticalSupabaseError } from '../lib/utils';
 export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSignal, retryCount = 0): Promise<{ ads: Ad[], totalCount: number, hasMore: boolean }> {
   const pageSize = filter.pageSize || 12;
   const page = filter.page || 0;
+  const normalizeValue = (value?: string | null) => value?.trim().toLowerCase() || '';
+  const cleanFilter = {
+    search: filter.search?.trim() || undefined,
+    category: ['todos', 'todas', 'todos os anuncios', 'todos os anúncios', ''].includes(normalizeValue(filter.category)) ? undefined : filter.category?.trim(),
+    type: ['all', 'todos', ''].includes(normalizeValue(filter.type)) ? undefined : filter.type,
+    condition: ['all', 'todos', ''].includes(normalizeValue(filter.condition)) ? undefined : filter.condition,
+    neighborhood: ['todos os bairros', 'todos', ''].includes(normalizeValue(filter.neighborhood)) ? undefined : filter.neighborhood?.trim(),
+    sortBy: filter.sortBy || 'recent',
+    page,
+    pageSize
+  };
   
   console.debug("FETCH_ADS_INPUT", { filter });
+  console.debug("FETCH_ADS_CLEAN_FILTER", cleanFilter);
   
   try {
     let query = supabase
@@ -19,8 +31,8 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       query = query.abortSignal(signal);
     }
 
-    if (filter.search) {
-      const s = filter.search.trim();
+    if (cleanFilter.search) {
+      const s = cleanFilter.search;
       if (s) {
         const term = `%${s}%`;
         console.debug('QUERY_STEP: filter by search=' + s);
@@ -28,9 +40,8 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       }
     }
 
-    const invalidCategories = ['Todos', 'Todas', 'Todos os anúncios', 'Todos os Anúncios', ''];
-    if (filter.category && !invalidCategories.map(c => c.toLowerCase()).includes(filter.category.trim().toLowerCase())) {
-      const cat = filter.category.trim();
+    if (cleanFilter.category) {
+      const cat = cleanFilter.category;
       const normalizedCat = cat.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ç/g, "c");
       
       const isServiceSearch = [
@@ -38,7 +49,7 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       ].includes(normalizedCat);
       
       console.debug('CATEGORY_FILTER_NORMALIZATION', {
-        original: filter.category,
+        original: cleanFilter.category,
         normalized: normalizedCat,
         isServiceSearch
       });
@@ -47,26 +58,24 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
         console.debug('QUERY_STEP: filter by ad_type=service');
         query = query.eq('ad_type', 'service');
       } else {
-        console.debug('QUERY_STEP: filter by category=' + filter.category);
-        query = query.eq('category', filter.category);
+        console.debug('QUERY_STEP: filter by category=' + cleanFilter.category);
+        query = query.eq('category', cleanFilter.category);
       }
     }
 
-    const invalidTypes = ['all', 'Todos', ''];
-    if (filter.type && !invalidTypes.map(t => t.toLowerCase()).includes(filter.type.trim().toLowerCase())) {
-      console.debug('QUERY_STEP: filter by ad_type=' + filter.type);
-      query = query.eq('ad_type', filter.type);
+    if (cleanFilter.type) {
+      console.debug('QUERY_STEP: filter by ad_type=' + cleanFilter.type);
+      query = query.eq('ad_type', cleanFilter.type);
     }
 
-    const invalidNeighborhoods = ['Todos os bairros', 'Todos os Bairros', 'Todos', ''];
-    if (filter.neighborhood && !invalidNeighborhoods.map(n => n.toLowerCase()).includes(filter.neighborhood.trim().toLowerCase())) {
-      query = query.eq('neighborhood', filter.neighborhood);
+    if (cleanFilter.neighborhood) {
+      query = query.eq('neighborhood', cleanFilter.neighborhood);
     }
 
     // Ordenação
-    if (filter.sortBy === 'price_asc') {
+    if (cleanFilter.sortBy === 'price_asc') {
       query = query.order('price', { ascending: true });
-    } else if (filter.sortBy === 'price_desc') {
+    } else if (cleanFilter.sortBy === 'price_desc') {
       query = query.order('price', { ascending: false });
     } else {
       query = query.order('created_at', { ascending: false });
@@ -94,6 +103,10 @@ export async function fetchAds(filter: Partial<AdFilter> = {}, signal?: AbortSig
       countReturned: data?.length || 0,
       totalCount: count,
       error
+    });
+    console.log("FETCH_ADS_RESULT_COUNT", {
+      countReturned: data?.length || 0,
+      totalCount: count || 0
     });
 
     if (error) {

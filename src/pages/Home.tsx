@@ -165,6 +165,19 @@ export default function Home() {
   const requestRef = useRef(0);
   const loadingAdsRef = useRef(false);
   const lastRequestIdRef = useRef(0);
+  const isDefaultHomeMode = React.useMemo(() => {
+    const category = filters.category?.trim().toLowerCase() || '';
+    const type = filters.type?.trim().toLowerCase() || '';
+    const condition = filters.condition?.trim().toLowerCase() || '';
+    const neighborhood = filters.neighborhood?.trim().toLowerCase() || '';
+    return (
+      ['todos', 'todas', ''].includes(category) &&
+      ['all', 'todos', ''].includes(type) &&
+      ['all', 'todos', ''].includes(condition) &&
+      ['todos os bairros', 'todos', ''].includes(neighborhood) &&
+      !filters.search?.trim()
+    );
+  }, [filters.category, filters.type, filters.condition, filters.neighborhood, filters.search]);
 
   const loadAdsData = useCallback(async (isInitial = true) => {
     if (loadingAdsRef.current && !isInitial) {
@@ -188,6 +201,7 @@ export default function Home() {
     if (isInitial) {
       console.debug("LOAD_INITIAL_START", { requestId });
       console.log("HOME_FILTERS_ACTIVE", filters);
+      console.log("HOME_INITIAL_MODE", { isInitialHome: isDefaultHomeMode, requestId });
       console.log("HOME_LOAD_ADS_START", { requestId });
       setLoading(true);
       setError(null);
@@ -224,17 +238,22 @@ export default function Home() {
     try {
       const targetPage = isInitial ? 0 : pageRef.current + 1;
       const pageSize = 12;
-      
-      let result = await fetchAds({ 
+      const requestFilter = isDefaultHomeMode ? {
+        sortBy: filters.sortBy,
+        page: targetPage,
+        pageSize
+      } : {
         category: filters.category,
         type: filters.type,
         sortBy: filters.sortBy,
         condition: filters.condition,
         search: filters.search,
         neighborhood: filters.neighborhood,
-        page: targetPage, 
-        pageSize 
-      }, controller.signal);
+        page: targetPage,
+        pageSize
+      };
+      
+      let result = await fetchAds(requestFilter, controller.signal);
 
       // Se der zero na carga inicial, fizermos segunda busca sem filtros como fallback
       if (isInitial && (!result.ads || result.ads.length === 0)) {
@@ -244,7 +263,22 @@ export default function Home() {
           (filters.neighborhood && !['todos os bairros', 'todos', ''].includes(filters.neighborhood.trim().toLowerCase())) ||
           (filters.search && filters.search.trim().length > 0);
 
-        if (hasActiveFilters) {
+        if (isDefaultHomeMode) {
+          console.warn("HOME_EMPTY_INITIAL_FALLBACK_START", { requestId });
+          const fallbackResult = await fetchAds({
+            page: 0,
+            pageSize,
+            sortBy: 'recent'
+          }, controller.signal);
+          console.log("HOME_EMPTY_INITIAL_FALLBACK_SUCCESS", {
+            count: fallbackResult?.ads?.length || 0,
+            requestId
+          });
+
+          if (fallbackResult && fallbackResult.ads && fallbackResult.ads.length > 0) {
+            result = fallbackResult;
+          }
+        } else if (hasActiveFilters) {
           console.warn("HOME_EMPTY_RESULT_FALLBACK_RECENT");
           const fallbackResult = await fetchAds({
             page: 0,
@@ -323,7 +357,8 @@ export default function Home() {
     filters.sortBy, 
     filters.condition, 
     filters.search,
-    filters.neighborhood
+    filters.neighborhood,
+    isDefaultHomeMode
   ]);
 
   // Wrapper functions for clarity as requested
@@ -743,7 +778,9 @@ export default function Home() {
             <div className="py-24 text-center bg-white rounded-[3rem] border border-gray-100 flex flex-col items-center p-8">
               <PackageOpen className="w-12 h-12 text-gray-200 mb-6" />
               <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Nada encontrado</h3>
-              <p className="text-gray-400 text-sm max-w-xs mx-auto mb-10">Não encontramos anúncios para esta categoria no momento.</p>
+              <p className="text-gray-400 text-sm max-w-xs mx-auto mb-10">
+                {isDefaultHomeMode ? 'Nenhum anúncio disponível no momento.' : 'Não encontramos anúncios para esta categoria no momento.'}
+              </p>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => {
                   setFiltersState({ ...filters, category: 'Todos' });

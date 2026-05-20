@@ -65,9 +65,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isActuallyConfigured = url && url !== 'undefined' && key && key !== 'undefined' && url.length > 5;
     
     if (!isActuallyConfigured) {
-      setIsConfigured(false);
+      if ((import.meta as any).env?.DEV) {
+        console.warn('Supabase env vars missing: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+      }
       setAuthLoading(false);
-      return;
     }
 
     let mounted = true;
@@ -207,31 +208,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
   };
-
-  if (!isConfigured) {
-    return (
-      <div className="min-h-screen bg-bg-main flex items-center justify-center p-4 text-center">
-        <div className="max-w-md bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-          <div className="w-16 h-16 bg-emerald-50 text-primary rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Configuração Necessária</h1>
-          <p className="text-gray-500 text-sm mb-6">
-            As credenciais do Supabase não foram encontradas. Para que o Tefé Market funcione, você precisa configurar as variáveis de ambiente no menu de configurações.
-          </p>
-          <div className="bg-gray-50 p-4 rounded-lg text-left text-xs font-mono text-gray-600 mb-6 border border-gray-100">
-            <div>VITE_SUPABASE_URL=...</div>
-            <div className="mt-1">VITE_SUPABASE_ANON_KEY=...</div>
-          </div>
-          <p className="text-xs text-gray-400">
-            Obtenha essas chaves no dashboard do seu projeto Supabase em Settings &gt; API.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
