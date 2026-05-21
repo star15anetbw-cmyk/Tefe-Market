@@ -570,16 +570,16 @@ export default function Home() {
                 <Zap className="h-3.5 w-3.5" /> Anuncie em Tefe
               </div>
               <h2 className="pr-10 text-3xl font-black leading-none tracking-tight">
-                Venda mais no Tefe Market.
+                Anunciar no Tefe Market e gratis.
               </h2>
               <p className="mt-3 text-sm font-bold leading-relaxed text-white/75">
-                Publique gratis ou veja os destaques pagos para aparecer melhor na vitrine local.
+                Publique seu produto ou servico sem pagar nada. Os destaques pagos sao opcionais para quem quiser aparecer melhor.
               </p>
             </div>
 
             <div className="space-y-3 p-5">
               <div className="grid grid-cols-3 gap-2 text-center">
-                {['Gratis', 'WhatsApp', 'Destaques'].map(item => (
+                {['Anuncio gratis', 'WhatsApp direto', 'Destaque opcional'].map(item => (
                   <div key={item} className="rounded-2xl bg-gray-50 px-2 py-3">
                     <p className="text-[9px] font-black uppercase tracking-widest text-gray-500">{item}</p>
                   </div>
@@ -587,9 +587,14 @@ export default function Home() {
               </div>
 
               <div className="grid gap-2">
-                <Link to="/anunciar" onClick={dismissAdvertisePrompt}>
+                <Link to="/publicar" onClick={dismissAdvertisePrompt}>
                   <Button className="w-full rounded-2xl px-5 py-4 h-auto">
-                    Ver planos
+                    Publicar anuncio gratis
+                  </Button>
+                </Link>
+                <Link to="/anunciar" onClick={dismissAdvertisePrompt}>
+                  <Button variant="outline" className="w-full rounded-2xl px-5 py-3 h-auto">
+                    Ver destaques opcionais
                   </Button>
                 </Link>
                 <button
