@@ -57,7 +57,8 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
       whileHover={{ y: -6 }}
       transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
       className={cn(
-        "bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col group transition-all h-full"
+        "bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] border flex flex-col group transition-all h-full",
+        (featured || ad.is_featured) ? "border-amber-200 ring-2 ring-amber-100" : "border-gray-100"
       )}
     >
       <Link to={`/anuncio/${ad.id}`} className="block relative group-hover:no-underline flex flex-col h-full">
@@ -88,7 +89,12 @@ export default function AdCard({ ad, featured = false }: AdCardProps) {
           </button>
 
           {/* Type Badge */}
-          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10">
+          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 flex flex-wrap gap-1.5">
+            {(featured || ad.is_featured) && (
+              <span className="px-2 py-0.5 sm:px-3 sm:py-1 text-[7px] sm:text-[9px] font-black uppercase tracking-widest rounded-lg sm:rounded-xl text-white shadow-lg bg-amber-500 border border-white/20 inline-flex items-center gap-1">
+                <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" /> Destaque
+              </span>
+            )}
             <span className={cn(
               "px-2 py-0.5 sm:px-3 sm:py-1 text-[7px] sm:text-[9px] font-black uppercase tracking-widest rounded-lg sm:rounded-xl text-white shadow-lg backdrop-blur-md border border-white/20",
               ad.ad_type === 'sale' ? "bg-primary/90" : ad.ad_type === 'rent' ? "bg-blue-600/90" : "bg-purple-600/90"

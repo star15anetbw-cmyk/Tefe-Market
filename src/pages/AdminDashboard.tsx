@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   const [featuredFilter, setFeaturedFilter] = useState('all');
   const [externalFilter, setExternalFilter] = useState('all');
   const [quickFilter, setQuickFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState<'overview' | 'ads'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'ads' | 'plans'>('overview');
   const [reportAd, setReportAd] = useState<any | null>(null);
 
   // Queries
@@ -280,14 +280,41 @@ export default function AdminDashboard() {
           >
             <Package className="w-4 h-4" /> Anuncios
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('plans')}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-3 text-[10px] font-black uppercase tracking-widest transition-all md:flex-none",
+              activeTab === 'plans'
+                ? "bg-primary text-white shadow-lg shadow-primary/20"
+                : "text-gray-400 hover:bg-gray-50 hover:text-primary"
+            )}
+          >
+            <Star className="w-4 h-4" /> Planos
+          </button>
         </div>
         <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-          {activeTab === 'overview' ? 'Indicadores comerciais' : `${filteredAds.length} anuncios encontrados`}
+          {activeTab === 'overview'
+            ? 'Indicadores comerciais'
+            : activeTab === 'plans'
+              ? 'Tabela de venda'
+              : `${filteredAds.length} anuncios encontrados`}
         </div>
       </div>
 
       {activeTab === 'overview' && statsQuery.data && (
         <div className="space-y-8">
+          <ExecutiveHero
+            contacts={statsQuery.data.totalWhatsAppClicks ?? statsQuery.data.totalClicks ?? dashboardInsights.totalWhatsApp}
+            views={statsQuery.data.totalViews ?? dashboardInsights.totalViews}
+            qrVisits={statsQuery.data.qrCartao ?? 0}
+            interestRate={dashboardInsights.interestRate}
+            activeAds={dashboardInsights.activeAds}
+            featuredAds={dashboardInsights.featuredAds}
+            paidCandidates={dashboardInsights.paidCandidates.length}
+            onOpenAds={() => setActiveTab('ads')}
+          />
+
           <div className="grid gap-4 lg:grid-cols-4">
             <CommercialMetric
               icon={<QrCode />}
@@ -370,6 +397,71 @@ export default function AdminDashboard() {
               metric={(ad) => (ad.views_count ?? ad.views ?? 0) + (ad.whatsapp_clicks_count ?? ad.interests ?? 0) * 3}
               suffix="pontos"
             />
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'plans' && (
+        <div className="space-y-8">
+          <div className="rounded-[2rem] bg-white p-8 shadow-2xl shadow-gray-200/30 border border-gray-100">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-primary">Planos comerciais</p>
+                <h2 className="text-4xl font-black tracking-tighter text-gray-950">Venda destaque com uma oferta simples.</h2>
+                <p className="mt-3 text-sm font-bold leading-relaxed text-gray-500">
+                  Use estes pacotes como referencia para negociar no WhatsApp. Os valores podem ser ajustados conforme demanda, categoria e duracao.
+                </p>
+              </div>
+              <Button onClick={() => setActiveTab('ads')} className="rounded-2xl px-5 py-3">
+                <Star className="h-4 w-4" /> Escolher anuncio
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-4">
+            <PlanCard
+              title="Destaque 7 dias"
+              price="R$ 25"
+              badge="Entrada"
+              description="Bom para testar resposta rapida em produtos, servicos e oportunidades pontuais."
+              items={['Selo de destaque', 'Prioridade visual', 'Resumo de resultado']}
+            />
+            <PlanCard
+              title="Destaque 15 dias"
+              price="R$ 45"
+              badge="Mais facil"
+              description="Oferta equilibrada para quem quer aparecer por mais tempo sem compromisso mensal."
+              items={['Mais tempo em destaque', 'Acompanhamento no admin', 'Resumo para WhatsApp']}
+              featured
+            />
+            <PlanCard
+              title="Destaque 30 dias"
+              price="R$ 75"
+              badge="Melhor valor"
+              description="Plano ideal para comerciantes, imoveis, veiculos e anuncios que precisam de recorrencia."
+              items={['Presenca mensal', 'Relatorio comercial', 'Renovacao facilitada']}
+            />
+            <PlanCard
+              title="Parceiro local"
+              price="Sob consulta"
+              badge="Comercio"
+              description="Pacote para lojas e prestadores que desejam publicar ou renovar varios anuncios."
+              items={['Varios anuncios', 'Suporte manual', 'Campanhas com QR Code']}
+            />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
+            <SalesScriptPanel />
+            <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-2xl shadow-gray-200/30">
+              <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-gray-400">Quando oferecer</p>
+              <h3 className="mb-5 text-xl font-black tracking-tight text-gray-950">Sinais de bom candidato</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <PlanSignal icon={<Eye />} title="Muitas visualizacoes" text="Anuncio ja chama atencao, mas pode aparecer mais." />
+                <PlanSignal icon={<MessageSquare />} title="Cliques no WhatsApp" text="Ja existe intencao real de contato." />
+                <PlanSignal icon={<QrCode />} title="Campanha impressa" text="QR Code ajuda a provar origem de trafego." />
+                <PlanSignal icon={<Star />} title="Produto forte" text="Bom preco, boa foto ou categoria muito procurada." />
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -866,6 +958,159 @@ const ReportMetric = React.memo(({ icon, label, value, suffix = '', color }: {
     </div>
   );
 });
+
+const ExecutiveHero = React.memo(({ contacts, views, qrVisits, interestRate, activeAds, featuredAds, paidCandidates, onOpenAds }: {
+  contacts: number,
+  views: number,
+  qrVisits: number,
+  interestRate: number,
+  activeAds: number,
+  featuredAds: number,
+  paidCandidates: number,
+  onOpenAds: () => void
+}) => {
+  return (
+    <div className="grid gap-6 xl:grid-cols-[1.45fr_1fr]">
+      <section className="overflow-hidden rounded-[2rem] bg-primary p-8 text-white shadow-2xl shadow-primary/20">
+        <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-white/70">Painel comercial</p>
+            <h2 className="text-4xl font-black leading-none tracking-tighter md:text-5xl">
+              O Tefe Market esta gerando oportunidades reais de contato.
+            </h2>
+            <p className="mt-4 max-w-xl text-sm font-bold leading-relaxed text-white/75">
+              Use estes numeros para mostrar alcance, provar interesse e vender destaque com uma conversa mais objetiva.
+            </p>
+          </div>
+          <Button
+            onClick={onOpenAds}
+            className="shrink-0 rounded-2xl bg-white px-5 py-3 text-primary hover:bg-white/90"
+          >
+            <Package className="h-4 w-4" /> Ver anuncios
+          </Button>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <HeroStat label="Contatos gerados" value={contacts} />
+          <HeroStat label="Visualizacoes" value={views} />
+          <HeroStat label="Visitas QR" value={qrVisits} />
+          <HeroStat label="Taxa interesse" value={interestRate} suffix="%" />
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-2xl shadow-gray-200/30">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div>
+            <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-gray-400">Argumentos de venda</p>
+            <h2 className="text-xl font-black tracking-tight text-gray-950">Como vender destaque hoje</h2>
+          </div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+            <Star className="h-6 w-6" />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <SalesArgument
+            value={activeAds}
+            label="anuncios ativos competindo por atencao"
+            tone="primary"
+          />
+          <SalesArgument
+            value={featuredAds}
+            label="anuncios ja destacados para usar como prova"
+            tone="amber"
+          />
+          <SalesArgument
+            value={paidCandidates}
+            label="bons candidatos para oferecer pacote pago"
+            tone="emerald"
+          />
+        </div>
+      </section>
+    </div>
+  );
+});
+
+const HeroStat = React.memo(({ label, value, suffix = '' }: { label: string, value: number, suffix?: string }) => (
+  <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15">
+    <div className="text-3xl font-black leading-none tracking-tighter">{value}{suffix}</div>
+    <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-white/65">{label}</div>
+  </div>
+));
+
+const SalesArgument = React.memo(({ value, label, tone }: { value: number, label: string, tone: string }) => {
+  const colors: Record<string, string> = {
+    primary: 'bg-primary/5 text-primary',
+    amber: 'bg-amber-50 text-amber-700',
+    emerald: 'bg-emerald-50 text-emerald-700',
+  };
+
+  return (
+    <div className="flex items-center gap-4 rounded-2xl bg-gray-50 p-4">
+      <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-black", colors[tone])}>
+        {value}
+      </div>
+      <p className="text-sm font-bold leading-snug text-gray-600">{label}</p>
+    </div>
+  );
+});
+
+const PlanCard = React.memo(({ title, price, badge, description, items, featured = false }: {
+  title: string,
+  price: string,
+  badge: string,
+  description: string,
+  items: string[],
+  featured?: boolean
+}) => (
+  <div className={cn(
+    "rounded-[2rem] border p-6 shadow-2xl transition-all",
+    featured
+      ? "border-primary bg-primary text-white shadow-primary/20"
+      : "border-gray-100 bg-white shadow-gray-200/30"
+  )}>
+    <div className="mb-6 flex items-center justify-between gap-3">
+      <span className={cn(
+        "rounded-xl px-3 py-1.5 text-[9px] font-black uppercase tracking-widest",
+        featured ? "bg-white/15 text-white" : "bg-primary/5 text-primary"
+      )}>
+        {badge}
+      </span>
+      <Star className={cn("h-5 w-5", featured ? "text-white" : "text-amber-500")} />
+    </div>
+    <h3 className="mb-2 text-xl font-black tracking-tight">{title}</h3>
+    <div className={cn("mb-4 text-4xl font-black tracking-tighter", featured ? "text-white" : "text-gray-950")}>{price}</div>
+    <p className={cn("mb-6 text-sm font-bold leading-relaxed", featured ? "text-white/75" : "text-gray-500")}>{description}</p>
+    <div className="space-y-3">
+      {items.map(item => (
+        <div key={item} className="flex items-center gap-3">
+          <CheckCircle className={cn("h-4 w-4 shrink-0", featured ? "text-white" : "text-emerald-500")} />
+          <span className={cn("text-xs font-black", featured ? "text-white/85" : "text-gray-600")}>{item}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+));
+
+const SalesScriptPanel = React.memo(() => (
+  <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-2xl shadow-gray-200/30">
+    <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-gray-400">Script rapido</p>
+    <h3 className="mb-5 text-xl font-black tracking-tight text-gray-950">Mensagem para mandar no WhatsApp</h3>
+    <div className="rounded-2xl bg-gray-50 p-5 text-sm font-bold leading-relaxed text-gray-600">
+      Seu anuncio ja esta no Tefe Market e pode ganhar mais visibilidade. Temos planos de destaque para ele aparecer melhor e receber mais visualizacoes e contatos. Posso te enviar uma opcao de 7, 15 ou 30 dias?
+    </div>
+  </div>
+));
+
+const PlanSignal = React.memo(({ icon, title, text }: { icon: React.ReactNode, title: string, text: string }) => (
+  <div className="rounded-2xl bg-gray-50 p-4">
+    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-primary shadow-sm">
+      {React.cloneElement(icon as React.ReactElement, { className: 'h-5 w-5' })}
+    </div>
+    <h4 className="mb-1 text-sm font-black tracking-tight text-gray-900">{title}</h4>
+    <p className="text-xs font-bold leading-relaxed text-gray-500">{text}</p>
+  </div>
+));
 
 const CommercialMetric = React.memo(({ icon, label, value, detail, color }: {
   icon: React.ReactNode,

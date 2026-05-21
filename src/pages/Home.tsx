@@ -490,8 +490,10 @@ export default function Home() {
       const boostA = Math.exp(-ageA / 7) * 1.5;
       const boostB = Math.exp(-ageB / 7) * 1.5;
 
-      const scoreA = scoresRef.current[a.id] + boostA;
-      const scoreB = scoresRef.current[b.id] + boostB;
+      const featuredBoostA = a.is_featured ? 6 : 0;
+      const featuredBoostB = b.is_featured ? 6 : 0;
+      const scoreA = scoresRef.current[a.id] + boostA + featuredBoostA;
+      const scoreB = scoresRef.current[b.id] + boostB + featuredBoostB;
 
       return scoreB - scoreA;
     });
@@ -504,7 +506,7 @@ export default function Home() {
     if (!isMainHome || processedAds.length === 0) return [];
     
     // Seleciona os primeiros 8 da lista já processada/ordenada para serem os destaques
-    return processedAds.slice(0, 8);
+    return processedAds.filter(ad => ad.is_featured).slice(0, 8);
   }, [processedAds, filters.category, filters.search, filters.type]);
 
   const mainAds = React.useMemo(() => {
@@ -614,10 +616,18 @@ export default function Home() {
               viewport={{ once: true }}
               className="space-y-2 sm:space-y-8 max-w-7xl mx-auto"
             >
-              <div className="flex items-center justify-between px-1">
-                <h2 className="text-[11px] sm:text-base font-black uppercase tracking-[0.2em] text-gray-900">
-                  Em destaque
-                </h2>
+              <div className="flex items-end justify-between gap-4 px-1">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-amber-700 mb-2">
+                    <Zap className="w-3 h-3" /> Vitrine paga
+                  </div>
+                  <h2 className="text-[13px] sm:text-xl font-black uppercase tracking-[0.16em] text-gray-900">
+                    Destaques da semana
+                  </h2>
+                </div>
+                <p className="hidden sm:block text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  Anuncios com mais visibilidade
+                </p>
               </div>
               
               <Swiper
