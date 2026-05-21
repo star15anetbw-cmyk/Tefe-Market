@@ -592,8 +592,15 @@ export default function Home() {
                     Publicar anuncio gratis
                   </Button>
                 </Link>
+                <Link
+                  to="/publicar"
+                  onClick={dismissAdvertisePrompt}
+                  className="flex w-full items-center justify-center rounded-2xl bg-emerald-50 px-5 py-3 text-[11px] font-black uppercase tracking-widest text-primary ring-2 ring-primary/15 transition-all hover:bg-emerald-100 active:scale-95"
+                >
+                  Gratis para anunciar
+                </Link>
                 <Link to="/anunciar" onClick={dismissAdvertisePrompt}>
-                  <Button variant="outline" className="w-full rounded-2xl px-5 py-3 h-auto">
+                  <Button variant="ghost" className="w-full rounded-2xl px-5 py-3 h-auto text-gray-500">
                     Ver destaques opcionais
                   </Button>
                 </Link>
