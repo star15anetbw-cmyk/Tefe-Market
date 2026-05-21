@@ -2,8 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ShoppingBag, User, LogOut, PlusCircle, Search, Heart, MessageSquare, Shield } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { User, LogOut, PlusCircle, Heart, Shield, Sparkles } from 'lucide-react';
 
 export default function Navbar() {
   const { user, profile, isAdmin, signOut } = useAuth();
@@ -39,12 +38,20 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-3 sm:gap-6">
+            <Link
+              to="/anunciar"
+              className="hidden md:flex items-center gap-2 px-4 py-2.5 text-gray-600 hover:text-primary rounded-2xl font-black transition-all active:scale-95 text-xs uppercase tracking-widest"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>Planos</span>
+            </Link>
+
             <Link 
-              to="/publicar" 
+              to="/anunciar" 
               className="hidden lg:flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl font-black hover:shadow-xl hover:shadow-primary/20 transition-all active:scale-95 text-xs uppercase tracking-widest"
             >
               <PlusCircle className="h-4 w-4" />
-              <span>Anunciar Grátis</span>
+              <span>Anunciar</span>
             </Link>
 
             {user ? (

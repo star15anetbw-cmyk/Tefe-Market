@@ -639,14 +639,14 @@ export default function Home() {
                   ))}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                  <Link to="/publicar">
+                  <Link to="/anunciar">
                     <Button className="w-full rounded-2xl bg-white text-primary hover:bg-white/90 px-5 py-4 h-auto">
-                      <PackageOpen className="w-4 h-4" /> Publicar anuncio
+                      <PackageOpen className="w-4 h-4" /> Ver planos
                     </Button>
                   </Link>
-                  <Link to="/cadastro">
+                  <Link to="/publicar">
                     <Button variant="outline" className="w-full rounded-2xl border-white/30 bg-transparent text-white hover:bg-white/10 px-5 py-4 h-auto">
-                      <User className="w-4 h-4" /> Criar conta
+                      <User className="w-4 h-4" /> Publicar gratis
                     </Button>
                   </Link>
                 </div>

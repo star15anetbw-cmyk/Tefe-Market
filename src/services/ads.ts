@@ -604,32 +604,59 @@ function logSupabaseQueryError(context: string, error: any) {
   });
 }
 
-export async function fetchTrafficStats(signal?: AbortSignal): Promise<{ qrCartao: number; qrUnicos: number }> {
+export async function fetchTrafficStats(signal?: AbortSignal): Promise<{
+  qrCartao: number;
+  qrUnicos: number;
+  planosVisits: number;
+  planosUnicos: number;
+  ctaPublicar: number;
+  ctaCadastro: number;
+}> {
   try {
+    const trackedOrigins = [
+      'cartaoA4',
+      'pagina_anunciar',
+      'cta_planos_publicar',
+      'cta_planos_publicar_final',
+      'cta_planos_cadastro'
+    ];
+
     let query = supabase
       .from('traffic_events')
-      .select('session_id', { count: 'exact' })
-      .eq('origem', 'cartaoA4');
+      .select('origem, session_id')
+      .in('origem', trackedOrigins);
 
     if (signal instanceof AbortSignal) query = query.abortSignal(signal);
 
-    const { data, count, error } = await query;
+    const { data, error } = await query;
 
     if (error) {
-      if (isNonCriticalSupabaseError(error)) return { qrCartao: 0, qrUnicos: 0 };
+      if (isNonCriticalSupabaseError(error)) {
+        return { qrCartao: 0, qrUnicos: 0, planosVisits: 0, planosUnicos: 0, ctaPublicar: 0, ctaCadastro: 0 };
+      }
       throw error;
     }
 
+    const events = data || [];
+    const byOrigin = (origem: string) => events.filter(event => event.origem === origem);
+    const uniqueSessions = (rows: { session_id?: string | null }[]) => new Set(rows.map(event => event.session_id).filter(Boolean)).size;
+    const qrEvents = byOrigin('cartaoA4');
+    const planosEvents = byOrigin('pagina_anunciar');
+
     return {
-      qrCartao: count || 0,
-      qrUnicos: new Set((data || []).map(event => event.session_id).filter(Boolean)).size
+      qrCartao: qrEvents.length,
+      qrUnicos: uniqueSessions(qrEvents),
+      planosVisits: planosEvents.length,
+      planosUnicos: uniqueSessions(planosEvents),
+      ctaPublicar: byOrigin('cta_planos_publicar').length + byOrigin('cta_planos_publicar_final').length,
+      ctaCadastro: byOrigin('cta_planos_cadastro').length
     };
   } catch (err) {
     if (!isNonCriticalSupabaseError(err)) {
       console.debug('Traffic stats unavailable, skipping optional metrics.', err);
     }
 
-    return { qrCartao: 0, qrUnicos: 0 };
+    return { qrCartao: 0, qrUnicos: 0, planosVisits: 0, planosUnicos: 0, ctaPublicar: 0, ctaCadastro: 0 };
   }
 }
 
@@ -730,7 +757,11 @@ export async function fetchAdminStats(signal?: AbortSignal) {
       totalUsers: safeUsersCount,
       totalClicks: safeClicks.length,
       qrCartao: trafficStats.qrCartao,
-      qrUnicos: trafficStats.qrUnicos
+      qrUnicos: trafficStats.qrUnicos,
+      planosVisits: trafficStats.planosVisits,
+      planosUnicos: trafficStats.planosUnicos,
+      ctaPublicar: trafficStats.ctaPublicar,
+      ctaCadastro: trafficStats.ctaCadastro
     };
 
     return stats;

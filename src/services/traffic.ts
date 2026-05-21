@@ -37,10 +37,7 @@ function shouldRegisterOrigem(origem: string) {
   }
 }
 
-export async function registerTraffic() {
-  const params = new URLSearchParams(window.location.search);
-  const origem = params.get('origem')?.trim();
-
+export async function registerTrafficEvent(origem: string, path = window.location.pathname) {
   if (!origem || !shouldRegisterOrigem(origem)) return;
 
   try {
@@ -49,7 +46,7 @@ export async function registerTraffic() {
       .insert([{
         origem,
         session_id: getSessionId(),
-        path: window.location.pathname,
+        path,
         user_agent: navigator.userAgent,
         referrer: document.referrer || null
       }]);
@@ -62,4 +59,13 @@ export async function registerTraffic() {
       console.warn('Unexpected traffic tracking error:', err);
     }
   }
+}
+
+export async function registerTraffic() {
+  const params = new URLSearchParams(window.location.search);
+  const origem = params.get('origem')?.trim();
+
+  if (!origem) return;
+
+  await registerTrafficEvent(origem);
 }

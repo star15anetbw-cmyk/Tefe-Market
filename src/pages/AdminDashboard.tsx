@@ -315,13 +315,20 @@ export default function AdminDashboard() {
             onOpenAds={() => setActiveTab('ads')}
           />
 
-          <div className="grid gap-4 lg:grid-cols-4">
+          <div className="grid gap-4 lg:grid-cols-5">
             <CommercialMetric
               icon={<QrCode />}
               label="QR Cartao"
               value={statsQuery.data.qrCartao ?? 0}
               detail={`${statsQuery.data.qrUnicos ?? 0} visitantes unicos`}
               color="blue"
+            />
+            <CommercialMetric
+              icon={<Star />}
+              label="Pagina Planos"
+              value={statsQuery.data.planosVisits ?? 0}
+              detail={`${statsQuery.data.planosUnicos ?? 0} visitantes unicos`}
+              color="amber"
             />
             <CommercialMetric
               icon={<TrendingUp />}
@@ -341,7 +348,7 @@ export default function AdminDashboard() {
               icon={<Star />}
               label="Destaques"
               value={dashboardInsights.featuredAds}
-              detail={`${dashboardInsights.paidCandidates.length} candidatos a plano pago`}
+              detail={`${statsQuery.data.ctaPublicar ?? 0} cliques para publicar`}
               color="amber"
             />
           </div>

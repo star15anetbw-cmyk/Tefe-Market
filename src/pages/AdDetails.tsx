@@ -691,6 +691,35 @@ Ainda está disponível?`;
               <h3 className="text-md font-bold text-gray-900">{sellerName}</h3>
             </div>
           </div>
+
+          <div className="bg-gray-950 p-5 rounded-xl text-white shadow-lg shadow-gray-900/10">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-2xl bg-secondary flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/45 mb-1">Venda mais</p>
+                <h3 className="text-lg font-black leading-tight">Quer seu anuncio nessa vitrine?</h3>
+                <p className="text-xs font-semibold text-white/60 mt-2 leading-relaxed">
+                  Publique gratis ou escolha um destaque para aparecer melhor para compradores de Tefe.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-5">
+              <Link
+                to="/anunciar"
+                className="flex items-center justify-center rounded-xl bg-white px-3 py-3 text-[10px] font-black uppercase tracking-widest text-gray-950 transition-all active:scale-95"
+              >
+                Ver planos
+              </Link>
+              <Link
+                to="/publicar"
+                className="flex items-center justify-center rounded-xl bg-white/10 px-3 py-3 text-[10px] font-black uppercase tracking-widest text-white ring-1 ring-white/15 transition-all active:scale-95"
+              >
+                Publicar
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
 

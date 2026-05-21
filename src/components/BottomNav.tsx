@@ -47,7 +47,7 @@ export default function BottomNav() {
         ))}
 
         {/* Central Plus Button */}
-        <Link to="/publicar" className="relative -top-6 group">
+        <Link to="/anunciar" className="relative -top-6 group" title="Anunciar">
            <motion.div
              whileHover={{ scale: 1.15, rotate: 90 }}
              whileTap={{ scale: 0.9 }}

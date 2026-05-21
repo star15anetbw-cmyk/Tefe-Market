@@ -8,6 +8,7 @@ import { registerTraffic } from './services/traffic';
 
 import {
   Home,
+  Advertise,
   Login,
   Register,
   AdDetails,
@@ -87,6 +88,8 @@ export default function App() {
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/anunciar" element={<Advertise />} />
+        <Route path="/planos" element={<Advertise />} />
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<Register />} />
         <Route path="/buscar" element={<Search />} />
