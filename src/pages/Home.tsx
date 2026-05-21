@@ -68,6 +68,63 @@ const SEARCH_EXAMPLES = [
   'aluguel', 'serviço de limpeza', 'mecânico', 'pintura', 'mudança', 'eletrônicos'
 ];
 
+type PixCountdown = {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+};
+
+const MANAUS_UTC_OFFSET_MS = 4 * 60 * 60 * 1000;
+const FRIDAY = 5;
+
+function getNextPixDrawDate(now = new Date()) {
+  const manausNow = new Date(now.getTime() - MANAUS_UTC_OFFSET_MS);
+  const dayOfWeek = manausNow.getUTCDay();
+  let daysUntilFriday = (FRIDAY - dayOfWeek + 7) % 7;
+
+  let targetAsManausTime = Date.UTC(
+    manausNow.getUTCFullYear(),
+    manausNow.getUTCMonth(),
+    manausNow.getUTCDate() + daysUntilFriday,
+    19,
+    0,
+    0,
+    0
+  );
+
+  if (targetAsManausTime <= manausNow.getTime()) {
+    daysUntilFriday += 7;
+    targetAsManausTime = Date.UTC(
+      manausNow.getUTCFullYear(),
+      manausNow.getUTCMonth(),
+      manausNow.getUTCDate() + daysUntilFriday,
+      19,
+      0,
+      0,
+      0
+    );
+  }
+
+  return new Date(targetAsManausTime + MANAUS_UTC_OFFSET_MS);
+}
+
+function getPixCountdown(now = new Date()): PixCountdown {
+  const nextDraw = getNextPixDrawDate(now);
+  const totalSeconds = Math.max(0, Math.floor((nextDraw.getTime() - now.getTime()) / 1000));
+
+  return {
+    days: Math.floor(totalSeconds / 86400),
+    hours: Math.floor((totalSeconds % 86400) / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60
+  };
+}
+
+function padTime(value: number) {
+  return String(value).padStart(2, '0');
+}
+
 export default function Home() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,6 +138,7 @@ export default function Home() {
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [showAdvertisePrompt, setShowAdvertisePrompt] = useState(false);
+  const [pixCountdown, setPixCountdown] = useState<PixCountdown>(() => getPixCountdown());
   
   const [localSearch, setLocalSearch] = useState('');
   const [filtersState, setFiltersState] = useState<AdFilter>({
@@ -125,6 +183,17 @@ export default function Home() {
       setShowAdvertisePrompt(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (!showAdvertisePrompt) return;
+
+    const updateCountdown = () => setPixCountdown(getPixCountdown());
+
+    updateCountdown();
+    const intervalId = window.setInterval(updateCountdown, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [showAdvertisePrompt]);
 
   // Typewriter placeholder state
   const [placeholder, setPlaceholder] = useState('Busque por produtos, serviços...');
@@ -567,17 +636,51 @@ export default function Home() {
 
             <div className="bg-primary px-6 pb-7 pt-8 text-white">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/80">
-                <Zap className="h-3.5 w-3.5" /> Anuncie em Tefe
+                <Zap className="h-3.5 w-3.5" /> Sorteio PIX
               </div>
               <h2 className="pr-10 text-3xl font-black leading-none tracking-tight">
-                Anunciar no Tefe Market e gratis.
+                🎁 PIX R$50 TODA SEXTA
               </h2>
               <p className="mt-3 text-sm font-bold leading-relaxed text-white/75">
-                Publique seu produto ou servico sem pagar nada. Os destaques pagos sao opcionais para quem quiser aparecer melhor.
+                Anuncie GRÁTIS no Tefé Market e participe automaticamente.
               </p>
             </div>
 
             <div className="space-y-3 p-5">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center shadow-[0_0_24px_rgba(245,158,11,0.18)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">
+                  ⏳ Próximo sorteio PIX em:
+                </p>
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  {[
+                    { label: 'dias', value: `${padTime(pixCountdown.days)}d` },
+                    { label: 'horas', value: `${padTime(pixCountdown.hours)}h` },
+                    { label: 'min', value: `${padTime(pixCountdown.minutes)}m` },
+                    { label: 'seg', value: `${padTime(pixCountdown.seconds)}s`, animated: true }
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-xl bg-white px-2 py-2 shadow-sm ring-1 ring-amber-100">
+                      {item.animated ? (
+                        <motion.div
+                          key={item.value}
+                          initial={{ opacity: 0.45, y: 3 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.18 }}
+                          className="text-lg font-black leading-none text-gray-950"
+                        >
+                          {item.value}
+                        </motion.div>
+                      ) : (
+                        <div className="text-lg font-black leading-none text-gray-950">{item.value}</div>
+                      )}
+                      <div className="mt-1 text-[7px] font-black uppercase tracking-widest text-gray-400">{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-amber-700/80">
+                  Toda sexta às 19h, horário de Manaus
+                </p>
+              </div>
+
               <div className="grid grid-cols-3 gap-2 text-center">
                 {['Anuncio gratis', 'WhatsApp direto', 'Destaque opcional'].map(item => (
                   <div key={item} className="rounded-2xl bg-gray-50 px-2 py-3">
@@ -588,8 +691,8 @@ export default function Home() {
 
               <div className="grid gap-2">
                 <Link to="/publicar" onClick={dismissAdvertisePrompt}>
-                  <Button className="w-full rounded-2xl px-5 py-4 h-auto">
-                    Publicar anuncio gratis
+                  <Button className="w-full animate-pulse rounded-2xl bg-primary px-5 py-4 h-auto shadow-xl shadow-primary/25">
+                    📢 ANUNCIAR AGORA
                   </Button>
                 </Link>
                 <Link
