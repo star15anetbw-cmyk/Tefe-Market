@@ -420,20 +420,39 @@ export async function toggleAdFeature(id: string, isFeatured: boolean) {
   return data as Ad;
 }
 
-export async function uploadAdImage(adId: string, userId: string, file: File, isPrimary = false) {
-  // 1. Impedir uploads acima de 3MB antes de qualquer processamento
-  const MAX_SIZE = 3 * 1024 * 1024;
-  if (file.size > MAX_SIZE) {
-    throw new Error('A imagem selecionada é muito grande (máximo 3MB). Por favor, escolha uma imagem menor.');
+const MAX_IMAGE_INPUT_SIZE = 10 * 1024 * 1024;
+const MAX_UNCOMPRESSED_FALLBACK_SIZE = 3 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
+function getFileExtension(file: File) {
+  return file.name.split('.').pop()?.toLowerCase() || '';
+}
+
+function validateImageFile(file: File) {
+  const extension = getFileExtension(file);
+  const hasAllowedMime = ALLOWED_IMAGE_TYPES.includes(file.type);
+  const hasAllowedExtension = ALLOWED_IMAGE_EXTENSIONS.includes(extension);
+
+  if (!hasAllowedMime && !hasAllowedExtension) {
+    throw new Error('Formato de imagem nao suportado. Envie fotos em JPG, PNG ou WebP.');
   }
 
-  // 2. Otimizar imagem (Comprimir, Redimensionar, Converter para WebP)
+  if (file.size > MAX_IMAGE_INPUT_SIZE) {
+    throw new Error('A imagem selecionada e muito grande (maximo 10MB). Escolha uma foto menor.');
+  }
+}
+
+export async function uploadAdImage(adId: string, userId: string, file: File, isPrimary = false) {
+  validateImageFile(file);
+
+  // Otimizar imagem (comprimir, redimensionar e converter para WebP)
   let fileToUpload: File | Blob = file;
-  let extension = file.name.split('.').pop() || 'jpg';
+  let extension = getFileExtension(file) || 'jpg';
 
   try {
     const options = {
-      maxSizeMB: 0.8, // Tenta comprimir para ficar abaixo de 800KB
+      maxSizeMB: 0.8,
       maxWidthOrHeight: 1200,
       useWebWorker: true,
       fileType: 'image/webp' as any,
@@ -447,7 +466,10 @@ export async function uploadAdImage(adId: string, userId: string, file: File, is
     extension = 'webp';
   } catch (compressionError) {
     console.warn('Erro ao comprimir imagem, tentando upload original:', compressionError);
-    // Se falhar a compressão, usamos o arquivo original (que já passou no teste de 3MB)
+
+    if (file.size > MAX_UNCOMPRESSED_FALLBACK_SIZE) {
+      throw new Error('Nao foi possivel otimizar esta imagem. Tente enviar uma foto em JPG, PNG ou WebP com ate 3MB.');
+    }
   }
 
   // Convenção: ad-images/{user_id}/{ad_id}/{filename}
@@ -459,7 +481,7 @@ export async function uploadAdImage(adId: string, userId: string, file: File, is
     .upload(filePath, fileToUpload, {
       cacheControl: '3600',
       upsert: false,
-      contentType: extension === 'webp' ? 'image/webp' : undefined
+      contentType: fileToUpload.type || file.type || undefined
     });
 
   if (uploadError) {

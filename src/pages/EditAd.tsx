@@ -392,7 +392,7 @@ export default function EditAd() {
                 <label className="aspect-square bg-gray-50 border-2 border-dashed border-gray-100 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100/50 transition-all group">
                   <Camera className="w-6 h-6 text-gray-300 group-hover:text-primary transition-colors mb-1" />
                   <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 group-hover:text-primary/60">Adicionar</span>
-                  <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageChange} />
+                  <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp" multiple onChange={handleImageChange} />
                 </label>
               )}
             </div>
