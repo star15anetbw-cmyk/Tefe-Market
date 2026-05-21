@@ -24,8 +24,8 @@ import {
   Tv,
   Trophy,
   Briefcase,
-  CheckCircle,
-  MessageCircle
+  MessageCircle,
+  X
 } from 'lucide-react';
 import { cn, isNonCriticalSupabaseError, smartShuffle } from '../lib/utils';
 import Button from '../components/ui/Button';
@@ -80,6 +80,7 @@ export default function Home() {
   const [page, setPage] = useState(0);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [showAdvertisePrompt, setShowAdvertisePrompt] = useState(false);
   
   const [localSearch, setLocalSearch] = useState('');
   const [filtersState, setFiltersState] = useState<AdFilter>({
@@ -114,6 +115,15 @@ export default function Home() {
     return () => {
       isMountedRef.current = false;
     };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const dismissed = sessionStorage.getItem('tefe_advertise_prompt_dismissed');
+      setShowAdvertisePrompt(!dismissed);
+    } catch {
+      setShowAdvertisePrompt(true);
+    }
   }, []);
 
   // Typewriter placeholder state
@@ -527,8 +537,74 @@ export default function Home() {
     }
   };
 
+  const dismissAdvertisePrompt = () => {
+    try {
+      sessionStorage.setItem('tefe_advertise_prompt_dismissed', 'true');
+    } catch {
+      // Ignore storage errors and just close the prompt for this render.
+    }
+
+    setShowAdvertisePrompt(false);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-bg-main w-full max-w-full overflow-x-hidden">
+      {showAdvertisePrompt && !filters.search && filters.category === 'Todos' && (
+        <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-gray-950/45 px-3 pb-20 pt-6 backdrop-blur-sm sm:items-center sm:p-6">
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="relative w-full max-w-md overflow-hidden rounded-[1.75rem] bg-white shadow-2xl"
+          >
+            <button
+              type="button"
+              onClick={dismissAdvertisePrompt}
+              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-500 shadow-sm ring-1 ring-gray-100 transition-all hover:text-gray-900 active:scale-95"
+              aria-label="Fechar aviso"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="bg-primary px-6 pb-7 pt-8 text-white">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/80">
+                <Zap className="h-3.5 w-3.5" /> Anuncie em Tefe
+              </div>
+              <h2 className="pr-10 text-3xl font-black leading-none tracking-tight">
+                Venda mais no Tefe Market.
+              </h2>
+              <p className="mt-3 text-sm font-bold leading-relaxed text-white/75">
+                Publique gratis ou veja os destaques pagos para aparecer melhor na vitrine local.
+              </p>
+            </div>
+
+            <div className="space-y-3 p-5">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                {['Gratis', 'WhatsApp', 'Destaques'].map(item => (
+                  <div key={item} className="rounded-2xl bg-gray-50 px-2 py-3">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-500">{item}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-2">
+                <Link to="/anunciar" onClick={dismissAdvertisePrompt}>
+                  <Button className="w-full rounded-2xl px-5 py-4 h-auto">
+                    Ver planos
+                  </Button>
+                </Link>
+                <button
+                  type="button"
+                  onClick={dismissAdvertisePrompt}
+                  className="w-full rounded-2xl px-5 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 transition-all hover:bg-gray-50 hover:text-gray-700 active:scale-95"
+                >
+                  Continuar vendo anuncios
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Header Section (Branded) */}
       <div className="bg-white pt-1 pb-2 sm:pt-12 sm:pb-16 px-4">
         <div className="max-w-4xl mx-auto space-y-3 sm:space-y-8">
@@ -608,52 +684,6 @@ export default function Home() {
               ))}
           </div>
         </div>
-
-        {!loading && !filters.search && filters.category === 'Todos' && (
-          <motion.section
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="max-w-7xl mx-auto overflow-hidden rounded-[2rem] bg-primary p-6 sm:p-10 text-white shadow-2xl shadow-primary/20"
-          >
-            <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/80 mb-4">
-                  <Zap className="w-3.5 h-3.5" /> Anuncie em Tefe
-                </div>
-                <h2 className="text-3xl sm:text-5xl font-black tracking-tighter leading-none mb-4">
-                  Venda, alugue ou divulgue seu servico no Tefe Market.
-                </h2>
-                <p className="text-sm sm:text-base font-bold text-white/75 max-w-2xl leading-relaxed">
-                  Publique seu anuncio gratis e, quando quiser mais visibilidade, use os destaques pagos para aparecer melhor na vitrine.
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-white/10 p-5 ring-1 ring-white/15">
-                <div className="space-y-3 mb-6">
-                  {['Publicacao gratuita', 'Contato direto pelo WhatsApp', 'Destaque pago opcional'].map(item => (
-                    <div key={item} className="flex items-center gap-3 text-sm font-black">
-                      <CheckCircle className="w-5 h-5 text-white shrink-0" />
-                      {item}
-                    </div>
-                  ))}
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                  <Link to="/anunciar">
-                    <Button className="w-full rounded-2xl bg-white text-primary hover:bg-white/90 px-5 py-4 h-auto">
-                      <PackageOpen className="w-4 h-4" /> Ver planos
-                    </Button>
-                  </Link>
-                  <Link to="/publicar">
-                    <Button variant="outline" className="w-full rounded-2xl border-white/30 bg-transparent text-white hover:bg-white/10 px-5 py-4 h-auto">
-                      <User className="w-4 h-4" /> Publicar gratis
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </motion.section>
-        )}
 
         {/* Featured Section Section */}
         <AnimatePresence>
