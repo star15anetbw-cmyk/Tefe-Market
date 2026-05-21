@@ -354,7 +354,7 @@ export default function AdDetails() {
       if (navigator.share) {
         await navigator.share({
           title: ad.title || 'Anúncio no Tefé Market',
-          text: ad.description || '',
+          text: `Olha esse anuncio no Tefe Market: ${ad.title}`,
           url: window.location.href,
         });
       } else {
@@ -369,6 +369,27 @@ export default function AdDetails() {
   };
 
   // Normalização do WhatsApp para link wa.me
+  const shareOnWhatsApp = async () => {
+    try {
+      incrementAdShares(ad.id, ad.shares_count || 0).then(newShares => {
+        setAd(prev => {
+          if (prev && prev.id === ad.id) {
+            return {
+              ...prev,
+              shares_count: newShares
+            };
+          }
+          return prev;
+        });
+      }).catch(e => console.debug('Shares count error ignored', e));
+
+      const message = `Olha esse anuncio no Tefe Market:\n\n${ad.title}\n${formatAdPrice(ad.price || 0, ad.ad_type)}\n\n${window.location.href}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      console.error('Falha ao compartilhar no WhatsApp:', err);
+    }
+  };
+
   const getWhatsAppUrl = () => {
     if (!whatsappNumber) return null;
     
@@ -636,6 +657,14 @@ Ainda está disponível?`;
               >
                 <Share2 className="w-4 h-4" />
                 Compartilhar Oferta
+              </button>
+
+              <button 
+                onClick={shareOnWhatsApp}
+                className="flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 font-bold py-3 rounded-lg hover:bg-emerald-100 transition-all active:scale-95 border-2 border-emerald-100 text-xs uppercase tracking-widest"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Enviar pelo WhatsApp
               </button>
             </div>
           </div>

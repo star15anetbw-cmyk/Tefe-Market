@@ -23,7 +23,9 @@ import {
   Sofa,
   Tv,
   Trophy,
-  Briefcase
+  Briefcase,
+  CheckCircle,
+  MessageCircle
 } from 'lucide-react';
 import { cn, isNonCriticalSupabaseError, smartShuffle } from '../lib/utils';
 import Button from '../components/ui/Button';
@@ -606,6 +608,52 @@ export default function Home() {
               ))}
           </div>
         </div>
+
+        {!loading && !filters.search && filters.category === 'Todos' && (
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="max-w-7xl mx-auto overflow-hidden rounded-[2rem] bg-primary p-6 sm:p-10 text-white shadow-2xl shadow-primary/20"
+          >
+            <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/80 mb-4">
+                  <Zap className="w-3.5 h-3.5" /> Anuncie em Tefe
+                </div>
+                <h2 className="text-3xl sm:text-5xl font-black tracking-tighter leading-none mb-4">
+                  Venda, alugue ou divulgue seu servico no Tefe Market.
+                </h2>
+                <p className="text-sm sm:text-base font-bold text-white/75 max-w-2xl leading-relaxed">
+                  Publique seu anuncio gratis e, quando quiser mais visibilidade, use os destaques pagos para aparecer melhor na vitrine.
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-white/10 p-5 ring-1 ring-white/15">
+                <div className="space-y-3 mb-6">
+                  {['Publicacao gratuita', 'Contato direto pelo WhatsApp', 'Destaque pago opcional'].map(item => (
+                    <div key={item} className="flex items-center gap-3 text-sm font-black">
+                      <CheckCircle className="w-5 h-5 text-white shrink-0" />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                  <Link to="/publicar">
+                    <Button className="w-full rounded-2xl bg-white text-primary hover:bg-white/90 px-5 py-4 h-auto">
+                      <PackageOpen className="w-4 h-4" /> Publicar anuncio
+                    </Button>
+                  </Link>
+                  <Link to="/cadastro">
+                    <Button variant="outline" className="w-full rounded-2xl border-white/30 bg-transparent text-white hover:bg-white/10 px-5 py-4 h-auto">
+                      <User className="w-4 h-4" /> Criar conta
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </motion.section>
+        )}
 
         {/* Featured Section Section */}
         <AnimatePresence>
