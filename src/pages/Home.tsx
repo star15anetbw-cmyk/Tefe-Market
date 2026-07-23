@@ -24,8 +24,7 @@ import {
   Tv,
   Trophy,
   Briefcase,
-  MessageCircle,
-  X
+  MessageCircle
 } from 'lucide-react';
 import { cn, isNonCriticalSupabaseError, smartShuffle } from '../lib/utils';
 import Button from '../components/ui/Button';
@@ -68,63 +67,6 @@ const SEARCH_EXAMPLES = [
   'aluguel', 'serviço de limpeza', 'mecânico', 'pintura', 'mudança', 'eletrônicos'
 ];
 
-type PixCountdown = {
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-};
-
-const MANAUS_UTC_OFFSET_MS = 4 * 60 * 60 * 1000;
-const FRIDAY = 5;
-
-function getNextPixDrawDate(now = new Date()) {
-  const manausNow = new Date(now.getTime() - MANAUS_UTC_OFFSET_MS);
-  const dayOfWeek = manausNow.getUTCDay();
-  let daysUntilFriday = (FRIDAY - dayOfWeek + 7) % 7;
-
-  let targetAsManausTime = Date.UTC(
-    manausNow.getUTCFullYear(),
-    manausNow.getUTCMonth(),
-    manausNow.getUTCDate() + daysUntilFriday,
-    19,
-    0,
-    0,
-    0
-  );
-
-  if (targetAsManausTime <= manausNow.getTime()) {
-    daysUntilFriday += 7;
-    targetAsManausTime = Date.UTC(
-      manausNow.getUTCFullYear(),
-      manausNow.getUTCMonth(),
-      manausNow.getUTCDate() + daysUntilFriday,
-      19,
-      0,
-      0,
-      0
-    );
-  }
-
-  return new Date(targetAsManausTime + MANAUS_UTC_OFFSET_MS);
-}
-
-function getPixCountdown(now = new Date()): PixCountdown {
-  const nextDraw = getNextPixDrawDate(now);
-  const totalSeconds = Math.max(0, Math.floor((nextDraw.getTime() - now.getTime()) / 1000));
-
-  return {
-    days: Math.floor(totalSeconds / 86400),
-    hours: Math.floor((totalSeconds % 86400) / 3600),
-    minutes: Math.floor((totalSeconds % 3600) / 60),
-    seconds: totalSeconds % 60
-  };
-}
-
-function padTime(value: number) {
-  return String(value).padStart(2, '0');
-}
-
 export default function Home() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -137,8 +79,6 @@ export default function Home() {
   const [page, setPage] = useState(0);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const [showAdvertisePrompt, setShowAdvertisePrompt] = useState(false);
-  const [pixCountdown, setPixCountdown] = useState<PixCountdown>(() => getPixCountdown());
   
   const [localSearch, setLocalSearch] = useState('');
   const [filtersState, setFiltersState] = useState<AdFilter>({
@@ -174,26 +114,6 @@ export default function Home() {
       isMountedRef.current = false;
     };
   }, []);
-
-  useEffect(() => {
-    try {
-      const dismissed = sessionStorage.getItem('tefe_advertise_prompt_dismissed');
-      setShowAdvertisePrompt(!dismissed);
-    } catch {
-      setShowAdvertisePrompt(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!showAdvertisePrompt) return;
-
-    const updateCountdown = () => setPixCountdown(getPixCountdown());
-
-    updateCountdown();
-    const intervalId = window.setInterval(updateCountdown, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [showAdvertisePrompt]);
 
   // Typewriter placeholder state
   const [placeholder, setPlaceholder] = useState('Busque por produtos, serviços...');
@@ -606,120 +526,8 @@ export default function Home() {
     }
   };
 
-  const dismissAdvertisePrompt = () => {
-    try {
-      sessionStorage.setItem('tefe_advertise_prompt_dismissed', 'true');
-    } catch {
-      // Ignore storage errors and just close the prompt for this render.
-    }
-
-    setShowAdvertisePrompt(false);
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-bg-main w-full max-w-full overflow-x-hidden">
-      {showAdvertisePrompt && !filters.search && filters.category === 'Todos' && (
-        <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-gray-950/45 px-3 pb-20 pt-6 backdrop-blur-sm sm:items-center sm:p-6">
-          <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="relative w-full max-w-md overflow-hidden rounded-[1.75rem] bg-white shadow-2xl"
-          >
-            <button
-              type="button"
-              onClick={dismissAdvertisePrompt}
-              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-500 shadow-sm ring-1 ring-gray-100 transition-all hover:text-gray-900 active:scale-95"
-              aria-label="Fechar aviso"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <div className="bg-primary px-6 pb-7 pt-8 text-white">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/80">
-                <Zap className="h-3.5 w-3.5" /> Sorteio PIX
-              </div>
-              <h2 className="pr-10 text-3xl font-black leading-none tracking-tight">
-                🎁 PIX R$50 TODA SEXTA
-              </h2>
-              <p className="mt-3 text-sm font-bold leading-relaxed text-white/75">
-                Anuncie GRÁTIS no Tefé Market e participe automaticamente.
-              </p>
-            </div>
-
-            <div className="space-y-3 p-5">
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center shadow-[0_0_24px_rgba(245,158,11,0.18)]">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">
-                  ⏳ Próximo sorteio PIX em:
-                </p>
-                <div className="mt-3 grid grid-cols-4 gap-2">
-                  {[
-                    { label: 'dias', value: `${padTime(pixCountdown.days)}d` },
-                    { label: 'horas', value: `${padTime(pixCountdown.hours)}h` },
-                    { label: 'min', value: `${padTime(pixCountdown.minutes)}m` },
-                    { label: 'seg', value: `${padTime(pixCountdown.seconds)}s`, animated: true }
-                  ].map((item) => (
-                    <div key={item.label} className="rounded-xl bg-white px-2 py-2 shadow-sm ring-1 ring-amber-100">
-                      {item.animated ? (
-                        <motion.div
-                          key={item.value}
-                          initial={{ opacity: 0.45, y: 3 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.18 }}
-                          className="text-lg font-black leading-none text-gray-950"
-                        >
-                          {item.value}
-                        </motion.div>
-                      ) : (
-                        <div className="text-lg font-black leading-none text-gray-950">{item.value}</div>
-                      )}
-                      <div className="mt-1 text-[7px] font-black uppercase tracking-widest text-gray-400">{item.label}</div>
-                    </div>
-                  ))}
-                </div>
-                <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-amber-700/80">
-                  Toda sexta às 19h, horário de Manaus
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 text-center">
-                {['Anuncio gratis', 'WhatsApp direto', 'Destaque opcional'].map(item => (
-                  <div key={item} className="rounded-2xl bg-gray-50 px-2 py-3">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-500">{item}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid gap-2">
-                <Link to="/publicar" onClick={dismissAdvertisePrompt}>
-                  <Button className="w-full animate-pulse rounded-2xl bg-primary px-5 py-4 h-auto shadow-xl shadow-primary/25">
-                    📢 ANUNCIAR AGORA
-                  </Button>
-                </Link>
-                <Link
-                  to="/publicar"
-                  onClick={dismissAdvertisePrompt}
-                  className="flex w-full items-center justify-center rounded-2xl bg-emerald-50 px-5 py-3 text-[11px] font-black uppercase tracking-widest text-primary ring-2 ring-primary/15 transition-all hover:bg-emerald-100 active:scale-95"
-                >
-                  Gratis para anunciar
-                </Link>
-                <Link to="/anunciar" onClick={dismissAdvertisePrompt}>
-                  <Button variant="ghost" className="w-full rounded-2xl px-5 py-3 h-auto text-gray-500">
-                    Ver destaques opcionais
-                  </Button>
-                </Link>
-                <button
-                  type="button"
-                  onClick={dismissAdvertisePrompt}
-                  className="w-full rounded-2xl px-5 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 transition-all hover:bg-gray-50 hover:text-gray-700 active:scale-95"
-                >
-                  Continuar vendo anuncios
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
       {/* Header Section (Branded) */}
       <div className="bg-white pt-1 pb-2 sm:pt-12 sm:pb-16 px-4">
         <div className="max-w-4xl mx-auto space-y-3 sm:space-y-8">
